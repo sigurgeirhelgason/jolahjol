@@ -1,0 +1,1360 @@
+{
+  "version": 2,
+  "currentYear": "2026",
+  "people": [
+    {
+      "id": "e6t4mc13",
+      "name": "Hugi",
+      "group": "born",
+      "birthday": "2016-05-17"
+    },
+    {
+      "id": "oddbqsbj",
+      "name": "Una Elínóra",
+      "group": "born"
+    },
+    {
+      "id": "bnh7uf2p",
+      "name": "Óskar Birnir",
+      "group": "born"
+    },
+    {
+      "id": "knypquoq",
+      "name": "H systkinagjöf",
+      "group": "born"
+    },
+    {
+      "id": "3n3p80g5",
+      "name": "U systkinagjöf",
+      "group": "born"
+    },
+    {
+      "id": "rbfz8yz5",
+      "name": "Ó systkinagjöf",
+      "group": "born"
+    },
+    {
+      "id": "7elrdlq7",
+      "name": "Sigurgeir",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "slnyxi9d",
+      "name": "Ásdís",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "d1trzkep",
+      "name": "Ásdís frá börnum",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "26tzlrtf",
+      "name": "Elsa",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "rzfpy0eh",
+      "name": "Elsa sameiginleg",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "n93pyo81",
+      "name": "Helgi Hafþór",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "o3u47xhe",
+      "name": "Kári Hafsteinn",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "jn9ahl34",
+      "name": "Una Eydís",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "6xieq3yd",
+      "name": "Una og Helgi",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "fa1n4ekf",
+      "name": "Siggi Logi",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "4floywj4",
+      "name": "Sigrún Ásta",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "3bdveit8",
+      "name": "Mamma og Einar",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "5l7b9doq",
+      "name": "Pabbi og Gunnhildur",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "kd8ks8io",
+      "name": "Bragi",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "v4dzyu0h",
+      "name": "Áslaug",
+      "group": "vinir"
+    },
+    {
+      "id": "p5vgonnw",
+      "name": "Lára og Kristján",
+      "group": "vinir"
+    },
+    {
+      "id": "vi6xslr7",
+      "name": "Mahsa",
+      "group": "vinir",
+      "giveChristmas": false
+    },
+    {
+      "id": "5owpbtpd",
+      "name": "leikskólagjöf",
+      "group": "vinna"
+    },
+    {
+      "id": "vx4n0v6l",
+      "name": "Jólaleikur vinnunnar",
+      "group": "vinna"
+    },
+    {
+      "id": "ptz7yvo9",
+      "name": "Helgi",
+      "group": "fjolskylda"
+    },
+    {
+      "id": "1hubb41h",
+      "name": "kennarar",
+      "group": "vinna"
+    },
+    {
+      "id": "l6kti8fs",
+      "name": "Elsa Særún",
+      "group": "fjolskylda"
+    }
+  ],
+  "years": {
+    "2024": {
+      "budget": 160000,
+      "gifts": [
+        {
+          "id": "4hpolm30",
+          "personId": "e6t4mc13",
+          "ideas": [
+            {
+              "text": "Andrés áskrift",
+              "picked": false
+            },
+            {
+              "text": "HP legó",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 17600,
+          "bought": true
+        },
+        {
+          "id": "cpg0jgvr",
+          "personId": "oddbqsbj",
+          "ideas": [
+            {
+              "text": "hundalegó",
+              "picked": false
+            },
+            {
+              "text": "Hummel peysa",
+              "picked": false
+            },
+            {
+              "text": "Fíasól",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 12000,
+          "bought": true
+        },
+        {
+          "id": "5x1qdq8u",
+          "personId": "bnh7uf2p",
+          "ideas": [
+            {
+              "text": "hús",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 11000,
+          "bought": true
+        },
+        {
+          "id": "z7cige1p",
+          "personId": "knypquoq",
+          "ideas": [
+            {
+              "text": "loppan",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": 1000,
+          "bought": true
+        },
+        {
+          "id": "16g9gvub",
+          "personId": "3n3p80g5",
+          "ideas": [
+            {
+              "text": "loppan",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": 1000,
+          "bought": true
+        },
+        {
+          "id": "6hzpmwm6",
+          "personId": "rbfz8yz5",
+          "ideas": [
+            {
+              "text": "loppan",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": 2000,
+          "bought": true
+        },
+        {
+          "id": "klw4obfm",
+          "personId": "7elrdlq7",
+          "ideas": [],
+          "store": "Netverslun",
+          "link": "",
+          "plan": 15000,
+          "price": 14000,
+          "bought": true
+        },
+        {
+          "id": "d5edxs4m",
+          "personId": "slnyxi9d",
+          "ideas": [
+            {
+              "text": "hitateppi",
+              "picked": false
+            }
+          ],
+          "store": "Elko",
+          "link": "",
+          "plan": 10000,
+          "price": 10000,
+          "bought": true
+        },
+        {
+          "id": "7mypajrp",
+          "personId": "d1trzkep",
+          "ideas": [
+            {
+              "text": "Bananagrams",
+              "picked": false
+            }
+          ],
+          "store": "Hagkaup",
+          "link": "",
+          "plan": 5000,
+          "price": 3869,
+          "bought": true
+        },
+        {
+          "id": "k9k31z65",
+          "personId": "26tzlrtf",
+          "ideas": [
+            {
+              "text": "bók",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 2940,
+          "bought": true
+        },
+        {
+          "id": "f667c11b",
+          "personId": "rzfpy0eh",
+          "ideas": [
+            {
+              "text": "náttbuxur",
+              "picked": false
+            }
+          ],
+          "store": "Joe Boxer",
+          "link": "",
+          "plan": 5000,
+          "price": 6384,
+          "bought": true
+        },
+        {
+          "id": "yoca0lmn",
+          "personId": "n93pyo81",
+          "ideas": [
+            {
+              "text": "legó",
+              "picked": false
+            }
+          ],
+          "store": "Boozt",
+          "link": "",
+          "plan": 5000,
+          "price": 3905,
+          "bought": true
+        },
+        {
+          "id": "36x6q9ba",
+          "personId": "o3u47xhe",
+          "ideas": [
+            {
+              "text": "legó",
+              "picked": false
+            }
+          ],
+          "store": "Boozt",
+          "link": "",
+          "plan": 5000,
+          "price": 3905,
+          "bought": true
+        },
+        {
+          "id": "tjuhlez3",
+          "personId": "jn9ahl34",
+          "ideas": [
+            {
+              "text": "bók",
+              "picked": false
+            }
+          ],
+          "store": "Salka",
+          "link": "",
+          "plan": 5000,
+          "price": 2940,
+          "bought": true
+        },
+        {
+          "id": "edh5gvg0",
+          "personId": "6xieq3yd",
+          "ideas": [
+            {
+              "text": "terrazzo bakki",
+              "picked": false
+            }
+          ],
+          "store": "Epal",
+          "link": "",
+          "plan": 5000,
+          "price": 3655,
+          "bought": true
+        },
+        {
+          "id": "l5lvtsrm",
+          "personId": "fa1n4ekf",
+          "ideas": [
+            {
+              "text": "legó",
+              "picked": false
+            }
+          ],
+          "store": "Boozt",
+          "link": "",
+          "plan": 5000,
+          "price": 3905,
+          "bought": true
+        },
+        {
+          "id": "59ns7nap",
+          "personId": "4floywj4",
+          "ideas": [
+            {
+              "text": "sparibaukur",
+              "picked": false
+            }
+          ],
+          "store": "Epal",
+          "link": "",
+          "plan": 5000,
+          "price": 3953,
+          "bought": true
+        },
+        {
+          "id": "twjgpp3q",
+          "personId": "3bdveit8",
+          "ideas": [
+            {
+              "text": "Iittala skálar",
+              "picked": false
+            }
+          ],
+          "store": "Líf og list",
+          "link": "",
+          "plan": 8000,
+          "price": 5840,
+          "bought": true
+        },
+        {
+          "id": "pwov933a",
+          "personId": "5l7b9doq",
+          "ideas": [
+            {
+              "text": "Bananagrams",
+              "picked": false
+            },
+            {
+              "text": "rauðvín",
+              "picked": false
+            }
+          ],
+          "store": "Hagkaup, Vínbúðin",
+          "link": "",
+          "plan": 4000,
+          "price": 3869,
+          "bought": true
+        },
+        {
+          "id": "i250n1fp",
+          "personId": "kd8ks8io",
+          "ideas": [
+            {
+              "text": "Bragakaffi",
+              "picked": false
+            },
+            {
+              "text": "Bananagrams",
+              "picked": false
+            }
+          ],
+          "store": "Hagkaup",
+          "link": "",
+          "plan": 5000,
+          "price": null,
+          "bought": true
+        },
+        {
+          "id": "mjnx7fzz",
+          "personId": "v4dzyu0h",
+          "ideas": [
+            {
+              "text": "terrazzo bakki",
+              "picked": false
+            }
+          ],
+          "store": "Epal",
+          "link": "",
+          "plan": 5000,
+          "price": 3655,
+          "bought": true
+        },
+        {
+          "id": "4xrfhgys",
+          "personId": "p5vgonnw",
+          "ideas": [
+            {
+              "text": "nestisbox og habit tracker",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 4000,
+          "price": 5000,
+          "bought": true
+        },
+        {
+          "id": "qcu6s2hb",
+          "personId": "vi6xslr7",
+          "ideas": [
+            {
+              "text": "vaðfugl",
+              "picked": false
+            }
+          ],
+          "store": "Epal",
+          "link": "",
+          "plan": 3000,
+          "price": 3528,
+          "bought": true
+        },
+        {
+          "id": "gq9vpuoe",
+          "personId": "5owpbtpd",
+          "ideas": [
+            {
+              "text": "Súkkulaði",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 2000,
+          "price": null,
+          "bought": true
+        },
+        {
+          "id": "z22uz069",
+          "personId": "vx4n0v6l",
+          "ideas": [
+            {
+              "text": "Omaggio vasi",
+              "picked": false
+            }
+          ],
+          "store": "Epal",
+          "link": "",
+          "plan": 3000,
+          "price": 2475,
+          "bought": true
+        }
+      ]
+    },
+    "2025": {
+      "budget": 160000,
+      "gifts": [
+        {
+          "id": "4oonxa2o",
+          "personId": "e6t4mc13",
+          "ideas": [
+            {
+              "text": "OZ miði",
+              "picked": false
+            },
+            {
+              "text": "Andrés áskrift",
+              "picked": false
+            },
+            {
+              "text": "mp3 spilari",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 6000,
+          "bought": true
+        },
+        {
+          "id": "qetjmfui",
+          "personId": "oddbqsbj",
+          "ideas": [
+            {
+              "text": "OZ miði",
+              "picked": false
+            },
+            {
+              "text": "OZ bók",
+              "picked": false
+            },
+            {
+              "text": "úr",
+              "picked": false
+            },
+            {
+              "text": "mp 3 spilari",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 12000,
+          "bought": true
+        },
+        {
+          "id": "d6tjc2n7",
+          "personId": "bnh7uf2p",
+          "ideas": [
+            {
+              "text": "OZ miði",
+              "picked": false
+            },
+            {
+              "text": "hús",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 6000,
+          "bought": true
+        },
+        {
+          "id": "jgidd1pb",
+          "personId": "knypquoq",
+          "ideas": [
+            {
+              "text": "loppan",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "t6jeiqs2",
+          "personId": "3n3p80g5",
+          "ideas": [
+            {
+              "text": "loppan",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "m6cvlx7q",
+          "personId": "rbfz8yz5",
+          "ideas": [
+            {
+              "text": "loppan",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "yzdu1llk",
+          "personId": "7elrdlq7",
+          "ideas": [
+            {
+              "text": "Radiohead tónleikar",
+              "picked": false
+            },
+            {
+              "text": "jóla Keanu",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 6000,
+          "bought": true
+        },
+        {
+          "id": "899tcyg4",
+          "personId": "slnyxi9d",
+          "ideas": [
+            {
+              "text": "leikjatölva",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": null,
+          "price": 13000,
+          "bought": true
+        },
+        {
+          "id": "cgcrmqhb",
+          "personId": "d1trzkep",
+          "ideas": [
+            {
+              "text": "útsaumsmynd",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": null,
+          "price": null,
+          "bought": true
+        },
+        {
+          "id": "ad5rdw95",
+          "personId": "n93pyo81",
+          "ideas": [
+            {
+              "text": "bók",
+              "picked": true
+            },
+            {
+              "text": "úr",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 7300,
+          "bought": true
+        },
+        {
+          "id": "8hwr917e",
+          "personId": "o3u47xhe",
+          "ideas": [
+            {
+              "text": "bók",
+              "picked": true
+            },
+            {
+              "text": "úr",
+              "picked": false
+            },
+            {
+              "text": "spidermanúr",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 5700,
+          "bought": true
+        },
+        {
+          "id": "k7qn8ags",
+          "personId": "jn9ahl34",
+          "ideas": [
+            {
+              "text": "matargjafabréf",
+              "picked": false
+            },
+            {
+              "text": "svefngríma silki",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 6400,
+          "bought": true
+        },
+        {
+          "id": "uug0dtas",
+          "personId": "ptz7yvo9",
+          "ideas": [
+            {
+              "text": "sokkar",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 2000,
+          "bought": true
+        },
+        {
+          "id": "ws7fdl22",
+          "personId": "fa1n4ekf",
+          "ideas": [
+            {
+              "text": "bók",
+              "picked": false
+            },
+            {
+              "text": "úr",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 6400,
+          "bought": true
+        },
+        {
+          "id": "j758utju",
+          "personId": "4floywj4",
+          "ideas": [
+            {
+              "text": "bók",
+              "picked": false
+            },
+            {
+              "text": "vatnsflaska",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 4000,
+          "bought": true
+        },
+        {
+          "id": "fsnquwso",
+          "personId": "3bdveit8",
+          "ideas": [
+            {
+              "text": "Nostra",
+              "picked": false
+            },
+            {
+              "text": "sokkar",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 8000,
+          "price": 5000,
+          "bought": true
+        },
+        {
+          "id": "3559yuhx",
+          "personId": "5l7b9doq",
+          "ideas": [],
+          "store": "Minigarðurinn",
+          "link": "",
+          "plan": 4000,
+          "price": 10000,
+          "bought": true
+        },
+        {
+          "id": "tdeh4gci",
+          "personId": "kd8ks8io",
+          "ideas": [
+            {
+              "text": "burrito spil",
+              "picked": false
+            }
+          ],
+          "store": "Hagkaup",
+          "link": "",
+          "plan": 5000,
+          "price": 5500,
+          "bought": true
+        },
+        {
+          "id": "c7uc1jxc",
+          "personId": "v4dzyu0h",
+          "ideas": [
+            {
+              "text": "matargjafabréf",
+              "picked": false
+            },
+            {
+              "text": "ferðaskartgripaskrín",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 4000,
+          "bought": true
+        },
+        {
+          "id": "nmht96k3",
+          "personId": "vi6xslr7",
+          "ideas": [
+            {
+              "text": "trefill",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "vmdm9sp1",
+          "personId": "1hubb41h",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 2000,
+          "price": 4000,
+          "bought": true
+        },
+        {
+          "id": "rlogufg7",
+          "personId": "5owpbtpd",
+          "ideas": [
+            {
+              "text": "Súkkulaði",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 2000,
+          "price": 2000,
+          "bought": true
+        },
+        {
+          "id": "mt5b2d8z",
+          "personId": "vx4n0v6l",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": 3100,
+          "bought": true
+        }
+      ]
+    },
+    "2026": {
+      "budget": 160000,
+      "gifts": [
+        {
+          "id": "u7wggaqw",
+          "personId": "e6t4mc13",
+          "ideas": [
+            {
+              "text": "croc skór",
+              "picked": true,
+              "price": 8990,
+              "store": "Boozt",
+              "from": "okkur"
+            },
+            {
+              "text": "HP bók",
+              "picked": false
+            },
+            {
+              "text": "levis föt",
+              "picked": false
+            },
+            {
+              "text": "púsl",
+              "picked": true,
+              "price": 3500,
+              "from": "Ömmu Jóu",
+              "forOther": true,
+              "store": "Hagkaup",
+              "note": "1000 bita"
+            },
+            {
+              "text": "bók",
+              "picked": false,
+              "from": "ömmu jóu",
+              "forOther": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 8990,
+          "bought": true
+        },
+        {
+          "id": "t619hs09",
+          "personId": "oddbqsbj",
+          "ideas": [
+            {
+              "text": "croc skór",
+              "picked": true,
+              "price": 7990,
+              "store": "Elkó"
+            },
+            {
+              "text": "spil",
+              "picked": true,
+              "price": 4000,
+              "from": "Afa Braga",
+              "forOther": true,
+              "paid": true,
+              "link": "https://spilavinir.is/x"
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 7990,
+          "bought": true
+        },
+        {
+          "id": "x2jcj6q1",
+          "personId": "bnh7uf2p",
+          "ideas": [
+            {
+              "text": "úr",
+              "picked": false
+            },
+            {
+              "text": "segulkubbar",
+              "picked": true,
+              "price": 3000,
+              "from": "börnunum"
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": 3000,
+          "bought": true
+        },
+        {
+          "id": "9awqfojw",
+          "personId": "knypquoq",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "vwrv82e0",
+          "personId": "3n3p80g5",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "68yktbgr",
+          "personId": "rbfz8yz5",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "e2r5nv7u",
+          "personId": "7elrdlq7",
+          "ideas": [
+            {
+              "text": "jóla Keanu",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 15000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "58ep2way",
+          "personId": "slnyxi9d",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 8000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "d86ktigz",
+          "personId": "d1trzkep",
+          "ideas": [
+            {
+              "text": "sveppahnífur",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 5500,
+          "bought": true
+        },
+        {
+          "id": "lc3absz7",
+          "personId": "n93pyo81",
+          "ideas": [
+            {
+              "text": "pokemon/minecraft föt",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "k9dsb6j8",
+          "personId": "o3u47xhe",
+          "ideas": [
+            {
+              "text": "pokemon/minecraft föt",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "wkq68ls5",
+          "personId": "l6kti8fs",
+          "ideas": [
+            {
+              "text": "Moomin jólabolli",
+              "picked": false
+            },
+            {
+              "text": "mini Le Creuset",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 8000,
+          "price": 5000,
+          "bought": true
+        },
+        {
+          "id": "piss01ra",
+          "personId": "jn9ahl34",
+          "ideas": [
+            {
+              "text": "mini Le Creuset",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 8000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "zzx639an",
+          "personId": "ptz7yvo9",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "gk3llmnv",
+          "personId": "fa1n4ekf",
+          "ideas": [
+            {
+              "text": "Lego klukka",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "fah7u3kx",
+          "personId": "4floywj4",
+          "ideas": [
+            {
+              "text": "bók - Áður en ég sofna",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "rtuynnan",
+          "personId": "3bdveit8",
+          "ideas": [
+            {
+              "text": "geislaspilari",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 8000,
+          "price": 9000,
+          "bought": true
+        },
+        {
+          "id": "270ufpgy",
+          "personId": "5l7b9doq",
+          "ideas": [
+            {
+              "text": "Laufey CD",
+              "picked": false
+            },
+            {
+              "text": "rauðvín",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 4000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "d7ip26mh",
+          "personId": "kd8ks8io",
+          "ideas": [
+            {
+              "text": "bolur/peysa",
+              "picked": false
+            },
+            {
+              "text": "Levi's peysa",
+              "picked": true
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 5000,
+          "price": 7300,
+          "bought": true
+        },
+        {
+          "id": "6fqvz8g9",
+          "personId": "v4dzyu0h",
+          "ideas": [
+            {
+              "text": "skýjadiskur",
+              "picked": false
+            }
+          ],
+          "store": "IngaElín",
+          "link": "",
+          "plan": 5000,
+          "price": 7400,
+          "bought": true
+        },
+        {
+          "id": "pwux84ex",
+          "personId": "vi6xslr7",
+          "ideas": [
+            {
+              "text": "Kastehelmi kertastjaki",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "yldhcgzf",
+          "personId": "1hubb41h",
+          "ideas": [],
+          "store": "",
+          "link": "",
+          "plan": 2000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "xouz6qfu",
+          "personId": "5owpbtpd",
+          "ideas": [
+            {
+              "text": "sælgæti",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 2000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "8plajigp",
+          "personId": "vx4n0v6l",
+          "ideas": [
+            {
+              "text": "Kastehelmi kertastjaki",
+              "picked": false
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 3000,
+          "price": null,
+          "bought": false
+        },
+        {
+          "id": "dup1",
+          "personId": "kd8ks8io",
+          "ideas": [
+            {
+              "text": "sokkar",
+              "picked": true,
+              "price": 1500
+            }
+          ],
+          "store": "",
+          "link": "",
+          "plan": 1000,
+          "price": 1500,
+          "bought": true
+        }
+      ]
+    }
+  },
+  "lastExport": null,
+  "lastChange": null,
+  "locations": {
+    "epal": [
+      "Kringlan"
+    ],
+    "elko": [
+      "Smáralind",
+      "Netverslun"
+    ]
+  },
+  "storeNames": [
+    "Hagkaup"
+  ]
+}

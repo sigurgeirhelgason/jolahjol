@@ -1,0 +1,46 @@
+[project]
+name = "jolahjol"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "dj-database-url>=3.1.2",
+    "django>=6.0,<6.1",
+    "django-allauth>=65.21.1",
+    "django-anymail>=15.2",
+    "django-cotton>=2.8.0",
+    "django-htmx>=1.29.0",
+    "django-ratelimit>=4.1.0",
+    "django-unfold>=0.110.1",
+    "gunicorn>=26.2.0",
+    "psycopg[binary]>=3.3.6",
+    "python-decouple>=3.8",
+    "sentry-sdk[django]>=2.73.0",
+    "whitenoise>=6.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "factory-boy>=3.3.3",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "pytest-django>=4.14.0",
+    "pytest-playwright>=0.10.0",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "--reuse-db -p no:cacheprovider"

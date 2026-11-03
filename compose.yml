@@ -1,0 +1,22 @@
+# Þróunarumhverfi: aðeins Postgres. Django keyrir beint á vélinni (uv run manage.py runserver).
+# Port 5433 svo þetta rekist ekki á Postgres Maintenance Tracker (5432).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_DB: jolahjol
+      POSTGRES_USER: jolahjol
+      POSTGRES_PASSWORD: jolahjol
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "jolahjol"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
