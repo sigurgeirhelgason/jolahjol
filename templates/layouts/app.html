@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% comment %}
+  Layout innskráðra síðna. Krefst `household` og `my_households` í context (HouseholdMixin).
+{% endcomment %}
+{% block body %}
+<header class="topbar">
+  <div class="container">
+    <div class="brand">
+      <a class="brand-name" href="{% url 'gifts:list' household.slug %}">Jólahjól 🎄</a>
+      {% block year_pill %}{% endblock %}
+    </div>
+    <nav class="views" aria-label="{% translate 'Síður' %}">{% block nav %}{% include "partials/nav.html" %}{% endblock %}</nav>
+    <div class="topbar-right">
+      {% block topbar_actions %}{% endblock %}
+      <div class="menu" x-data="menu" x-on:click.outside="close" x-on:keydown.escape="close">
+        <button type="button" x-on:click="toggle" x-bind:aria-expanded="open" aria-haspopup="true">
+          <span class="ms">home</span><span class="lbl">{{ household.name }}</span><span class="ms">expand_more</span>
+        </button>
+        <div class="menu-panel" x-show="open" x-cloak>
+          {% for h in my_households %}
+            <a href="{% url 'gifts:list' h.slug %}"{% if h.pk == household.pk %} class="current" aria-current="true"{% endif %}>
+              <span class="ms">{% if h.pk == household.pk %}check{% else %}home{% endif %}</span>{{ h.name }}
+            </a>
+          {% endfor %}
+          <hr>
+          <a href="{% url 'households:settings' household.slug %}"><span class="ms">settings</span>{% translate "Stillingar og meðlimir" %}</a>
+          <a href="{% url 'households:create' %}"><span class="ms">add</span>{% translate "Nýtt heimili" %}</a>
+        </div>
+      </div>
+      <div class="menu user" x-data="menu" x-on:click.outside="close" x-on:keydown.escape="close">
+        <button type="button" x-on:click="toggle" x-bind:aria-expanded="open" aria-haspopup="true" aria-label="{% translate 'Aðgangur' %}">
+          <span class="ms">person</span><span class="lbl">{{ request.user }}</span>
+        </button>
+        <div class="menu-panel" x-show="open" x-cloak>
+          <div class="who">{{ request.user.email }}</div>
+          <hr>
+          <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit"><span class="ms">logout</span>{% translate "Skrá út" %}</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    {% include "partials/messages.html" %}
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="foot-l">
+      <span class="wish"><span class="ms">auto_awesome</span>{% translate "Gleðileg jól og góða gjafagleði 🎄" %}</span>
+      <span>•</span>
+      <span>© {% now "Y" %} Jólahjól</span>
+    </div>
+    <div class="foot-r">{% block footer_actions %}{% endblock %}</div>
+  </div>
+</footer>
+{% block after %}{% endblock %}
+{% endblock %}

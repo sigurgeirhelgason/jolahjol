@@ -1,0 +1,8 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block title %}403 · Jólahjól{% endblock %}
+{% block content %}
+  <h1>{% translate "Þú hefur ekki aðgang" %}</h1>
+  <p>{% translate "Aðeins eigendur heimilisins geta gert þetta." %}</p>
+  <a class="btn soft block" href="{% url 'home' %}">{% translate "Á forsíðu" %}</a>
+{% endblock %}

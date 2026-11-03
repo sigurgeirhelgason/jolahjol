@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% comment %}Einföld miðjusett síða: innskráning, kóði, boð, stofnun heimilis, villusíður.{% endcomment %}
+{% block body %}
+<main class="entrance">
+  <section class="card entrance-card">
+    <div class="glow g-hero-1"></div>
+    <div class="glow g-hero-2"></div>
+    <a class="brand-name" href="{% url 'home' %}">Jólahjól 🎄</a>
+    {% include "partials/messages.html" %}
+    {% block content %}{% endblock %}
+  </section>
+</main>
+{% endblock %}

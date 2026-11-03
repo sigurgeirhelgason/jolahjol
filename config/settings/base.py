@@ -4,6 +4,7 @@ from pathlib import Path
 
 import dj_database_url
 from decouple import Csv, config
+from django.utils.csp import CSP
 from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -23,6 +24,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "django_htmx",
     "django_cotton",
     "apps.core",
@@ -43,6 +48,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.core.middleware.ContentSecurityPolicyMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
 ]
 
@@ -59,6 +66,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.csp",
+                "apps.core.context_processors.site",
             ],
         },
     },
@@ -75,6 +84,45 @@ DATABASES["default"].setdefault("OPTIONS", {})["connect_timeout"] = 5
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",  # admin
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+LOGIN_URL = "account_request_login_code"
+LOGIN_REDIRECT_URL = "home"
+
+# Innskráning: netfang → kóði í tölvupósti. Engin lykilorð fyrir venjulega notendur.
+# Nýskráning og innskráning eru eitt skref (sjá apps.accounts.forms.EmailCodeForm).
+ACCOUNT_ADAPTER = "apps.accounts.adapter.AccountAdapter"
+ACCOUNT_FORMS = {"request_login_code": "apps.accounts.forms.EmailCodeForm"}
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_BY_CODE_ENABLED = True
+ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 15 * 60
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_LOGOUT_REDIRECT_URL = "home"
+ALLAUTH_USER_CODE_FORMAT = {"numeric": True, "length": 6, "dashed": False}
+
+# Google: virkt aðeins þegar lyklar eru komnir
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "EMAIL_AUTHENTICATION": True,  # Google-netfang tengist aðgangi með sama netfangi
+        "EMAIL_AUTHENTICATION_AUTO_CONNECT": True,
+        **(
+            {"APPS": [{"client_id": GOOGLE_CLIENT_ID, "secret": GOOGLE_CLIENT_SECRET}]}
+            if GOOGLE_CLIENT_ID
+            else {}
+        ),
+    }
+}
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_LOGIN_ON_GET = False
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -111,6 +159,20 @@ CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
+
+# CSP: ekkert inline, allt hýst sjálf. Admin (unfold) er undanþegið, sjá apps.core.middleware.
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF],
+    "img-src": [CSP.SELF, "data:"],
+    "font-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "form-action": [CSP.SELF, "https://accounts.google.com"],
+    "frame-ancestors": [CSP.NONE],
+    "base-uri": [CSP.SELF],
+    "object-src": [CSP.NONE],
+}
 
 # Á bak við Cloudflare og nginx: beiðnir koma inn yfir HTTP en eru HTTPS hjá notandanum
 if config("SECURE_PROXY_SSL_HEADER", default="", cast=str):

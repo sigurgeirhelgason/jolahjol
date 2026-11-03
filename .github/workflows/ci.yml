@@ -43,3 +43,7 @@ jobs:
         run: uv run python manage.py makemigrations --check --dry-run
       - name: Tests
         run: uv run pytest --create-db
+      - name: Playwright browser
+        run: uv run playwright install --with-deps chromium
+      - name: E2E tests
+        run: uv run pytest -m e2e --create-db

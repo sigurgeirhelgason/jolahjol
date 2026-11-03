@@ -1,0 +1,3 @@
+{% load i18n %}{% with name=request.resolver_match.view_name %}
+<a class="tab{% if name == 'gifts:list' %} active{% endif %}" href="{% url 'gifts:list' household.slug %}">{% translate "Gjafalisti" %}</a>
+{% endwith %}

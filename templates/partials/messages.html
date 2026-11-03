@@ -1,0 +1,7 @@
+<div class="flash" id="flash">
+  {% for message in messages %}
+    <div class="flash-item{% if message.level_tag == 'error' %} error{% endif %}" role="status">
+      <span class="ms">{% if message.level_tag == 'error' %}info{% else %}check_circle{% endif %}</span>{{ message }}
+    </div>
+  {% endfor %}
+</div>

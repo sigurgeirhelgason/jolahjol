@@ -1,0 +1,6 @@
+{% load i18n %}{% autoescape off %}{% translate "Hæ!" %}
+
+{% block content %}{% endblock content %}
+
+{% translate "Gleðileg jól,\nJólahjól 🎄" %}
+{% endautoescape %}

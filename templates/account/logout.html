@@ -1,0 +1,11 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block title %}{% translate "Útskráning" %} · Jólahjól{% endblock %}
+{% block content %}
+  <h1>{% translate "Skrá út?" %}</h1>
+  <form method="post" action="{% url 'account_logout' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    <button type="submit" class="btn primary block"><span class="ms">logout</span>{% translate "Skrá út" %}</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,116 @@
+/* Það sem bættist við í Django-útgáfunni: innskráning, heimili, skilaboð, valmyndir. */
+
+/* Glow-hringir (voru inline-stílar; CSP leyfir þá ekki) */
+.glow.g-hero-1 { right: -48px; top: -48px; width: 256px; height: 256px; background: rgba(126, 0, 11, .05); }
+.glow.g-hero-2 { left: -40px; bottom: -40px; width: 192px; height: 192px; background: rgba(63, 102, 83, .05); }
+.glow.g-dash-1 { right: -40px; bottom: -40px; width: 288px; height: 288px; background: rgba(63, 102, 83, .1); }
+.glow.g-dash-2 { left: -32px; top: -32px; width: 224px; height: 224px; background: rgba(126, 0, 11, .05); }
+
+a { color: var(--secondary); }
+a:hover { color: var(--primary); }
+a.btn { text-decoration: none; }
+.btn.primary, .btn.primary:hover { color: #fff; }
+.btn.soft, .btn.ghost { color: var(--on); }
+.btn.danger { background: none; color: var(--primary-c); box-shadow: inset 0 0 0 1.5px var(--primary-soft); }
+.btn.danger:hover { background: var(--primary-soft); }
+.btn.small { padding: 4px 10px; font-size: 12px; line-height: 16px; }
+.btn.small .ms { font-size: 16px; }
+.btn.block { width: 100%; justify-content: center; }
+.muted { color: var(--on-var); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+form.inline { display: inline; margin: 0; }
+
+/* ---------- Skilaboð (django.contrib.messages) ---------- */
+.flash { display: flex; flex-direction: column; gap: 8px; }
+.flash:empty { display: none; }
+.flash-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 12px; background: var(--lowest); box-shadow: var(--shadow); }
+.flash-item .ms { color: var(--secondary); }
+.flash-item.error { background: var(--primary-soft); color: var(--primary); }
+.flash-item.error .ms { color: var(--primary); }
+
+/* ---------- Innganga (innskráning, kóði, boð, stofnun heimilis) ---------- */
+.entrance { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; }
+.entrance-card { width: min(440px, 100%); padding: 40px 36px; display: flex; flex-direction: column; gap: 20px; }
+.entrance-card > :not(.glow) { position: relative; z-index: 1; }
+.entrance-card .brand-name { font-size: 24px; line-height: 32px; }
+.entrance-card h1 { margin: 0; font: 700 28px/36px var(--display); letter-spacing: -.01em; }
+.entrance-card p { margin: 0; color: var(--on-var); }
+.entrance-card form { display: flex; flex-direction: column; gap: 16px; }
+.entrance-foot { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+.entrance-foot button { border: none; background: none; padding: 0; color: var(--secondary); text-decoration: underline; font: inherit; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--outline); font-size: 12px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--highest); }
+.code-input { font: 700 28px/36px var(--display) !important; letter-spacing: .3em; text-align: center; }
+.field .errorlist, .errorlist { list-style: none; margin: 0; padding: 0; font-size: 12px; color: var(--primary-c); font-weight: 600; }
+.field.has-error input { border-color: var(--primary-c); }
+.field .help { font-size: 12px; color: var(--outline); }
+.google-btn { background: var(--lowest); color: var(--on); box-shadow: inset 0 0 0 1.5px var(--highest); }
+.google-btn:hover { background: var(--low); }
+
+/* Forsíða gesta */
+.landing h1 { font: 700 44px/52px var(--display); letter-spacing: -.02em; color: var(--primary); margin: 0; }
+.landing ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.landing li { display: flex; gap: 10px; align-items: flex-start; color: var(--on-var); }
+.landing li .ms { color: var(--secondary); }
+
+/* ---------- Heimilisval og notandavalmynd í toppstiku ---------- */
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.menu { position: relative; }
+.menu > button {
+  display: flex; align-items: center; gap: 6px; border: none; background: none; border-radius: 8px; padding: 6px 10px;
+  font: 600 14px/20px var(--display); color: var(--on-var); max-width: 240px;
+}
+.menu > button:hover, .menu > button[aria-expanded="true"] { background: var(--cont); color: var(--on); }
+.menu > button .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 240px; padding: 6px;
+  background: var(--lowest); border-radius: 12px; box-shadow: var(--shadow-2); display: flex; flex-direction: column;
+}
+.menu-panel a, .menu-panel button {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: none; background: none;
+  color: var(--on); text-decoration: none; text-align: left; font: 500 14px/20px Inter, system-ui, sans-serif; width: 100%;
+}
+.menu-panel a:hover, .menu-panel button:hover { background: var(--low); color: var(--on); }
+.menu-panel a.current { font-weight: 700; }
+.menu-panel a.current .ms { color: var(--secondary); }
+.menu-panel .ms { font-size: 18px; color: var(--on-var); }
+.menu-panel hr { border: none; border-top: 1px solid var(--cont); margin: 6px 4px; }
+.menu-panel .who { padding: 6px 10px; font-size: 12px; color: var(--on-var); overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Stillingar heimilis ---------- */
+.settings { display: grid; gap: 24px; max-width: 760px; width: 100%; margin: 0 auto; }
+.settings .card { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.settings h1 { margin: 0; font: 700 32px/40px var(--display); color: var(--primary); }
+.settings h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 600 18px/26px var(--display); }
+.settings h2 .ms { color: var(--secondary); font-size: 22px; }
+.settings p { margin: 0; color: var(--on-var); }
+.settings .row-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.settings .row-form .field { flex: 1; min-width: 200px; }
+.back { display: inline-flex; align-items: center; gap: 4px; font: 600 13px/18px var(--display); text-decoration: none; }
+.members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.members li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--low); flex-wrap: wrap; }
+.members li:last-child { border-bottom: none; }
+.members .who { flex: 1; min-width: 160px; display: flex; flex-direction: column; }
+.members .who strong { font: 600 15px/22px var(--display); }
+.members .who small { color: var(--on-var); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.members .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.invite-link { display: flex; gap: 6px; align-items: center; }
+.invite-link input { flex: 1; min-width: 0; border: none; background: var(--low); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--on-var); }
+.danger-zone { box-shadow: inset 0 0 0 1.5px var(--primary-soft), var(--shadow); }
+.danger-zone h2 .ms { color: var(--primary-c); }
+
+@media (max-width: 760px) {
+  .entrance-card { padding: 28px 20px; }
+  .menu > button .lbl { max-width: 120px; }
+  .topbar .menu.user > button .lbl { display: none; }
+}
+
+[x-cloak] { display: none !important; }
+nav.views a {
+  padding: 8px 16px; border-radius: 8px; text-decoration: none;
+  font: 600 14px/20px var(--display); color: var(--on-var);
+}
+nav.views a:hover { background: var(--cont); color: var(--on); }
+nav.views a.active { background: var(--high); color: var(--on); font-weight: 700; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
+.mobile-views a { flex-shrink: 0; padding: 4px 16px; border-radius: 6px; text-decoration: none; font: 600 12px/16px var(--display); color: var(--on-var); }
+.mobile-views a.active { background: var(--lowest); color: var(--primary); font-weight: 700; }

@@ -1,0 +1,95 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+{% block title %}{% translate "Stillingar" %} · {{ household.name }}{% endblock %}
+{% block content %}
+<div class="settings">
+  <a class="back" href="{% url 'gifts:list' household.slug %}"><span class="ms">arrow_back</span>{% translate "Gjafalisti" %}</a>
+  <h1>{{ household.name }}</h1>
+
+  {% if is_owner %}
+  <section class="card">
+    <h2><span class="ms">edit</span>{% translate "Nafn heimilis" %}</h2>
+    <form method="post" action="{% url 'households:rename' household.slug %}" class="row-form">
+      {% csrf_token %}
+      <c-field :field="rename_form.name" />
+      <button type="submit" class="btn soft"><span class="ms">save</span>{% translate "Vista" %}</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="card" id="members">
+    <h2><span class="ms">group</span>{% translate "Meðlimir" %}</h2>
+    <ul class="members">
+      {% for m in members %}
+        <li>
+          <span class="who">
+            <strong>{{ m.user }}{% if m.user == request.user %} <span class="muted">({% translate "þú" %})</span>{% endif %}</strong>
+            <small>{{ m.user.email }} · {{ m.get_role_display }}</small>
+          </span>
+          {% if is_owner and m.user != request.user %}
+            <span class="acts">
+              <form method="post" action="{% url 'households:member_role' household.slug m.pk %}" class="inline">
+                {% csrf_token %}
+                {% if m.role == "owner" %}
+                  <input type="hidden" name="role" value="member">
+                  <button type="submit" class="btn small soft">{% translate "Gera að meðlimi" %}</button>
+                {% else %}
+                  <input type="hidden" name="role" value="owner">
+                  <button type="submit" class="btn small soft">{% translate "Gera að eiganda" %}</button>
+                {% endif %}
+              </form>
+              <form method="post" action="{% url 'households:member_remove' household.slug m.pk %}" class="inline"
+                    x-data="confirm" data-message="{% blocktranslate with name=m.user %}Fjarlægja {{ name }} úr heimilinu?{% endblocktranslate %}" x-on:submit="ask">
+                {% csrf_token %}
+                <button type="submit" class="btn small danger"><span class="ms">person_remove</span>{% translate "Fjarlægja" %}</button>
+              </form>
+            </span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if not is_owner %}<p>{% translate "Aðeins eigendur geta boðið fleirum og fjarlægt meðlimi." %}</p>{% endif %}
+  </section>
+
+  {% if is_owner %}
+  <section class="card" id="invites">
+    <h2><span class="ms">person_add</span>{% translate "Bjóða í heimilið" %}</h2>
+    <p>{% translate "Hver hlekkur gildir fyrir einn og rennur út eftir 7 daga." %}</p>
+    {% for invite in invites %}
+      <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">
+        <input x-ref="source" readonly aria-label="{% translate 'Boðshlekkur' %}"
+               value="{{ request.scheme }}://{{ request.get_host }}{% url 'households:invite_accept' invite.token %}">
+        <button type="button" class="btn small soft" x-on:click="copy"><span class="ms">content_copy</span><span x-text="label">{% translate "Afrita" %}</span></button>
+        <form method="post" action="{% url 'households:invite_revoke' household.slug invite.pk %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="btn small ghost" aria-label="{% translate 'Afturkalla' %}"><span class="ms">close</span></button>
+        </form>
+      </div>
+    {% endfor %}
+    <form method="post" action="{% url 'households:invite_create' household.slug %}">
+      {% csrf_token %}
+      <button type="submit" class="btn primary"><span class="ms">link</span>{% translate "Búa til boðshlekk" %}</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="card danger-zone">
+    <h2><span class="ms">logout</span>{% translate "Yfirgefa heimili" %}</h2>
+    <p>{% translate "Þú hættir að sjá gjafalistann. Gögnin verða áfram hjá hinum." %}</p>
+    <form method="post" action="{% url 'households:leave' household.slug %}"
+          x-data="confirm" data-message="{% translate 'Yfirgefa heimilið?' %}" x-on:submit="ask">
+      {% csrf_token %}
+      <button type="submit" class="btn danger">{% translate "Yfirgefa heimili" %}</button>
+    </form>
+    {% if is_owner %}
+      <h2><span class="ms">delete</span>{% translate "Eyða heimili" %}</h2>
+      <p>{% translate "Öllum gjöfum, hugmyndum og fólki heimilisins er eytt fyrir alla meðlimi. Það er ekki hægt að afturkalla." %}</p>
+      <form method="post" action="{% url 'households:delete' household.slug %}" class="row-form">
+        {% csrf_token %}
+        <c-field :field="delete_form.confirm" />
+        <button type="submit" class="btn danger"><span class="ms">delete</span>{% translate "Eyða heimili" %}</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sláðu inn kóða" %} · Jólahjól{% endblock %}
+{% block content %}
+  <h1>{% translate "Athugaðu póstinn" %}</h1>
+  <p>{% blocktranslate %}Við sendum sex stafa kóða á <strong>{{ email }}</strong>. Hann gildir í 15 mínútur.{% endblocktranslate %}</p>
+  <form method="post" action="{% url 'account_confirm_login_code' %}" novalidate>
+    {% csrf_token %}
+    {{ verify_form.non_field_errors }}
+    <div class="field{% if verify_form.code.errors %} has-error{% endif %}">
+      <label for="id_code">{% translate "Kóði" %}</label>
+      <input id="id_code" name="code" class="code-input" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" pattern="[0-9]*" required autofocus value="{{ verify_form.code.value|default:'' }}">
+      {{ verify_form.code.errors }}
+    </div>
+    {{ redirect_field }}
+    <button type="submit" class="btn primary block"><span class="ms">login</span>{% translate "Skrá inn" %}</button>
+  </form>
+  <div class="entrance-foot">
+    {% if can_resend %}
+      <form method="post" action="{% url 'account_confirm_login_code' %}" class="inline">
+        {% csrf_token %}<input type="hidden" name="action" value="resend">{{ redirect_field }}
+        <button type="submit">{% translate "Senda nýjan kóða" %}</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'account_logout' %}" class="inline">
+      {% csrf_token %}<input type="hidden" name="next" value="{% url 'account_request_login_code' %}">
+      <button type="submit">{% translate "Nota annað netfang" %}</button>
+    </form>
+  </div>
+{% endblock %}

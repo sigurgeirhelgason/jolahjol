@@ -1,0 +1,18 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block title %}{% translate "Nýtt heimili" %} · Jólahjól{% endblock %}
+{% block content %}
+  {% if first %}
+    <h1>{% translate "Velkomin í Jólahjól" %}</h1>
+    <p>{% translate "Gjafalistinn tilheyrir heimili. Þú getur boðið öðrum í heimilinu að vera með þegar það er komið." %}</p>
+  {% else %}
+    <h1>{% translate "Nýtt heimili" %}</h1>
+    <p>{% translate "Hvert heimili hefur sinn eigin gjafalista." %}</p>
+  {% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <c-field :field="form.name" />
+    {% if first %}<c-field :field="form.your_name" />{% else %}<input type="hidden" name="your_name" value="{{ form.your_name.value|default:'' }}">{% endif %}
+    <button type="submit" class="btn primary block"><span class="ms">add</span>{% translate "Stofna heimili" %}</button>
+  </form>
+{% endblock %}

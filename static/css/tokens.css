@@ -1,0 +1,72 @@
+/* Leturgerðir hýstar sjálf (persónuvernd og CSP). Sjá scripts/fetch_icons.py fyrir táknmyndir. */
+@font-face {
+  font-family: Inter; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: Inter; font-style: normal; font-weight: 100 900; font-display: swap;
+  src: url("../fonts/inter-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans"; font-style: normal; font-weight: 200 800; font-display: swap;
+  src: url("../fonts/jakarta-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans"; font-style: normal; font-weight: 200 800; font-display: swap;
+  src: url("../fonts/jakarta-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Material Symbols Outlined"; font-style: normal; font-weight: 400; font-display: block;
+  src: url("../fonts/material-symbols.woff2") format("woff2");
+}
+
+/* Litir og letur úr stitch_gjafalistinn_holiday_tracker/DESIGN.md */
+:root {
+  --bg: #fdf9f3;
+  --lowest: #ffffff;
+  --low: #f7f3ed;
+  --cont: #f1ede7;
+  --high: #ebe8e2;
+  --highest: #e6e2dc;
+  --on: #1c1c18;
+  --on-var: #5a403e;
+  --outline: #8e706d;
+  --outline-var: #e2beba;
+  --primary: #7e000b;
+  --primary-c: #a4161a;
+  --primary-soft: #ffdad6;
+  --secondary: #3f6653;
+  --secondary-c: #beead1;
+  --on-secondary-c: #002114;
+  --pine: #274e3d;
+  --tertiary: #8a5828;
+  --gold: #f0bd8b;
+  --shadow: 0 2px 8px -2px rgba(90, 50, 40, .06), 0 4px 16px -4px rgba(90, 50, 40, .04);
+  --shadow-2: 0 6px 20px -4px rgba(90, 50, 40, .10), 0 2px 6px -2px rgba(90, 50, 40, .04);
+  --display: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--on);
+  font: 14px/1.57 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+select, button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+
+.ms {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal;
+  text-transform: none; white-space: nowrap; direction: ltr;
+  font-size: 18px; display: inline-block; vertical-align: middle;
+  -webkit-font-feature-settings: "liga"; font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 0 48px; }

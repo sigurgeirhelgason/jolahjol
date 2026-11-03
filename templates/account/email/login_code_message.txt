@@ -1,0 +1,7 @@
+{% extends "account/email/base_message.txt" %}
+{% load i18n %}
+{% block content %}{% autoescape off %}{% translate "Kóðinn þinn til að skrá þig inn í Jólahjól er:" %}
+
+    {{ code }}
+
+{% translate "Hann gildir í 15 mínútur. Ef þú baðst ekki um kóða geturðu hunsað þennan póst." %}{% endautoescape %}{% endblock content %}

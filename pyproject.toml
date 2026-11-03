@@ -43,4 +43,6 @@ known-first-party = ["apps", "config"]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 testpaths = ["tests"]
-addopts = "--reuse-db -p no:cacheprovider"
+addopts = "--reuse-db -p no:cacheprovider -m 'not e2e'"
+markers = ["e2e: Playwright-próf í vafra (just e2e)"]
+filterwarnings = ["ignore:No directory at:UserWarning"]

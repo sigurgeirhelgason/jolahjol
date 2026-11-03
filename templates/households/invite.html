@@ -1,0 +1,20 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block title %}{% translate "Boð" %} · Jólahjól{% endblock %}
+{% block content %}
+  {% if problem %}
+    <h1>{% translate "Boðið virkar ekki" %}</h1>
+    <p>{{ problem }}</p>
+    <a class="btn soft block" href="{% url 'home' %}">{% translate "Á forsíðu" %}</a>
+  {% else %}
+    <h1>{% blocktranslate with name=invite.household.name %}Vertu með í „{{ name }}“{% endblocktranslate %}</h1>
+    <p>
+      {% if invite.created_by %}{% blocktranslate with who=invite.created_by %}{{ who }} bauð þér að deila gjafalistanum.{% endblocktranslate %}{% endif %}
+      {% translate "Þú sérð og breytir sama lista og aðrir í heimilinu." %}
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn primary block"><span class="ms">group_add</span>{% translate "Þiggja boð" %}</button>
+    </form>
+  {% endif %}
+{% endblock %}

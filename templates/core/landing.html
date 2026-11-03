@@ -1,0 +1,16 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block content %}
+  <div class="landing">
+    <h1>{% translate "Jólagjafirnar á einum stað" %}</h1>
+  </div>
+  <div class="landing">
+    <ul>
+      <li><span class="ms">card_giftcard</span>{% translate "Hugmyndir, búðir og verð fyrir hvern og einn" %}</li>
+      <li><span class="ms">payments</span>{% translate "Peningastaða og hvað er eftir að kaupa" %}</li>
+      <li><span class="ms">group</span>{% translate "Heimilið deilir einum lista" %}</li>
+      <li><span class="ms">request_quote</span>{% translate "Rukkun þegar þú kaupir fyrir aðra" %}</li>
+    </ul>
+  </div>
+  <a class="btn primary block" href="{% url 'account_request_login_code' %}"><span class="ms">login</span>{% translate "Byrja" %}</a>
+{% endblock %}

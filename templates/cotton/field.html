@@ -1,0 +1,8 @@
+<c-vars field class="" />
+{% comment %}Formreitur með merkingu, villum og hjálpartexta: <c-field :field="form.name" />{% endcomment %}
+<div class="field{% if field.errors %} has-error{% endif %} {{ class }}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% if field.errors %}{{ field.errors }}{% endif %}
+  {% if field.help_text %}<span class="help">{{ field.help_text }}</span>{% endif %}
+</div>

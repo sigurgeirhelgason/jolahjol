@@ -16,9 +16,10 @@ default:
 
 # ---------- Uppsetning ----------
 
-# Fyrsta uppsetning: pakkar, pre-commit, gagnagrunnur og migrations
+# Fyrsta uppsetning: pakkar, pre-commit, gagnagrunnur, migrations og vafri fyrir e2e
 setup: install dev-db migrate
     {{uv}} run pre-commit install
+    {{uv}} run playwright install chromium
 
 install:
     {{uv}} sync
@@ -68,6 +69,14 @@ import-legacy file household="okkar" name="Heimilið okkar":
 import-legacy-replace file household="okkar":
     {{manage}} import_legacy "{{file}}" --household {{household}} --replace
 
+# Eyða aðgöngum sem báðu um kóða en skráðu sig aldrei inn
+prune-users *args:
+    {{manage}} prune_users {{args}}
+
+# Sækja Material Symbols aftur eftir að táknmynd bætist við ICONS í scripts/fetch_icons.py
+icons:
+    {{uv}} run python scripts/fetch_icons.py
+
 # Uppfæra þýðingaskrár (íslenska og enska)
 messages:
     {{manage}} makemessages -l is -l en --ignore=.venv
@@ -75,9 +84,13 @@ messages:
 
 # ---------- Próf og gæði ----------
 
-# Öll próf; aukarök fara til pytest, t.d. just test -k billing
+# Öll próf nema e2e; aukarök fara til pytest, t.d. just test -k billing
 test *args:
     {{uv}} run pytest {{args}}
+
+# Playwright-próf í vafra; just e2e --headed til að horfa á
+e2e *args:
+    {{uv}} run pytest -m e2e {{args}}
 
 # Próf með nýjum test-gagnagrunni (eftir breytingar á migrations)
 test-fresh:
@@ -91,10 +104,11 @@ fmt:
     {{uv}} run ruff check --fix .
     {{uv}} run ruff format .
 
-# Allt sem CI keyrir: lint, migrations í takt og próf
+# Allt sem CI keyrir: lint, migrations í takt, próf og e2e
 check: lint
     {{manage}} makemigrations --check --dry-run
     {{uv}} run pytest
+    {{uv}} run pytest -m e2e
 
 # ---------- Gagnagrunnur ----------
 
