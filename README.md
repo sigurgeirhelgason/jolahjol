@@ -22,11 +22,11 @@ Docker Desktop þarf að vera í gangi fyrir gagnagrunninn (127.0.0.1:5433).
 Í gamla appinu: **Sækja afrit (JSON)**. Síðan:
 
 ```bash
-uv run python manage.py import_legacy jolahjol-2026-11-03.json \
-    --household okkar --create "Heimilið okkar" --owner netfang@example.com
+just import-legacy jolahjol-2026-11-03.json            # heimilið „okkar“
+just import-legacy-replace jolahjol-2026-11-03.json    # skipta út áður innfluttum gögnum
 ```
 
-`--replace` skiptir út gögnum heimilis sem hefur þegar verið flutt inn.
+Til að gera notanda að eiganda: `just manage import_legacy … --owner netfang@example.com`.
 
 ## Uppbygging
 
