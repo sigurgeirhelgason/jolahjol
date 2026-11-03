@@ -70,6 +70,8 @@ DATABASES = {
         conn_max_age=config("DB_CONN_MAX_AGE", default=60, cast=int),
     )
 }
+# Gefast upp fljótt ef gagnagrunnurinn svarar ekki (t.d. Docker ekki í gangi) í stað þess að hanga
+DATABASES["default"].setdefault("OPTIONS", {})["connect_timeout"] = 5
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"

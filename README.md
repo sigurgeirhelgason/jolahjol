@@ -5,20 +5,17 @@ Django 6 + HTMX + Alpine. Arftaki `gjafalistinn/index.html`, sem er forskriftin 
 
 ## Þróun
 
-```bash
-docker compose up -d            # Postgres á 127.0.0.1:5433
-uv sync
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
-uv run python manage.py runserver
-```
-
-Próf og lint:
+Skipanirnar eru í `justfile` (`just` sýnir þær allar):
 
 ```bash
-uv run pytest
-uv run ruff check . && uv run ruff format --check .
+just setup              # pakkar, pre-commit, Postgres í Docker og migrations
+just createsuperuser
+just dev                # Postgres + runserver
+just check              # það sama og CI: lint, migrations í takt og próf
+just test -k billing    # aukarök fara til pytest
 ```
+
+Docker Desktop þarf að vera í gangi fyrir gagnagrunninn (127.0.0.1:5433).
 
 ## Gögn úr gamla appinu
 
