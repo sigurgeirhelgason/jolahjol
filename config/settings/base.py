@@ -104,6 +104,8 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGOUT_REDIRECT_URL = "home"
 ALLAUTH_USER_CODE_FORMAT = {"numeric": True, "length": 6, "dashed": False}
+# Fastur innskráningarkóði, aðeins fyrir þróun (sjá dev.py og apps.accounts.checks)
+DEV_LOGIN_CODE = ""
 
 # Google: virkt aðeins þegar lyklar eru komnir
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")

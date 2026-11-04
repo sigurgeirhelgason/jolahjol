@@ -17,8 +17,9 @@ just e2e --headed       # Playwright-próf í vafra (sýnilegum)
 
 Docker Desktop þarf að vera í gangi fyrir gagnagrunninn (127.0.0.1:5433).
 
-**Innskráning í þróun:** sláðu inn hvaða netfang sem er á `/accounts/login/code/`. Kóðinn prentast
-í terminal þar sem `just dev` keyrir (pósturinn fer í console). Admin er á `/admin/` með
+**Innskráning í þróun:** hvaða netfang sem er og kóðinn **666** (`DEV_LOGIN_CODE` í
+`config/settings/dev.py`; kerfisathugun stöðvar ræsingu ef hann er virkur án `DEBUG`). Pósturinn
+prentast líka í terminal þar sem `just dev` keyrir. Admin er á `/admin/` með
 `just createsuperuser`.
 
 ## Gögn úr gamla appinu

@@ -87,3 +87,26 @@ def test_prune_users_removes_only_stale_unused_accounts():
     call_command("prune_users", stdout=io.StringIO())
     assert not User.objects.filter(pk=stale.pk).exists()
     assert User.objects.count() == 4
+
+
+def test_dev_login_code_works_only_with_debug(client, settings):
+    from apps.accounts.adapter import AccountAdapter
+
+    settings.DEV_LOGIN_CODE = "666"
+    settings.DEBUG = True
+    assert AccountAdapter().generate_login_code() == "666"
+    _request_code(client, "dev@example.com")
+    client.post(reverse("account_confirm_login_code"), {"code": "666"})
+    assert "_auth_user_id" in client.session
+
+    settings.DEBUG = False
+    assert AccountAdapter().generate_login_code() != "666"
+
+
+def test_check_rejects_dev_login_code_without_debug(settings):
+    from apps.accounts.checks import dev_login_code_only_in_debug
+
+    settings.DEV_LOGIN_CODE, settings.DEBUG = "666", False
+    assert [e.id for e in dev_login_code_only_in_debug(None)] == ["accounts.E001"]
+    settings.DEBUG = True
+    assert dev_login_code_only_in_debug(None) == []

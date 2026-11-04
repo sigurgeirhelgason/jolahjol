@@ -1,4 +1,5 @@
 from allauth.account.adapter import DefaultAccountAdapter
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 
@@ -15,3 +16,9 @@ class AccountAdapter(DefaultAccountAdapter):
         "email_taken": _("Þetta netfang er þegar skráð."),
         "unverified_primary_email": _("Það á eftir að staðfesta netfangið."),
     }
+
+    def generate_login_code(self) -> str:
+        # Fastur kóði í þróun (config/settings/dev.py); kerfisathugun bannar hann án DEBUG
+        if settings.DEBUG and settings.DEV_LOGIN_CODE:
+            return settings.DEV_LOGIN_CODE
+        return super().generate_login_code()
