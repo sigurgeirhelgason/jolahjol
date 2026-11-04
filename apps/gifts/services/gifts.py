@@ -1,5 +1,6 @@
 """Aðgerðir á gjöfum og hugmyndum. Samsvarar keypt-flæðinu (`askPrice`/`finishPrice`) og `saveIdea`."""
 
+import datetime
 from dataclasses import dataclass
 
 from django.db import transaction
@@ -230,3 +231,38 @@ def save_idea(idea: Idea, data: IdeaData) -> Idea:
     elif not data.picked and idea.picked:
         unpick_idea(idea)
     return idea
+
+
+@dataclass(frozen=True)
+class PersonData:
+    name: str
+    group: str
+    birthday: datetime.date | None
+    give_christmas: bool
+    give_birthday: bool
+    plan: int | None
+    ideas: list[str]
+
+
+@transaction.atomic
+def add_person(season: Season, data: PersonData) -> tuple[Person, Gift | None]:
+    """„Bæta við aðila“: einstaklingur með fæðingardegi og hvaða gjafir hann fær.
+
+    Með „Gef jólagjafir“ fer hann á jólalista ársins (með áætlun og hugmyndum). Sé
+    einstaklingurinn til (t.d. gefandi eða frá fyrri árum) eru upplýsingar hans uppfærðar.
+    Kastar ValueError ef hann er þegar á lista ársins.
+    """
+    person = people.find_or_create(season.household, data.name, data.group)
+    if data.give_christmas and Gift.objects.alive().filter(season=season, person=person).exists():
+        raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
+    person.group = data.group
+    person.birthday = data.birthday
+    person.give_christmas = data.give_christmas
+    person.give_birthday = data.give_birthday
+    person.save()
+    if not data.give_christmas:
+        return person, None
+    last = season.gifts.order_by("-position").values_list("position", flat=True).first()
+    gift = Gift.objects.create(season=season, person=person, plan=data.plan, position=(last or 0) + 1)
+    sync_ideas(gift, data.ideas)
+    return person, gift

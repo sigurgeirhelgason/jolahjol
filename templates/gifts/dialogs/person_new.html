@@ -1,0 +1,41 @@
+{% load i18n %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">person_add</span>{% if group_label %}{% blocktranslate %}Nýr aðili í {{ group_label }}{% endblocktranslate %}{% else %}{% translate "Nýr aðili" %}{% endif %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:person_new' household.slug season.year %}" hx-target="#modal-body" hx-include="#list-state"
+      x-data="personForm">
+  {{ form.non_field_errors }}
+  <div class="grid2">
+    <c-field :field="form.name" />
+    <c-field :field="form.group" />
+  </div>
+  <div class="field{% if form.birthday.errors %} has-error{% endif %}">
+    <label for="{{ form.birthday.id_for_label }}">{{ form.birthday.label }}</label>
+    <input type="date" name="birthday" id="{{ form.birthday.id_for_label }}" value="{{ form.birthday.value|default_if_none:'' }}"
+           x-ref="birthday" x-on:input="updateAge">
+    {{ form.birthday.errors }}
+    <span class="help" x-text="age"></span>
+  </div>
+  <label class="switch">
+    <input type="checkbox" name="give_christmas" value="on" x-ref="christmas" x-on:change="toggleChristmas"{% if form.give_christmas.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Gef jólagjafir" %}</strong><small>{% blocktranslate with year=season.year %}Fer á jólalistann {{ year }} og fylgir með næstu ár{% endblocktranslate %}</small></span>
+  </label>
+  <div class="christmas-fields" x-show="christmas">
+    <div class="grid2">
+      <c-field :field="form.plan" />
+      <c-field :field="form.ideas" />
+    </div>
+  </div>
+  <label class="switch">
+    <input type="checkbox" name="give_birthday" value="on"{% if form.give_birthday.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Gef afmælisgjafir" %}</strong><small>{% translate "Til að halda utan um afmælisgjafir" %}</small></span>
+  </label>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta við" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">person_add</span>{% translate "Bæta við" %}</button>
+  </div>
+</form>
+<datalist id="people-list">{% for p in all_people %}<option value="{{ p.name }}">{% endfor %}</datalist>

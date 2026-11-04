@@ -27,10 +27,11 @@ def row(page, name):
 
 
 def add_gift(page, group, name, plan="", ideas=""):
+    """„Bæta við aðila í <flokki>“ með jólagjöf (sjálfgefið á)."""
     page.get_by_role("button", name=f"Bæta við aðila í {group}").click()
     dialog = page.locator("#modal")
     expect(dialog.get_by_role("heading", name=f"Nýr aðili í {group}")).to_be_visible()
-    dialog.get_by_label("Fyrir hvern er gjöfin?").fill(name)
+    dialog.get_by_label("Nafn", exact=True).fill(name)
     dialog.get_by_label("Áætlað verð (kr.)").fill(plan)
     dialog.get_by_label("Gjafahugmyndir").fill(ideas)
     dialog.get_by_role("button", name=re.compile(r"Bæta við$")).click()
@@ -142,3 +143,18 @@ def test_mobile_layout_has_no_horizontal_scroll(home, page):
     overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
     assert overflow <= 0
     expect(row(page, "Una Elínóra")).to_be_visible()
+
+
+def test_add_person_without_christmas_gift(home, page):
+    page.get_by_role("button", name="Bæta við aðila í Fjölskylda").click()
+    dialog = page.locator("#modal")
+    dialog.get_by_label("Nafn", exact=True).fill("Afi")
+    dialog.get_by_label("Fæðingardagur").fill("1950-03-03")
+    expect(dialog.get_by_text(re.compile(r"Verður \d+ ára 3\. mars"))).to_be_visible()
+    dialog.get_by_text("Gef jólagjafir").click()
+    expect(dialog.get_by_label("Áætlað verð (kr.)")).to_be_hidden()
+    dialog.get_by_text("Gef afmælisgjafir").click()
+    dialog.get_by_role("button", name=re.compile(r"Bæta við$")).click()
+    expect(dialog).to_be_hidden()
+    expect(page.locator("#toast")).to_contain_text("fær ekki jólagjöf")
+    expect(row(page, "Afi")).to_have_count(0)

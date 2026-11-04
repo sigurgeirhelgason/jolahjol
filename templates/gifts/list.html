@@ -180,7 +180,7 @@
       {% endif %}
       {% if not locked %}
         <div class="add-person">
-          <button type="button" hx-get="{% url 'gifts:gift_new' household.slug season.year %}?flokkur={{ section.group }}" hx-target="#modal-body">
+          <button type="button" hx-get="{% url 'gifts:person_new' household.slug season.year %}?flokkur={{ section.group }}" hx-target="#modal-body">
             <span class="ms">person_add</span>{% blocktranslate with group=section.label %}Bæta við aðila í {{ group }}{% endblocktranslate %}
           </button>
         </div>

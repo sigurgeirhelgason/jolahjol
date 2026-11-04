@@ -7,6 +7,22 @@
 // Elkó/Elko/ELKO → „elko“; sama regla og apps.core.text.fold_key
 const foldKey = (s) => (s || "").trim().toLocaleLowerCase("is").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+// „Verður 8 ára 3. mars (eftir 119 daga)“. Samsvarar `birthdayInfo` í gamla appinu.
+const MONTHS = ["jan.", "feb.", "mars", "apr.", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
+function birthdayInfo(iso) {
+  const [y, m, d] = (iso || "").split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let next = new Date(today.getFullYear(), m - 1, d);
+  if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
+  const age = next.getFullYear() - y;
+  const days = Math.round((next - today) / 86400000);
+  if (age < 0) return "";
+  if (days === 0) return `Á afmæli í dag – ${age} ára! 🎂`;
+  return `Verður ${age} ára ${d}. ${MONTHS[m - 1]} (eftir ${days} ${days === 1 ? "dag" : "daga"})`;
+}
+
 document.addEventListener("alpine:init", () => {
   // Fellivalmynd: hnappur + spjald, lokast við smell utan, Escape eða val
   Alpine.data("menu", () => ({
@@ -81,6 +97,18 @@ document.addEventListener("alpine:init", () => {
     init() {
       setTimeout(() => this.$el.classList.remove("show"), 6000);
     },
+  }));
+
+  // Nýr aðili: jólagjafareitir birtast með „Gef jólagjafir“; aldur reiknaður úr fæðingardegi
+  Alpine.data("personForm", () => ({
+    christmas: true,
+    age: "",
+    init() {
+      this.christmas = this.$refs.christmas.checked;
+      this.updateAge();
+    },
+    toggleChristmas(event) { this.christmas = event.target.checked; },
+    updateAge() { this.age = birthdayInfo(this.$refs.birthday.value); },
   }));
 
   // Hugmyndaglugginn: gefendur (merki + tillögur), keypt fyrir annan, hlutir, hlekkur og búð

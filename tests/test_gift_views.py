@@ -229,11 +229,8 @@ def test_budget_accepts_formatted_amounts(client, home, season):
 
 
 def test_new_gift_dialog_creates_person_gift_ideas_and_store(client, home, season):
-    response = client.get(url("gift_new", home.slug, THIS_YEAR) + "?flokkur=vinir", **HX)
-    assert 'value="vinir" selected' in response.text
-    assert "Nýr aðili í Vinir" in response.text
-    generic = client.get(url("gift_new", home.slug, THIS_YEAR), **HX)
-    assert "Bæta við nýrri gjöf eða hugmynd" in generic.text
+    response = client.get(url("gift_new", home.slug, THIS_YEAR), **HX)
+    assert "Bæta við nýrri gjöf eða hugmynd" in response.text
     response = client.post(
         url("gift_new", home.slug, THIS_YEAR),
         {
@@ -259,11 +256,10 @@ def test_new_gift_for_someone_already_on_list_is_rejected(client, home, season):
     _gift(season, "Hugi")
     response = client.post(
         url("gift_new", home.slug, THIS_YEAR),
-        {"name": "hugi", "group": "born", "ideas": "", "flokkur": "born"},
+        {"name": "hugi", "group": "born", "ideas": ""},
         **HX,
     )
     assert response.status_code == 422
-    assert "Nýr aðili í Börn" in response.text  # fyrirsögnin helst þegar villa birtist
     assert "þegar á listanum" in response.text
 
 
@@ -423,3 +419,70 @@ def test_save_idea_marks_all_givers_paid(season):
     )  # fmt: skip
     gift_services.save_idea(idea, data)
     assert list(IdeaGiver.objects.filter(idea=idea).values_list("paid", flat=True)) == [True, True]
+
+
+# ---------- Nýr aðili ----------
+
+
+def test_add_person_with_christmas_gift_and_birthday(client, home, season):
+    response = client.get(url("person_new", home.slug, THIS_YEAR) + "?flokkur=born", **HX)
+    assert "Nýr aðili í Börn" in response.text
+    assert 'value="born" selected' in response.text
+    client.post(
+        url("person_new", home.slug, THIS_YEAR),
+        {
+            "name": "Óskar Birnir",
+            "group": "born",
+            "birthday": "2019-03-03",
+            "give_christmas": "on",
+            "give_birthday": "on",
+            "plan": "15.000",
+            "ideas": "úr, segulkubbar",
+        },
+        **HX,
+    )
+    person = Person.objects.get(name="Óskar Birnir")
+    assert str(person.birthday) == "2019-03-03" and person.give_christmas and person.give_birthday
+    gift = Gift.objects.get(person=person, season=season)
+    assert gift.plan == 15000
+    assert [i.text for i in gift.ideas.all()] == ["úr", "segulkubbar"]
+
+
+def test_add_person_without_christmas_is_not_on_list(client, home, season):
+    response = client.post(
+        url("person_new", home.slug, THIS_YEAR),
+        {"name": "Afi", "group": "fjolskylda", "give_birthday": "on", "plan": "5000"},
+        **HX,
+    )
+    person = Person.objects.get(name="Afi")
+    assert not person.give_christmas and person.give_birthday
+    assert not Gift.objects.filter(person=person).exists()
+    assert "fær ekki jólagjöf" in response.text
+
+
+def test_add_person_already_on_list_or_born_in_future(client, home, season):
+    _gift(season, "Hugi")
+    response = client.post(
+        url("person_new", home.slug, THIS_YEAR),
+        {"name": "hugi", "group": "born", "give_christmas": "on"},
+        **HX,
+    )
+    assert response.status_code == 422 and "þegar á listanum" in response.text
+    future = f"{THIS_YEAR + 1}-01-01"
+    response = client.post(
+        url("person_new", home.slug, THIS_YEAR), {"name": "Barn", "group": "born", "birthday": future}, **HX
+    )
+    assert response.status_code == 422 and "framtíðinni" in response.text
+
+
+def test_add_person_updates_existing_giver(client, home, season):
+    amma = PersonFactory(household=home, name="Amma Jóa", group="annad")
+    client.post(
+        url("person_new", home.slug, THIS_YEAR),
+        {"name": "amma jóa", "group": "fjolskylda", "give_christmas": "on"},
+        **HX,
+    )
+    amma.refresh_from_db()
+    assert amma.group == "fjolskylda"
+    assert Person.objects.filter(household=home).count() == 1
+    assert Gift.objects.filter(person=amma, season=season).exists()

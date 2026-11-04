@@ -26,7 +26,7 @@ from apps.core.text import fold_key
 from apps.households.mixins import HouseholdMixin
 
 from . import listing
-from .forms import BudgetForm, GiftForm, IdeaForm, NewSeasonForm, PriceForm
+from .forms import BudgetForm, GiftForm, IdeaForm, NewSeasonForm, PersonForm, PriceForm
 from .listing import ListState
 from .models import Gift, Group, Idea, Location, Person, Season, Store
 from .services import gifts as gift_services
@@ -359,8 +359,7 @@ class GiftDialogView(GiftsMixin, View):
 
     def initial(self):
         if self.gift is None:
-            group = self.request.GET.get("flokkur")
-            return {"group": group if group in Group.values else Group.FJOLSKYLDA}
+            return {"group": Group.FJOLSKYLDA}
         gift = self.gift
         store = gift.stores.first()
         return {
@@ -373,18 +372,7 @@ class GiftDialogView(GiftsMixin, View):
         }
 
     def render(self, form, status=200):
-        # Opnaður af „Bæta við aðila í <flokki>“: fyrirsögnin nefnir flokkinn
-        params = self.request.POST if self.request.method == "POST" else self.request.GET
-        group = params.get("flokkur") if self.gift is None else None
-        group_label = Group(group).label if group in Group.values else None
-        ctx = {
-            "form": form,
-            "gift": self.gift,
-            "season": self.season,
-            "group": group if group_label else None,
-            "group_label": group_label,
-            **_form_lists(self.household),
-        }
+        ctx = {"form": form, "gift": self.gift, "season": self.season, **_form_lists(self.household)}
         return self.dialog(self.template, ctx, status=status)
 
     def get(self, request, slug, **kwargs):
@@ -402,6 +390,46 @@ class GiftDialogView(GiftsMixin, View):
             else:
                 return self.refresh_list(self.season)
         return self.render(form, status=422)
+
+
+class PersonNewView(GiftsMixin, View):
+    """„Bæta við aðila í <flokki>“: nafn, fæðingardagur og hvaða gjafir viðkomandi fær."""
+
+    template = "gifts/dialogs/person_new.html"
+
+    def render(self, season, form, status=200):
+        group = form["group"].value()
+        ctx = {
+            "form": form,
+            "season": season,
+            "group_label": Group(group).label if group in Group.values else "",
+            **_form_lists(self.household),
+        }
+        return self.dialog(self.template, ctx, status=status)
+
+    def get(self, request, slug, year):
+        season = self.get_season(year)
+        self.ensure_editable(season)
+        group = request.GET.get("flokkur")
+        initial = {"group": group if group in Group.values else Group.FJOLSKYLDA, "give_christmas": True}
+        return self.render(season, PersonForm(initial=initial))
+
+    def post(self, request, slug, year):
+        season = self.get_season(year)
+        self.ensure_editable(season)
+        form = PersonForm(request.POST)
+        if form.is_valid():
+            try:
+                person, gift = gift_services.add_person(season, form.to_data())
+            except ValueError as exc:
+                form.add_error("name", str(exc))
+            else:
+                toast = None
+                if gift is None:
+                    text = _("„%(name)s“ var bætt við en fær ekki jólagjöf, svo nafnið er ekki á listanum.")
+                    toast = {"toast_text": text % {"name": person.name}}
+                return self.refresh_list(season, toast=toast)
+        return self.render(season, form, status=422)
 
 
 class IdeaDialogView(GiftsMixin, View):
