@@ -285,7 +285,7 @@ def _leave_button(html):
 def test_leave_button_disabled_when_alone_or_last_owner(client, home, owner):
     client.force_login(owner.user)
     page = client.get(reverse("households:settings", args=[home.slug])).text
-    assert "disabled" in _leave_button(page) and "eini meðlimur" in page
+    assert "disabled" in _leave_button(page) and 'data-tip="Þú ert eini meðlimur' in page
 
     member = _member(home)
     page = client.get(reverse("households:settings", args=[home.slug])).text
