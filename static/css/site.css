@@ -196,3 +196,8 @@ label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26
 .confirm-dlg .dlg-actions { justify-content: center; padding-top: 24px; }
 .btn.danger-solid { background: var(--primary-c); color: #fff; box-shadow: 0 2px 8px -2px rgba(164, 22, 26, .3); }
 .btn.danger-solid:hover { background: var(--primary); }
+
+.confirm-dlg .confirm-warning { color: var(--primary); }
+.confirm-dlg .confirm-field { margin-top: 20px; text-align: left; }
+.confirm-dlg .confirm-field strong { color: var(--primary); }
+.btn.danger-solid:disabled { opacity: .4; }

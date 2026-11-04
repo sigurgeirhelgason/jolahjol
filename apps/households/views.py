@@ -68,7 +68,6 @@ class SettingsView(HouseholdMixin, TemplateView):
         if self.is_owner:
             ctx["invites"] = self.household.invites.usable().select_related("created_by")
             ctx["rename_form"] = HouseholdForm(initial={"name": self.household.name})
-            ctx["delete_form"] = DeleteHouseholdForm(household=self.household)
         return ctx
 
 

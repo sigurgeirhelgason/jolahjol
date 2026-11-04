@@ -120,11 +120,27 @@
     {% if is_owner %}
       <h2><span class="ms">delete</span>{% translate "Eyða heimili" %}</h2>
       <p>{% translate "Öllum gjöfum, hugmyndum og fólki heimilisins er eytt fyrir alla meðlimi. Það er ekki hægt að afturkalla." %}</p>
-      <form method="post" action="{% url 'households:delete' household.slug %}" class="row-form">
-        {% csrf_token %}
-        <c-field :field="delete_form.confirm" />
-        <button type="submit" class="btn danger"><span class="ms">delete</span>{% translate "Eyða heimili" %}</button>
-      </form>
+      <div x-data="typeToConfirm" data-expected="{{ household.name }}">
+        <button type="button" class="btn danger" x-on:click="open"><span class="ms">delete</span>{% translate "Eyða heimili" %}</button>
+        <dialog class="confirm-dlg" x-ref="dialog" x-on:close="reset" aria-labelledby="delete-household-title">
+          <form method="post" action="{% url 'households:delete' household.slug %}">
+            {% csrf_token %}
+            <div class="confirm-icon"><span class="ms">warning</span></div>
+            <h3 id="delete-household-title">{% blocktranslate with name=household.name %}Eyða „{{ name }}“?{% endblocktranslate %}</h3>
+            <p class="confirm-warning">
+              {% translate "Öllum gjöfum, hugmyndum, fólki og búðum heimilisins verður eytt. Gögnin verða ekki aðgengileg aftur, hvorki fyrir þig né aðra meðlimi. Það er ekki hægt að afturkalla." %}
+            </p>
+            <div class="field confirm-field">
+              <label for="delete-confirm">{% blocktranslate with name=household.name %}Skrifaðu <strong>{{ name }}</strong> til að staðfesta{% endblocktranslate %}</label>
+              <input id="delete-confirm" name="confirm" autocomplete="off" x-ref="input" x-on:input="check">
+            </div>
+            <div class="dlg-actions">
+              <button type="button" class="btn ghost" x-on:click="close">{% translate "Hætta við" %}</button>
+              <button type="submit" class="btn danger-solid" x-bind:disabled="blocked" disabled><span class="ms">delete</span>{% translate "Eyða heimili" %}</button>
+            </div>
+          </form>
+        </dialog>
+      </div>
     {% endif %}
   </section>
 </div>

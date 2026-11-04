@@ -3,7 +3,7 @@ import re
 from playwright.sync_api import expect
 
 from apps.gifts.models import Season
-from apps.households.models import Membership
+from apps.households.models import Household, Membership
 
 
 def test_signup_onboarding_and_invite(live_server, page, login, browser):
@@ -22,6 +22,7 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
     page.get_by_role("link", name="Stillingar").click()
     page.get_by_role("button", name="Búa til boðshlekk").click()
     invite_url = page.get_by_label("Boðshlekkur").input_value()
+    expect(page.locator(".invite-link button").first).to_have_text(re.compile(r"Afrita$"))
 
     # Annar notandi í hreinum vafra þiggur boðið
     other = browser.new_context(locale="is-IS").new_page()
@@ -65,3 +66,24 @@ def test_deleting_season_asks_in_styled_dialog(live_server, page, login):
     dialog.get_by_role("button", name=re.compile(r"^Eyða jólum")).click()
     expect(page.get_by_text("Engin jólaár enn.")).to_be_visible()
     assert Season.objects.count() == 0
+
+
+def test_deleting_household_requires_typing_its_name(live_server, page, login):
+    login(page, "eigandi@example.com")
+    page.get_by_label("Nafn heimilis").fill("Heimilið okkar")
+    page.get_by_role("button", name="Stofna heimili").click()
+    page.get_by_role("button", name="Heimilið okkar").click()
+    page.get_by_role("link", name="Stillingar").click()
+
+    page.get_by_role("button", name="Eyða heimili").click()
+    dialog = page.locator("dialog[open]")
+    expect(dialog).to_contain_text("Gögnin verða ekki aðgengileg aftur")
+    confirm = dialog.get_by_role("button", name="Eyða heimili")
+    expect(confirm).to_be_disabled()
+    dialog.get_by_label(re.compile("til að staðfesta")).fill("heimilið")
+    expect(confirm).to_be_disabled()
+    dialog.get_by_label(re.compile("til að staðfesta")).fill(" heimilið OKKAR ")
+    expect(confirm).to_be_enabled()
+    confirm.click()
+    expect(page.get_by_text("var eytt")).to_be_visible()
+    assert not Household.objects.exists()

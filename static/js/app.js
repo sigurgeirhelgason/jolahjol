@@ -67,7 +67,7 @@ document.addEventListener("alpine:init", () => {
   // Afrita texta (t.d. boðshlekk) á klippiborð
   Alpine.data("copy", () => ({
     copied: false,
-    get label() { return this.copied ? this.$el.dataset.done : this.$el.dataset.label; },
+    get label() { return this.copied ? this.$root.dataset.done : this.$root.dataset.label; },
     async copy() {
       const text = this.$refs.source.value;
       try {
@@ -93,6 +93,26 @@ document.addEventListener("alpine:init", () => {
       }
       event.preventDefault();
       openConfirm(form);
+    },
+  }));
+
+  // Eyða heimili: gluggi þar sem nafn heimilisins er skrifað; hnappurinn virkur aðeins ef það passar
+  // (sama samanburður og DeleteHouseholdForm: há- og lágstafir og bil í endum skipta ekki máli)
+  Alpine.data("typeToConfirm", () => ({
+    matches: false,
+    get blocked() { return !this.matches; },
+    open() {
+      this.$refs.dialog.showModal();
+      this.$refs.input.focus();
+    },
+    close() { this.$refs.dialog.close(); },
+    reset() {
+      this.$refs.input.value = "";
+      this.matches = false;
+    },
+    check() {
+      const norm = (s) => (s || "").trim().toLocaleLowerCase("is");
+      this.matches = norm(this.$refs.input.value) === norm(this.$root.dataset.expected);
     },
   }));
 
