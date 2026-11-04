@@ -464,7 +464,7 @@ def test_person_dialog_saves_birthday_and_gift_flags(client, home, season):
     assert "aldrei keypt" not in page.text  # fyrri gjafir: aðeins keyptar
     response = client.post(
         url("person", home.slug, gift.person_id),
-        {"name": "Hugi", "group": "born", "birthday": "2016-05-04", "give_birthday": "on", "ar": THIS_YEAR},
+        {"name": "Hugi", "group": "born", "birthday": "04/05/16", "give_birthday": "on", "ar": THIS_YEAR},
         **HX,
     )
     person = Person.objects.get(pk=gift.person_id)
@@ -563,3 +563,37 @@ def test_store_dialog_offers_default_locations_first(client, home, season):
     assert sorted(page.index(n) for n in order) == [page.index(n) for n in order]
     assert page.count('value="Kringlan" checked') == 1  # „kringlan“ telst sami staður
     assert 'value="Smáralind" checked' not in page
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("17/05/16", "2016-05-17"),
+        ("3/3/50", "1950-03-03"),
+        ("17.05.2016", "2016-05-17"),
+        ("2016-05-17", "2016-05-17"),
+        ("", None),
+    ],
+)
+def test_birthday_field_reads_icelandic_format(text, expected):
+    from apps.gifts.forms import BirthdayField
+
+    value = BirthdayField().clean(text)
+    assert (value.isoformat() if value else None) == expected
+
+
+@pytest.mark.parametrize("text", ["31/02/20", "17-05", "abc"])
+def test_birthday_field_rejects_bad_dates(text):
+    from django import forms
+
+    from apps.gifts.forms import BirthdayField
+
+    with pytest.raises(forms.ValidationError):
+        BirthdayField().clean(text)
+
+
+def test_person_dialog_shows_birthday_as_dd_mm_yy(client, home, season):
+    gift = _gift(season, "Hugi")
+    Person.objects.filter(pk=gift.person_id).update(birthday="2016-05-17")
+    page = client.get(url("person", home.slug, gift.person_id), **HX)
+    assert 'value="17/05/16"' in page.text

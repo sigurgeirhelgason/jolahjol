@@ -1,3 +1,6 @@
+import datetime
+import re
+
 from django import forms
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -96,16 +99,55 @@ class NewRowForm(forms.Form):
         )  # fmt: skip
 
 
+class BirthdayField(forms.CharField):
+    """Fæðingardagur á forminu dd/mm/áá (eða dd/mm/áááá, dd.mm.áá).
+
+    Tveggja stafa ár sem væri í framtíðinni er á síðustu öld: 50 → 1950, 16 → 2016.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("required", False)
+        # Ekkert max_length-validator: það keyrir á niðurstöðunni (dagsetningu), ekki textanum
+        super().__init__(*args, **kwargs)
+        self.widget.attrs.update(
+            {"placeholder": "dd/mm/áá", "inputmode": "numeric", "autocomplete": "off", "maxlength": "10"}
+        )
+
+    def prepare_value(self, value):
+        return value.strftime("%d/%m/%y") if isinstance(value, datetime.date) else value
+
+    def to_python(self, value):
+        value = (value or "").strip()[:10]
+        if not value:
+            return None
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):  # ISO (t.d. úr eldri gögnum)
+            try:
+                return datetime.date.fromisoformat(value)
+            except ValueError as exc:
+                raise forms.ValidationError(_("Dagsetningin er ekki til.")) from exc
+        match = re.fullmatch(r"(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2}|\d{4})", value)
+        if not match:
+            raise forms.ValidationError(_("Skrifaðu dagsetningu á forminu dd/mm/áá, t.d. 17/05/16."))
+        day, month, year = (int(g) for g in match.groups())
+        if year < 100:
+            this_year = timezone.localdate().year
+            year += 2000 if 2000 + year <= this_year else 1900
+        try:
+            return datetime.date(year, month, day)
+        except ValueError as exc:
+            raise forms.ValidationError(_("Dagsetningin er ekki til.")) from exc
+
+    def validate(self, value):
+        if value is None and self.required:
+            raise forms.ValidationError(self.error_messages["required"], code="required")
+
+
 class PersonEditForm(forms.Form):
     """Einstaklingsglugginn (smellt á nafn). Samsvarar `personDialog`."""
 
     name = _text(_("Nafn"), max_length=100)
     group = forms.ChoiceField(label=_("Flokkur"), choices=Group.choices)
-    birthday = forms.DateField(
-        label=_("Fæðingardagur"),
-        required=False,
-        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
-    )
+    birthday = BirthdayField(label=_("Fæðingardagur"))
     give_christmas = forms.BooleanField(required=False)
     give_birthday = forms.BooleanField(required=False)
     merge = forms.BooleanField(required=False, widget=forms.HiddenInput)

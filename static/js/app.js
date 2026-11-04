@@ -7,11 +7,23 @@
 // Elkó/Elko/ELKO → „elko“; sama regla og apps.core.text.fold_key
 const foldKey = (s) => (s || "").trim().toLocaleLowerCase("is").normalize("NFD").replace(/[̀-ͯ]/g, "");
 
+// dd/mm/áá → [ár, mánuður, dagur]; sama regla og BirthdayField (50 → 1950, 16 → 2016)
+function parseBirthday(text) {
+  const match = (text || "").trim().match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})$/);
+  if (!match) return null;
+  let [, d, m, y] = match.map(Number);
+  if (y < 100) y += 2000 + y <= new Date().getFullYear() ? 2000 : 1900;
+  const date = new Date(y, m - 1, d);
+  if (date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return [y, m, d];
+}
+
 // „Verður 8 ára 3. mars (eftir 119 daga)“. Samsvarar `birthdayInfo` í gamla appinu.
 const MONTHS = ["jan.", "feb.", "mars", "apr.", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
-function birthdayInfo(iso) {
-  const [y, m, d] = (iso || "").split("-").map(Number);
-  if (!y || !m || !d) return "";
+function birthdayInfo(text) {
+  const parsed = parseBirthday(text);
+  if (!parsed) return "";
+  const [y, m, d] = parsed;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let next = new Date(today.getFullYear(), m - 1, d);
@@ -123,7 +135,18 @@ document.addEventListener("alpine:init", () => {
   Alpine.data("birthday", () => ({
     age: "",
     init() { this.update(); },
-    update() { this.age = birthdayInfo(this.$refs.birthday.value); },
+    update(event) {
+      // Skástrik bætast við sjálfkrafa þegar skrifaðar eru tölur: 170516 → 17/05/16
+      if (event && event.inputType && !event.inputType.startsWith("delete")) {
+        const input = this.$refs.birthday;
+        if (/^[\d/]*$/.test(input.value)) {
+          const digits = input.value.replace(/\D/g, "").slice(0, 8);
+          const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)].filter(Boolean);
+          input.value = parts.join("/") + (digits.length === 2 || digits.length === 4 ? "/" : "");
+        }
+      }
+      this.age = birthdayInfo(this.$refs.birthday.value);
+    },
   }));
 
   // Ný lína í flokki (eins og `addGift`): vistast þegar farið er úr línunni með nafni,

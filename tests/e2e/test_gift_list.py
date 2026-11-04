@@ -159,7 +159,9 @@ def test_new_row_disappears_without_name_and_person_dialog(home, page):
     # Smellt á nafn: fæðingardagur og afmælisgjöf
     row(page, "Afi").get_by_role("button", name="Afi", exact=True).click()
     dialog = page.locator("#modal")
-    dialog.get_by_label("Fæðingardagur").fill("1950-03-03")
+    birthday = dialog.get_by_label("Fæðingardagur")
+    birthday.press_sequentially("030350")
+    expect(birthday).to_have_value("03/03/50")
     expect(dialog.get_by_text(re.compile(r"Verður \d+ ára 3\. mars"))).to_be_visible()
     dialog.get_by_text("Gef afmælisgjafir").click()
     dialog.get_by_role("button", name="Vista").click()

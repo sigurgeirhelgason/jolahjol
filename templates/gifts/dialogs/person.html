@@ -20,7 +20,8 @@
   {% endif %}
   <div class="field{% if form.birthday.errors %} has-error{% endif %}">
     <label for="{{ form.birthday.id_for_label }}">{{ form.birthday.label }}</label>
-    <input type="date" name="birthday" id="{{ form.birthday.id_for_label }}" value="{{ form.birthday.value|default_if_none:'' }}"
+    <input type="text" name="birthday" id="{{ form.birthday.id_for_label }}" value="{{ form.birthday.value|default_if_none:'' }}"
+           placeholder="dd/mm/áá" inputmode="numeric" autocomplete="off" maxlength="10"
            x-ref="birthday" x-on:input="update">
     {{ form.birthday.errors }}
     <span class="help" x-text="age"></span>

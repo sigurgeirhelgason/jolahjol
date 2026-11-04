@@ -451,7 +451,7 @@ class PersonDialogView(GiftsMixin, View):
         initial = {
             "name": person.name,
             "group": person.group,
-            "birthday": person.birthday.isoformat() if person.birthday else "",
+            "birthday": person.birthday,
             "give_christmas": person.give_christmas,
             "give_birthday": person.give_birthday,
         }
