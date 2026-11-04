@@ -29,11 +29,11 @@ def row(page, name):
 def add_gift(page, group, name, plan="", ideas=""):
     page.get_by_role("button", name=f"Bæta við aðila í {group}").click()
     dialog = page.locator("#modal")
-    expect(dialog).to_be_visible()
+    expect(dialog.get_by_role("heading", name=f"Nýr aðili í {group}")).to_be_visible()
     dialog.get_by_label("Fyrir hvern er gjöfin?").fill(name)
     dialog.get_by_label("Áætlað verð (kr.)").fill(plan)
     dialog.get_by_label("Gjafahugmyndir").fill(ideas)
-    dialog.get_by_role("button", name="Vista gjöf").click()
+    dialog.get_by_role("button", name=re.compile(r"Bæta við$")).click()
     expect(dialog).to_be_hidden()
 
 

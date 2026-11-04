@@ -1,11 +1,12 @@
 {% load i18n %}
 <div class="dlg-head">
-  <h3 id="modal-title"><span class="ms">card_giftcard</span>{% if gift %}{% translate "Breyta gjöf" %}{% else %}{% translate "Bæta við nýrri gjöf eða hugmynd" %}{% endif %}</h3>
+  <h3 id="modal-title"><span class="ms">card_giftcard</span>{% if gift %}{% translate "Breyta gjöf" %}{% elif group_label %}{% blocktranslate %}Nýr aðili í {{ group_label }}{% endblocktranslate %}{% else %}{% translate "Bæta við nýrri gjöf eða hugmynd" %}{% endif %}</h3>
   <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
 </div>
 <form class="gift-form" novalidate hx-include="#list-state" hx-target="#modal-body"
       hx-post="{% if gift %}{% url 'gifts:gift_edit' household.slug gift.pk %}{% else %}{% url 'gifts:gift_new' household.slug season.year %}{% endif %}">
   {{ form.non_field_errors }}
+  {% if group %}<input type="hidden" name="flokkur" value="{{ group }}">{% endif %}
   <c-field :field="form.name" />
   <div class="grid2">
     <c-field :field="form.group" />
@@ -18,7 +19,7 @@
   </div>
   <div class="dlg-actions">
     <button type="button" class="btn ghost" data-close>{% translate "Hætta við" %}</button>
-    <button type="submit" class="btn primary">{% translate "Vista gjöf" %}</button>
+    <button type="submit" class="btn primary">{% if group_label %}<span class="ms">person_add</span>{% translate "Bæta við" %}{% else %}{% translate "Vista gjöf" %}{% endif %}</button>
   </div>
 </form>
 <datalist id="people-list">{% for p in all_people %}<option value="{{ p.name }}">{% endfor %}</datalist>

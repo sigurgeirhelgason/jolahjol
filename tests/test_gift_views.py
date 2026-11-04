@@ -231,6 +231,9 @@ def test_budget_accepts_formatted_amounts(client, home, season):
 def test_new_gift_dialog_creates_person_gift_ideas_and_store(client, home, season):
     response = client.get(url("gift_new", home.slug, THIS_YEAR) + "?flokkur=vinir", **HX)
     assert 'value="vinir" selected' in response.text
+    assert "Nýr aðili í Vinir" in response.text
+    generic = client.get(url("gift_new", home.slug, THIS_YEAR), **HX)
+    assert "Bæta við nýrri gjöf eða hugmynd" in generic.text
     response = client.post(
         url("gift_new", home.slug, THIS_YEAR),
         {
@@ -255,9 +258,12 @@ def test_new_gift_dialog_creates_person_gift_ideas_and_store(client, home, seaso
 def test_new_gift_for_someone_already_on_list_is_rejected(client, home, season):
     _gift(season, "Hugi")
     response = client.post(
-        url("gift_new", home.slug, THIS_YEAR), {"name": "hugi", "group": "born", "ideas": ""}, **HX
+        url("gift_new", home.slug, THIS_YEAR),
+        {"name": "hugi", "group": "born", "ideas": "", "flokkur": "born"},
+        **HX,
     )
     assert response.status_code == 422
+    assert "Nýr aðili í Börn" in response.text  # fyrirsögnin helst þegar villa birtist
     assert "þegar á listanum" in response.text
 
 

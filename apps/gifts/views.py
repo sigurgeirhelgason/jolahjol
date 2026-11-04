@@ -373,7 +373,18 @@ class GiftDialogView(GiftsMixin, View):
         }
 
     def render(self, form, status=200):
-        ctx = {"form": form, "gift": self.gift, "season": self.season, **_form_lists(self.household)}
+        # Opnaður af „Bæta við aðila í <flokki>“: fyrirsögnin nefnir flokkinn
+        params = self.request.POST if self.request.method == "POST" else self.request.GET
+        group = params.get("flokkur") if self.gift is None else None
+        group_label = Group(group).label if group in Group.values else None
+        ctx = {
+            "form": form,
+            "gift": self.gift,
+            "season": self.season,
+            "group": group if group_label else None,
+            "group_label": group_label,
+            **_form_lists(self.household),
+        }
         return self.dialog(self.template, ctx, status=status)
 
     def get(self, request, slug, **kwargs):
