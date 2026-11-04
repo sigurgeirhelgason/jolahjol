@@ -1,5 +1,8 @@
 # Þróunarumhverfi: aðeins Postgres. Django keyrir beint á vélinni (uv run manage.py runserver).
 # Port 5433 svo þetta rekist ekki á Postgres Maintenance Tracker (5432).
+# Fast nafn: annars ræður heiti möppunnar og nýtt (tómt) volume verður til ef mappan breytist
+name: jolahjol
+
 services:
   db:
     image: postgres:17-alpine
