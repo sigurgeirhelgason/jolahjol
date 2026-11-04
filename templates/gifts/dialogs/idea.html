@@ -20,12 +20,13 @@
         </span>
       </template>
       <input id="giver-input" x-ref="input" name="q" autocomplete="off" role="combobox" aria-expanded="false"
-             aria-autocomplete="list" aria-controls="giver-options" placeholder="{% translate 'Tómt = frá okkur' %}"
+             aria-autocomplete="list" aria-controls="giver-options" x-bind:placeholder="placeholder"
+             data-placeholder="{% translate 'Tómt = frá okkur' %}"
              x-on:keydown="onKey" x-on:input="search" x-on:blur="commitTyped"
              data-search-url="{% url 'gifts:people_search' household.slug %}">
     </div>
     <ul class="picker-options" id="giver-options" role="listbox" x-ref="options" x-on:mousedown.prevent x-on:click="pick"></ul>
-    <span class="help">{% translate "Skrifaðu nafn og ýttu á Enter. Fleiri en einn ef gjöfin er sameiginleg." %}</span>
+    <span class="help">{% translate "Aðskildu nöfn með kommu ef gjöfin er frá fleiri en einum. Verðinu er skipt jafnt." %}</span>
   </div>
 
   <label class="switch" x-show="hasGivers" x-cloak>
@@ -33,17 +34,6 @@
     <span class="slider" aria-hidden="true"></span>
     <span><strong>{% translate "Keypt fyrir annan" %}</strong><small>{% translate "Gefandinn greiðir – birtist undir Rukkun" %}</small></span>
   </label>
-
-  <div class="shares" x-show="showShares" x-cloak>
-    <p class="price-sub">{% translate "Hlutur hvers og eins. Tómt = jöfn skipting; það sem upp á vantar greiðum við." %}</p>
-    <template x-for="(tag, index) in tags" x-bind:key="tag.name">
-      <label class="share-row">
-        <span x-text="tag.name"></span>
-        <input name="shares" inputmode="numeric" autocomplete="off" placeholder="{% translate 'jafnt' %}"
-               x-bind:value="tag.share" x-bind:data-index="index" x-on:input="setShare">
-      </label>
-    </template>
-  </div>
 
   <label class="switch" x-show="showPaid" x-cloak>
     <input type="checkbox" name="paid" value="on"{% if form.paid.value %} checked{% endif %}>

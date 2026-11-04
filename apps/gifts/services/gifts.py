@@ -72,8 +72,17 @@ def remove_idea(idea: Idea) -> None:
 
 
 def add_ideas(gift: Gift, text: str) -> list[Idea]:
-    """„sokkar, spil“ → tvær hugmyndir aftast."""
-    texts = [t.strip() for t in text.split(",") if t.strip()]
+    """„sokkar, spil“ → tvær hugmyndir aftast.
+
+    Hugmynd sem gjöfin hefur þegar (há- og lágstafir skipta ekki máli) bætist ekki við aftur,
+    svo tvísending (t.d. Enter og blur) býr ekki til tvítekningu.
+    """
+    seen = {normalize(i.text) for i in gift.ideas.all()}
+    texts = []
+    for t in (t.strip() for t in text.split(",")):
+        if t and normalize(t) not in seen:
+            seen.add(normalize(t))
+            texts.append(t)
     start = gift.ideas.count()
     return [Idea.objects.create(gift=gift, text=t, position=start + i) for i, t in enumerate(texts)]
 
@@ -182,7 +191,6 @@ def save_gift(season: Season, gift: Gift | None, data: GiftData) -> Gift:
 class IdeaData:
     text: str
     givers: list[str]
-    shares: list[int | None]  # í sömu röð og givers; aðeins notað með fleiri en einum gefanda
     for_other: bool
     paid: bool
     note: str
@@ -197,8 +205,8 @@ class IdeaData:
 def save_idea(idea: Idea, data: IdeaData) -> Idea:
     """Hugmyndaglugginn. Samsvarar `saveIdea`.
 
-    „Keypt fyrir annan“ krefst gefanda; „Greitt“ gildir um alla gefendur hugmyndarinnar
-    (hver gefandi er merktur sér undir Rukkun).
+    „Keypt fyrir annan“ krefst gefanda og verðinu er skipt jafnt á gefendur. „Greitt“ gildir
+    um alla gefendur hugmyndarinnar (hver gefandi er merktur sér undir Rukkun).
     """
     gift = idea.gift
     household = gift.season.household
@@ -216,10 +224,9 @@ def save_idea(idea: Idea, data: IdeaData) -> Idea:
     idea.save()
     set_givers(idea, givers)
 
-    shares = dict(zip((normalize(n) for n in data.givers), data.shares, strict=False))
-    use_shares = idea.for_other and len(givers) > 1 and any(v is not None for v in shares.values())
+    # Verðinu er alltaf skipt jafnt á gefendur (share=None); sjá pricing.split_shares
     for link in idea.giver_links.select_related("person"):
-        link.share = shares.get(link.person.key) if use_shares else None
+        link.share = None
         link.paid = idea.for_other and data.paid
         link.save(update_fields=["share", "paid"])
 

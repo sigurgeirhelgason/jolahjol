@@ -1,0 +1,45 @@
+{% load i18n %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">storefront</span>{{ store.name }}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:store' household.slug store.pk %}" hx-target="#modal-body" hx-include="#list-state">
+  <input type="hidden" name="ar" value="{{ year }}">
+  <div class="field{% if error %} has-error{% endif %}">
+    <label for="store-name">{% translate "Nafn búðar" %}</label>
+    <input id="store-name" name="name" value="{{ name }}" autocomplete="off" maxlength="100" required>
+    {% if error %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endif %}
+    <span class="help">{% translate "Breytist í öllum árum" %}</span>
+  </div>
+  {% if conflict %}
+    <div class="flash-item error" role="alert">
+      <span class="ms">info</span>
+      <span>{% blocktranslate with name=conflict.name %}„{{ name }}“ er þegar til. Viltu sameina þessar búðir? Staðsetningar beggja fylgja með.{% endblocktranslate %}</span>
+    </div>
+    <input type="hidden" name="merge" value="on">
+  {% endif %}
+  <fieldset class="loc-fieldset">
+    <legend class="price-sub">{% translate "Hvar er búðin? Veldu einn eða fleiri staði." %}</legend>
+    <div class="loc-picks">
+      {% for loc_name, on in locations %}
+        <label class="loc-pick">
+          <input type="checkbox" name="locations" value="{{ loc_name }}"{% if on %} checked{% endif %}>
+          <span class="ms on-icon">check</span><span class="ms off-icon">add</span>{{ loc_name }}
+        </label>
+      {% empty %}
+        <span class="muted">{% translate "Engar staðsetningar enn. Bættu við hér að neðan." %}</span>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <div class="field">
+    <label for="new-locations">{% translate "Annar staður" %}</label>
+    <input id="new-locations" name="new_locations" value="{{ new_locations }}" list="location-list"
+           placeholder="{% translate 't.d. Skeifan, Netverslun' %}" autocomplete="off" maxlength="300">
+    <span class="help">{% translate "Aðskildu staði með kommu" %}</span>
+  </div>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">save</span>{% if conflict %}{% translate "Sameina og vista" %}{% else %}{% translate "Vista" %}{% endif %}</button>
+  </div>
+</form>
+<datalist id="location-list">{% for loc in all_locations %}<option value="{{ loc.name }}">{% endfor %}</datalist>

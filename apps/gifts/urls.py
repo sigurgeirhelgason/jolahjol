@@ -14,6 +14,7 @@ urlpatterns = [
     path("h/<slug:slug>/<int:year>/ny-gjof/", views.GiftDialogView.as_view(), name="gift_new"),
     path("h/<slug:slug>/<int:year>/ny-lina/", views.NewRowView.as_view(), name="new_row"),
     path("h/<slug:slug>/folk/<int:pk>/", views.PersonDialogView.as_view(), name="person"),
+    path("h/<slug:slug>/budir/<int:pk>/", views.StoreDialogView.as_view(), name="store"),
     path("h/<slug:slug>/gjafir/<int:pk>/", views.GiftDialogView.as_view(), name="gift_edit"),
     path("h/<slug:slug>/gjafir/<int:pk>/keypt/", views.GiftBoughtView.as_view(), name="bought"),
     path("h/<slug:slug>/gjafir/<int:pk>/verd/", views.GiftPriceView.as_view(), name="price"),

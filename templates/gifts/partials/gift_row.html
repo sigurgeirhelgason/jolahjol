@@ -30,7 +30,8 @@
     {% endif %}
   </div>
   <div class="store">
-    {% if row.stores %}<span class="stores">{% for store in row.stores %}<span class="store-name" title="{{ store|locations_title }}">{{ store.name }}</span>{% endfor %}</span>{% else %}<span class="stores none">{% translate "Óákveðin" %}</span>{% endif %}
+    {% if row.stores %}<span class="stores">{% for store in row.stores %}<button type="button" class="store-btn" title="{{ store|locations_title|default:_('Bæta við staðsetningu') }}"
+        hx-get="{% url 'gifts:store' household.slug store.pk %}?ar={{ gift.season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ store.name }}</button>{% endfor %}</span>{% else %}<span class="stores none">{% translate "Óákveðin" %}</span>{% endif %}
     {% if gift.link %}<a href="{{ gift.link }}" target="_blank" rel="noopener noreferrer" title="{{ gift.link }}"><span class="ms">open_in_new</span></a>{% endif %}
   </div>
   <div class="amount">

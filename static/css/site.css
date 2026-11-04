@@ -172,3 +172,14 @@ nav.views a.active { background: var(--high); color: var(--on); font-weight: 700
 .new-row-hint { font-size: 12px; font-style: italic; color: var(--outline); padding: 0 6px; }
 .row-error { padding: 2px 6px 0; font-size: 12px; font-weight: 600; color: var(--primary-c); }
 .new-row .check input { opacity: .35; }
+
+/* Búðargluggi: staðsetningar sem gátreitir í útliti „loc-pick“ */
+.loc-fieldset { border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.loc-fieldset legend { padding: 0; margin-bottom: 8px; }
+label.loc-pick { cursor: pointer; }
+label.loc-pick input { position: absolute; opacity: 0; pointer-events: none; }
+label.loc-pick .on-icon, label.loc-pick:has(input:checked) .off-icon { display: none; }
+label.loc-pick:has(input:checked) .on-icon { display: inline-block; }
+label.loc-pick:has(input:checked) { background: var(--secondary); border-color: var(--secondary); color: #fff; }
+label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26, .2); }
+.store-btn { font-size: 14px; }

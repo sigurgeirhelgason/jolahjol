@@ -22,7 +22,7 @@ from django.views.generic import TemplateView
 from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh, trigger_client_event
 
 from apps.core.money import evaluate_amount
-from apps.core.text import fold_key
+from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.mixins import HouseholdMixin
 
 from . import listing
@@ -31,6 +31,7 @@ from .listing import ListState
 from .models import Gift, Group, Idea, Location, Person, Season, Store
 from .services import gifts as gift_services
 from .services import people as people_services
+from .services import stores as stores_services
 from .services.gifts import needs_price
 from .services.seasons import history, new_season
 from .services.summary import days_until_christmas
@@ -439,7 +440,8 @@ class PersonDialogView(GiftsMixin, View):
             "person": person,
             "form": form,
             "conflict": conflict,
-            "history": history(person),
+            # Fyrri gjafir: aðeins það sem var keypt (merkt „Tilbúið“), ekki hugmyndir sem urðu ekki að gjöf
+            "history": [entry for entry in history(person) if entry.gift.bought],
             "year": params.get("ar", ""),  # árið sem listinn sýnir, svo hann uppfærist eftir vistun
         }
         return self.dialog(self.template, ctx, status=status)
@@ -482,6 +484,61 @@ class PersonDialogView(GiftsMixin, View):
         return self.refresh_list(season)
 
 
+class StoreDialogView(GiftsMixin, View):
+    """Smellt á búð: nafn (gildir öll ár; spyr áður en sameinað er) og staðsetningar."""
+
+    template = "gifts/dialogs/store.html"
+
+    def get_store(self, pk):
+        return get_object_or_404(Store.objects.prefetch_related("locations"), pk=pk, household=self.household)
+
+    def render(self, store, name, chosen, new_locations="", conflict=None, error=None, status=200):
+        params = self.request.POST if self.request.method == "POST" else self.request.GET
+        all_locations = list(Location.objects.filter(household=self.household))
+        chosen_keys = {fold_key(n) for n in chosen}
+        ctx = {
+            "store": store,
+            "name": name,
+            "locations": sorted(
+                ((loc.name, loc.key in chosen_keys) for loc in all_locations), key=lambda x: is_sort_key(x[0])
+            ),
+            "new_locations": new_locations,
+            "conflict": conflict,
+            "error": error,
+            "year": params.get("ar", ""),
+            "all_locations": all_locations,
+        }
+        return self.dialog(self.template, ctx, status=status)
+
+    def get(self, request, slug, pk):
+        store = self.get_store(pk)
+        return self.render(store, store.name, [loc.name for loc in store.locations.all()])
+
+    def post(self, request, slug, pk):
+        store = self.get_store(pk)
+        name = request.POST.get("name", "").strip()[:100]
+        chosen = [n for n in request.POST.getlist("locations") if n.strip()]
+        new_locations = request.POST.get("new_locations", "")[:300]
+        if not name:
+            return self.render(store, name, chosen, new_locations, error=_("Búðin þarf nafn."), status=422)
+        conflict = stores_services.find_conflict(store, name)
+        if conflict and not request.POST.get("merge"):
+            # Spurt fyrst, eins og `renameStore`: „X“ er þegar til. Sameina þessar búðir?
+            return self.render(store, name, chosen, new_locations, conflict=conflict, status=422)
+        with transaction.atomic():
+            target = stores_services.rename_or_merge(store, name)
+            names = chosen + split_list(new_locations)
+            if conflict:
+                names += [loc.name for loc in target.locations.all()]
+            stores_services.set_locations(target, split_list(", ".join(names)))
+        season = self.household.seasons.filter(year=request.POST.get("ar") or 0).first()
+        if season is None:
+            response = HttpResponse(status=204)
+            trigger_client_event(response, "closeModal", after="receive")
+            return response
+        return self.refresh_list(season)
+
+
 class IdeaDialogView(GiftsMixin, View):
     template = "gifts/dialogs/idea.html"
 
@@ -510,7 +567,7 @@ class IdeaDialogView(GiftsMixin, View):
             "link": idea.link,
             "picked": idea.picked,
         }
-        givers = [{"name": link.person.name, "share": link.share} for link in links]
+        givers = [link.person.name for link in links]
         return self.render(idea, IdeaForm(initial=initial), givers)
 
     def post(self, request, slug, pk):
@@ -521,10 +578,7 @@ class IdeaDialogView(GiftsMixin, View):
             with transaction.atomic():
                 gift_services.save_idea(idea, form.to_data())
             return self.refresh_list(idea.gift.season)
-        givers = [
-            {"name": n, "share": s}
-            for n, s in zip(request.POST.getlist("givers"), request.POST.getlist("shares"), strict=False)
-        ]
+        givers = request.POST.getlist("givers")
         return self.render(idea, form, givers, status=422)
 
 

@@ -146,18 +146,9 @@ class IdeaForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
-        # Gefendur koma úr person-picker sem endurteknir reitir: givers=Amma&givers=Afi, shares=…
+        # Gefendur koma úr gefendareitnum sem endurteknir reitir: givers=Amma&givers=Afi
         names = self.data.getlist("givers") if hasattr(self.data, "getlist") else []
-        shares = self.data.getlist("shares") if hasattr(self.data, "getlist") else []
         cleaned["givers"] = [n.strip()[:100] for n in names if n.strip()]
-        parsed = []
-        for raw in shares[: len(names)]:
-            try:
-                parsed.append(AmountField().clean(raw))
-            except forms.ValidationError:
-                self.add_error(None, _("Hlutur gefanda þarf að vera upphæð."))
-                parsed.append(None)
-        cleaned["shares"] = parsed
         return cleaned
 
     def to_data(self) -> IdeaData:
@@ -165,7 +156,6 @@ class IdeaForm(forms.Form):
         return IdeaData(
             text=d["text"],
             givers=d["givers"],
-            shares=d["shares"],
             for_other=d["for_other"],
             paid=d["paid"],
             note=d["note"],

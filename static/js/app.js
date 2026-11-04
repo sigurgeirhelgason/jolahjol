@@ -71,7 +71,6 @@ document.addEventListener("alpine:init", () => {
 
   // „+ Hugmynd“: Enter eða komma vistar, líka ef farið er úr reitnum með texta í honum
   Alpine.data("chipInput", () => ({
-    busy: false,
     onKey(event) {
       if (event.key !== "Enter" && event.key !== ",") return;
       event.preventDefault();
@@ -79,14 +78,13 @@ document.addEventListener("alpine:init", () => {
     },
     onBlur() { this.send(); },
     send() {
-      // busy: Enter sendir, svo kemur ný lína í stað þeirrar gömlu og gamli reiturinn missir fókus
-      // með textann enn í sér. Án þessa sendi blur hugmyndina aftur.
-      if (this.busy || !this.$el.value.trim()) return;
-      this.busy = true;
-      this.$el.addEventListener("htmx:afterRequest", () => { this.busy = false; }, { once: true });
+      if (!this.$el.value.trim()) return;
       // Lína sem var að birtast er kannski ekki komin í gegnum htmx enn (settle); process er óskaðlegt
       htmx.process(this.$el);
       htmx.trigger(this.$el, "add");
+      // htmx les gildið um leið og beiðnin fer af stað. Reiturinn er tæmdur strax svo að
+      // blur (þegar línan er teiknuð upp á nýtt) sendi hugmyndina ekki aftur.
+      this.$el.value = "";
     },
   }));
 
@@ -142,7 +140,7 @@ document.addEventListener("alpine:init", () => {
     storeLocations: {},
 
     init() {
-      this.tags = JSON.parse(this.$el.dataset.givers || "[]").map((t) => ({ name: t.name, share: t.share ?? "" }));
+      this.tags = JSON.parse(this.$el.dataset.givers || "[]").map((name) => ({ name }));
       this.storeLocations = JSON.parse(this.$el.dataset.storeLocations || "{}");
       this.forOther = this.$refs.other.checked;
       this.link = this.$refs.link.value;
@@ -150,7 +148,8 @@ document.addEventListener("alpine:init", () => {
 
     get hasGivers() { return this.tags.length > 0; },
     get showPaid() { return this.forOther && this.hasGivers; },
-    get showShares() { return this.forOther && this.tags.length > 1; },
+    // Placeholder hverfur þegar gefandi er kominn, því reiturinn er þá ekki „tómur“
+    get placeholder() { return this.hasGivers ? "" : this.$refs.input.dataset.placeholder; },
     get hasLink() { return /^https?:\/\//i.test(this.link); },
 
     focusInput(event) {
@@ -169,6 +168,14 @@ document.addEventListener("alpine:init", () => {
     // Tillögur frá þjóninum. Raðnúmer tryggir að aðeins svar við nýjasta textanum birtist,
     // svo gamalt svar fylli ekki listann aftur eftir að gefandi var valinn.
     search() {
+      const value = this.$refs.input.value;
+      if (value.includes(",")) {
+        const parts = value.split(",");
+        const rest = parts.pop();
+        parts.forEach((name) => this.addTag(name));
+        this.$refs.input.value = rest.trimStart();
+        if (!this.$refs.input.value) return;
+      }
       this.active = -1;
       clearTimeout(this.timer);
       const seq = ++this.seq;
@@ -190,7 +197,7 @@ document.addEventListener("alpine:init", () => {
       name = (name || "").trim();
       if (!name) return;
       const key = name.toLocaleLowerCase("is");
-      if (!this.tags.some((t) => t.name.toLocaleLowerCase("is") === key)) this.tags.push({ name, share: "" });
+      if (!this.tags.some((t) => t.name.toLocaleLowerCase("is") === key)) this.tags.push({ name });
       this.$refs.input.value = "";
       this.clearOptions();
     },
@@ -213,9 +220,11 @@ document.addEventListener("alpine:init", () => {
         this.active = (this.active + step + options.length) % options.length;
         this.highlight();
       } else if (event.key === "Enter" || event.key === ",") {
+        const typed = this.$refs.input.value.trim();
+        if (event.key === "Enter" && !typed && this.active < 0) return; // tómur reitur: Enter vistar gluggann
         event.preventDefault();
         if (this.active >= 0 && options[this.active]) this.addTag(options[this.active].dataset.name);
-        else this.addTag(this.$refs.input.value);
+        else this.addTag(typed);
       } else if (event.key === "Backspace" && !this.$refs.input.value && this.tags.length) {
         this.tags.pop();
         if (!this.tags.length) this.forOther = false;
@@ -226,7 +235,6 @@ document.addEventListener("alpine:init", () => {
     },
 
     toggleOther(event) { this.forOther = event.target.checked; },
-    setShare(event) { this.tags[Number(event.target.dataset.index)].share = event.target.value; },
     setLink(event) { this.link = event.target.value.trim(); },
     storeChanged(event) {
       const locations = this.storeLocations[foldKey(event.target.value)];
@@ -241,10 +249,12 @@ document.addEventListener("htmx:configRequest", (event) => {
   if (token) event.detail.headers["X-CSRFToken"] = token.content;
 });
 
-// Gluggi opnast þegar htmx hefur sett efni í hann og unnið úr því (afterSettle, ekki afterSwap),
-// svo ekki sé hægt að senda formið áður en htmx hefur tengt sig við það
-document.addEventListener("htmx:afterSettle", (event) => {
+// Gluggi opnast um leið og htmx setur efni í hann (afterSwap). htmx.process tengir formið strax,
+// svo glugginn sé aldrei sýnilegur án þess að virka, og aldrei virkur án þess að vera sýnilegur
+// (annars fer lyklaborðið á síðuna fyrir aftan á meðan beðið er eftir settle).
+document.addEventListener("htmx:afterSwap", (event) => {
   if (event.detail.target.id !== "modal-body") return;
+  htmx.process(event.detail.target);
   const modal = document.getElementById("modal");
   if (!modal.open) modal.showModal();
   const focus = modal.querySelector("[autofocus]");

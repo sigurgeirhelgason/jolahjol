@@ -85,19 +85,17 @@ def test_idea_dialog_givers_and_billing(home, page):
     dialog = page.locator("#modal")
     givers = dialog.get_by_label("Frá hverjum?")
 
-    # Nýr gefandi með Enter, annar valinn úr tillögum
-    expect(givers).to_be_visible()
-    givers.fill("Amma Jóa")
-    givers.press("Enter")
+    # Komma aðgreinir gefendur; placeholder hverfur þegar gefandi er kominn
+    expect(givers).to_have_attribute("placeholder", "Tómt = frá okkur")
+    givers.press_sequentially("Amma Jóa, ")
     expect(dialog.locator(".picker-tag")).to_have_count(1)
+    expect(givers).to_have_attribute("placeholder", "")
     givers.fill("Afi")
     dialog.get_by_role("option", name=re.compile("Búa til „Afi“")).click()
     expect(dialog.locator(".picker-tag")).to_have_count(2)
 
-    # Keypt fyrir annan birtist bara með gefendum; hlutir birtast með fleiri en einum
+    # Keypt fyrir annan birtist bara með gefendum; verðinu er skipt jafnt
     dialog.get_by_text("Keypt fyrir annan").click()
-    expect(dialog.locator(".shares")).to_be_visible()
-    dialog.locator(".share-row input").first.fill("4000")
     dialog.get_by_label("Verð (kr.)").fill("6.000")
     dialog.locator("label.switch", has_text="Keypt").last.click()
     dialog.get_by_role("button", name="Vista").click()
@@ -105,10 +103,8 @@ def test_idea_dialog_givers_and_billing(home, page):
 
     asdis = row(page, "Ásdís")
     expect(asdis.locator(".chip.picked")).to_contain_text("frá Amma Jóa og Afi")
-    expect(asdis.locator(".price-wrap")).to_contain_text("2.000 kr.")
-    expect(page.locator("#summary .money-foot")).to_contain_text("Til innheimtu: 4.000 kr.")
-    shares = dict(IdeaGiver.objects.values_list("person__name", "share"))
-    assert shares == {"Amma Jóa": 4000, "Afi": None}
+    expect(page.locator("#summary .money-foot")).to_contain_text("Til innheimtu: 6.000 kr.")
+    assert set(IdeaGiver.objects.values_list("person__name", "share")) == {("Amma Jóa", None), ("Afi", None)}
 
     # Gefendurnir eru á hugmyndinni þegar hún er opnuð aftur (🎁 á undan valinni hugmynd)
     page.locator(".chip-t", has_text="púsl").click()
@@ -170,3 +166,19 @@ def test_new_row_disappears_without_name_and_person_dialog(home, page):
     expect(dialog).to_be_hidden()
     afi = Person.objects.get(name="Afi")
     assert str(afi.birthday) == "1950-03-03" and afi.give_birthday
+
+
+def test_store_dialog_adds_location(home, page):
+    add_gift(page, "Börn", "Hugi", ideas="legó")
+    page.locator(".chip-t", has_text="legó").click()
+    dialog = page.locator("#modal")
+    dialog.get_by_label("Búð", exact=True).fill("Elko")
+    dialog.get_by_role("button", name="Vista").click()
+    expect(dialog).to_be_hidden()
+
+    row(page, "Hugi").get_by_role("button", name="Elko").click()
+    dialog.get_by_label("Annar staður").fill("Kringlan")
+    dialog.get_by_role("button", name="Vista").click()
+    expect(dialog).to_be_hidden()
+    row(page, "Hugi").get_by_role("button", name="Elko").click()
+    expect(dialog.locator("label.loc-pick", has_text="Kringlan").locator("input")).to_be_checked()

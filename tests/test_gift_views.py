@@ -6,6 +6,7 @@ from apps.gifts import listing
 from apps.gifts.models import Gift, Idea, IdeaGiver, Person, Season
 from apps.gifts.services import gifts as gift_services
 from apps.gifts.services import people
+from apps.gifts.services.billing import season_billing
 from apps.households.models import Membership
 from tests.factories import (
     GiftFactory,
@@ -305,7 +306,7 @@ def test_renaming_to_existing_person_moves_gift_and_drops_orphan(season):
     assert not Person.objects.filter(pk=orphan.pk).exists()
 
 
-def test_idea_dialog_saves_givers_shares_and_billing(client, home, season):
+def test_idea_dialog_saves_givers_and_splits_billing_equally(client, home, season):
     gift = _gift(season, "Hugi")
     idea = IdeaFactory(gift=gift, text="púsl")
     response = client.get(url("idea", home.slug, idea.pk), **HX)
@@ -315,7 +316,6 @@ def test_idea_dialog_saves_givers_shares_and_billing(client, home, season):
         {
             "text": "púsl",
             "givers": ["Amma Jóa", "Afi", "okkur"],
-            "shares": ["4000", "", ""],
             "for_other": "on",
             "price": "6.000",
             "picked": "on",
@@ -326,10 +326,12 @@ def test_idea_dialog_saves_givers_shares_and_billing(client, home, season):
     )
     idea.refresh_from_db()
     links = {link.person.name: link.share for link in idea.giver_links.all()}
-    assert links == {"Amma Jóa": 4000, "Afi": None}
+    assert links == {"Amma Jóa": None, "Afi": None}  # „okkur“ er ekki gefandi
     assert idea.for_other and idea.picked and idea.price == 6000
     gift.refresh_from_db()
-    assert gift.bought and gift.actual_price == 2000  # 4.000 rukkað, afgangurinn okkar
+    assert gift.bought and gift.actual_price is None  # allt rukkað, ekkert á okkur
+    payers = {p.person.name: p.unpaid for p in season_billing(season)}
+    assert payers == {"Amma Jóa": 3000, "Afi": 3000}  # alltaf jöfn skipting
     assert sorted(loc.name for loc in idea.store.locations.all()) == ["Kringlan", "Smáralind"]
     # Nýir gefendur verða ekki viðtakendur
     assert not Person.objects.recipients().filter(name="Amma Jóa").exists()
@@ -414,7 +416,7 @@ def test_tree_fill():
 def test_save_idea_marks_all_givers_paid(season):
     idea = IdeaFactory(gift=_gift(season))
     data = gift_services.IdeaData(
-        text="x", givers=["A", "B"], shares=[None, None], for_other=True, paid=True,
+        text="x", givers=["A", "B"], for_other=True, paid=True,
         note="", store="", locations="", price=1001, link="", picked=True,
     )  # fmt: skip
     gift_services.save_idea(idea, data)
@@ -452,9 +454,14 @@ def test_new_row_rejects_name_already_on_list(client, home, season):
 def test_person_dialog_saves_birthday_and_gift_flags(client, home, season):
     gift = _gift(season, "Hugi")
     old = SeasonFactory(household=home, year=THIS_YEAR - 1)
-    IdeaFactory(gift=GiftFactory(season=old, person=gift.person), text="Andrés áskrift", picked=True)
+    IdeaFactory(
+        gift=GiftFactory(season=old, person=gift.person, bought=True), text="Andrés áskrift", picked=True
+    )
+    older = SeasonFactory(household=home, year=THIS_YEAR - 2)
+    IdeaFactory(gift=GiftFactory(season=older, person=gift.person), text="aldrei keypt")
     page = client.get(url("person", home.slug, gift.person_id) + f"?ar={THIS_YEAR}", **HX)
     assert "Andrés áskrift" in page.text and f'name="ar" value="{THIS_YEAR}"' in page.text
+    assert "aldrei keypt" not in page.text  # fyrri gjafir: aðeins keyptar
     response = client.post(
         url("person", home.slug, gift.person_id),
         {"name": "Hugi", "group": "born", "birthday": "2016-05-04", "give_birthday": "on", "ar": THIS_YEAR},
@@ -482,3 +489,53 @@ def test_person_dialog_asks_before_merging(client, home, season):
 def test_person_dialog_is_scoped_to_household(client, home):
     stranger = PersonFactory()
     assert client.get(url("person", home.slug, stranger.pk), **HX).status_code == 404
+
+
+def test_adding_same_idea_twice_is_ignored(client, home, season):
+    gift = _gift(season)
+    client.post(url("idea_add", home.slug, gift.pk), {"text": "spil"}, **HX)
+    client.post(url("idea_add", home.slug, gift.pk), {"text": "Spil, bók, bók"}, **HX)
+    assert list(gift.ideas.values_list("text", flat=True)) == ["spil", "bók"]
+
+
+# ---------- Búðargluggi ----------
+
+
+def test_store_dialog_renames_and_sets_locations(client, home, season):
+    gift = _gift(season)
+    store = StoreFactory(household=home, name="elko")
+    IdeaFactory(gift=gift, store=store)
+    page = client.get(url("store", home.slug, store.pk) + f"?ar={THIS_YEAR}", **HX)
+    assert 'value="elko"' in page.text
+    response = client.post(
+        url("store", home.slug, store.pk),
+        {"name": "Elko", "new_locations": "Kringlan, Smáralind", "ar": THIS_YEAR},
+        **HX,
+    )
+    store.refresh_from_db()
+    assert store.name == "Elko"
+    assert sorted(loc.name for loc in store.locations.all()) == ["Kringlan", "Smáralind"]
+    assert response["HX-Retarget"] == "#sections"
+    # Hakað af: Smáralind fer
+    client.post(
+        url("store", home.slug, store.pk), {"name": "Elko", "locations": ["Kringlan"], "ar": THIS_YEAR}, **HX
+    )
+    assert [loc.name for loc in store.locations.all()] == ["Kringlan"]
+
+
+def test_store_dialog_asks_before_merging(client, home, season):
+    gift = _gift(season)
+    old = StoreFactory(household=home, name="Hagkaup Skeifan")
+    target = StoreFactory(household=home, name="Hagkaup")
+    idea = IdeaFactory(gift=gift, store=old)
+    data = {"name": "hagkaup", "locations": ["Skeifan"], "ar": THIS_YEAR}
+    response = client.post(url("store", home.slug, old.pk), data, **HX)
+    assert response.status_code == 422 and "er þegar til" in response.text
+    client.post(url("store", home.slug, old.pk), {**data, "merge": "on"}, **HX)
+    idea.refresh_from_db()
+    assert idea.store == target
+    assert [loc.name for loc in target.locations.all()] == ["Skeifan"]
+
+
+def test_store_dialog_is_scoped_to_household(client, home):
+    assert client.get(url("store", home.slug, StoreFactory().pk), **HX).status_code == 404
