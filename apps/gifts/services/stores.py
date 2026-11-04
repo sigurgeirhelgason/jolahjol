@@ -3,6 +3,7 @@
 import re
 
 from django.db import transaction
+from django.db.models import Count
 
 from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.models import Household
@@ -14,11 +15,38 @@ from ..models import Gift, Location, Store
 DEFAULT_LOCATIONS = ["Kringlan", "Smáralind", "Skeifan", "Glerártorg", "Laugavegur"]
 
 
-def location_choices(household: Household) -> list[str]:
-    """Sjálfgefnir staðir fyrst, svo aðrir staðir heimilisins í stafrófsröð (án tvítekninga)."""
-    defaults = {fold_key(n) for n in DEFAULT_LOCATIONS}
-    others = [loc.name for loc in Location.objects.filter(household=household) if loc.key not in defaults]
-    return DEFAULT_LOCATIONS + sorted(others, key=is_sort_key)
+# Aðrir staðir verða að pillu þegar þeir eru skráðir á fleiri búðir en þetta
+COMMON_LOCATION_MIN_STORES = 3
+
+
+def location_choices(household: Household, keep: list[str] = ()) -> list[str]:
+    """Pillur í búðarglugganum.
+
+    Sjálfgefnir staðir fyrst, svo aðrir staðir heimilisins sem eru á fleiri en 2 búðum (mest
+    notaðir fyrst), og loks staðir í `keep` (þeir sem búðin hefur nú þegar, svo hægt sé að haka af).
+    """
+    taken = {fold_key(n) for n in DEFAULT_LOCATIONS}
+    common = (
+        Location.objects.filter(household=household)
+        .annotate(n=Count("stores"))
+        .filter(n__gte=COMMON_LOCATION_MIN_STORES)
+    )
+    out = list(DEFAULT_LOCATIONS)
+    for loc in sorted(common, key=lambda loc: (-loc.n, is_sort_key(loc.name))):
+        if loc.key not in taken:
+            taken.add(loc.key)
+            out.append(loc.name)
+    for name in sorted(keep, key=is_sort_key):
+        if fold_key(name) not in taken:
+            taken.add(fold_key(name))
+            out.append(name)
+    return out
+
+
+def all_location_names(household: Household) -> list[str]:
+    """Tillögur þegar skrifað er (datalist): sjálfgefnir staðir og allir staðir heimilisins."""
+    names = [loc.name for loc in Location.objects.filter(household=household)]
+    return location_choices(household, keep=names)
 
 
 def is_url(value: str | None) -> bool:

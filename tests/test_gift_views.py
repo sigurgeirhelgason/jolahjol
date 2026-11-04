@@ -541,6 +541,16 @@ def test_store_dialog_is_scoped_to_household(client, home):
     assert client.get(url("store", home.slug, StoreFactory().pk), **HX).status_code == 404
 
 
+def test_other_locations_become_pills_when_used_by_more_than_two_stores(home):
+    for i in range(3):
+        stores.set_locations(StoreFactory(household=home, name=f"Búð {i}"), "Netverslun")
+    for i in range(2):
+        stores.set_locations(StoreFactory(household=home, name=f"Hin {i}"), "Akureyri")
+    assert stores.location_choices(home) == [*stores.DEFAULT_LOCATIONS, "Netverslun"]
+    assert stores.location_choices(home, keep=["Akureyri"])[-1] == "Akureyri"
+    assert "Akureyri" in stores.all_location_names(home)
+
+
 def test_store_dialog_offers_default_locations_first(client, home, season):
     store = StoreFactory(household=home, name="Elko")
     IdeaFactory(gift=_gift(season), store=store)

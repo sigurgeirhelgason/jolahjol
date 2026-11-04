@@ -337,7 +337,7 @@ def _form_lists(household) -> dict:
     return {
         "all_people": Person.objects.filter(household=household).order_by("name"),
         "all_stores": stores,
-        "all_locations": stores_services.location_choices(household),
+        "all_locations": stores_services.all_location_names(household),
         "store_locations": json.dumps(
             {s.key: ", ".join(loc.name for loc in s.locations.all()) for s in stores}, ensure_ascii=False
         ),
@@ -494,7 +494,7 @@ class StoreDialogView(GiftsMixin, View):
 
     def render(self, store, name, chosen, new_locations="", conflict=None, error=None, status=200):
         params = self.request.POST if self.request.method == "POST" else self.request.GET
-        names = stores_services.location_choices(self.household)
+        names = stores_services.location_choices(self.household, keep=chosen)
         chosen_keys = {fold_key(n) for n in chosen}
         ctx = {
             "store": store,
@@ -504,7 +504,7 @@ class StoreDialogView(GiftsMixin, View):
             "conflict": conflict,
             "error": error,
             "year": params.get("ar", ""),
-            "all_locations": names,
+            "all_locations": stores_services.all_location_names(self.household),
         }
         return self.dialog(self.template, ctx, status=status)
 
