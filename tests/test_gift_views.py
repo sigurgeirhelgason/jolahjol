@@ -636,3 +636,28 @@ def test_member_cannot_delete_season(client, home, season):
         "Aðeins eigendur geta eytt jólaárum"
         in client.get(reverse("households:settings", args=[home.slug])).text
     )
+
+
+def test_new_row_suggests_people_from_other_years(client, home, season):
+    old = SeasonFactory(household=home, year=THIS_YEAR - 1)
+    _gift(old, "Mamma", group="fjolskylda")
+    hugi = _gift(old, "Hugi").person
+    GiftFactory(season=season, person=hugi)  # þegar á listanum í ár
+    PersonFactory(household=home, name="Amma Jóa")  # bara gefandi, aldrei fengið gjöf
+    html = client.get(url("new_row", home.slug, THIS_YEAR) + "?flokkur=born", **HX).text
+    assert '<option value="Mamma">' in html
+    assert '<option value="Hugi">' not in html
+    assert "Amma Jóa" not in html
+
+
+def test_new_row_with_existing_person_keeps_details_and_group(client, home, season):
+    old = SeasonFactory(household=home, year=THIS_YEAR - 1)
+    mamma = _gift(old, "Mamma", group="fjolskylda").person
+    Person.objects.filter(pk=mamma.pk).update(birthday="1960-01-02", give_birthday=True)
+    response = client.post(
+        url("new_row", home.slug, THIS_YEAR), {"name": "mamma", "group": "born", "plan": "8000"}, **HX
+    )
+    mamma.refresh_from_db()
+    assert (mamma.group, str(mamma.birthday), mamma.give_birthday) == ("fjolskylda", "1960-01-02", True)
+    assert Gift.objects.get(season=season, person=mamma).plan == 8000
+    assert response["HX-Retarget"] == "#sections"  # fór í Fjölskyldu, ekki Börn

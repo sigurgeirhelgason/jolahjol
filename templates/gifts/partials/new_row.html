@@ -5,7 +5,9 @@
   <div class="check"><input type="checkbox" disabled aria-hidden="true" tabindex="-1"></div>
   <div>
     <input class="cell f-name" name="name" value="{{ form.name.value|default:'' }}" placeholder="{% translate 'Skrifaðu nafn' %}"
-           aria-label="{% translate 'Nafn' %}" autocomplete="off" maxlength="100" autofocus>
+           aria-label="{% translate 'Nafn' %}" autocomplete="off" maxlength="100" autofocus
+           list="new-row-suggestions-{{ group }}">
+    <datalist id="new-row-suggestions-{{ group }}">{% for name in suggestions %}<option value="{{ name }}">{% endfor %}</datalist>
     {% if form.name.errors %}<div class="row-error">{{ form.name.errors.0 }}</div>{% endif %}
     <input type="hidden" name="group" value="{{ group }}">
   </div>

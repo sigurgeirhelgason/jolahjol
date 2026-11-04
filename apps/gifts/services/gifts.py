@@ -255,18 +255,27 @@ class PersonData:
 def add_person(season: Season, data: PersonData) -> tuple[Person, Gift | None]:
     """„Bæta við aðila“: einstaklingur með fæðingardegi og hvaða gjafir hann fær.
 
-    Með „Gef jólagjafir“ fer hann á jólalista ársins (með áætlun og hugmyndum). Sé
-    einstaklingurinn til (t.d. gefandi eða frá fyrri árum) eru upplýsingar hans uppfærðar.
+    Með „Gef jólagjafir“ fer hann á jólalista ársins (með áætlun og hugmyndum). Nýr
+    einstaklingur fær upplýsingarnar úr `data`. Einstaklingur sem er til (t.d. frá fyrri árum
+    eða gefandi) heldur sínum flokki, fæðingardegi og afmælisgjöf.
     Kastar ValueError ef hann er þegar á lista ársins.
     """
-    person = people.find_or_create(season.household, data.name, data.group)
-    if data.give_christmas and Gift.objects.alive().filter(season=season, person=person).exists():
+    household = season.household
+    person = Person.objects.filter(household=household, key=normalize(data.name)).first()
+    if person and data.give_christmas and Gift.objects.alive().filter(season=season, person=person).exists():
         raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
-    person.group = data.group
-    person.birthday = data.birthday
-    person.give_christmas = data.give_christmas
-    person.give_birthday = data.give_birthday
-    person.save()
+    if person is None:
+        person = Person.objects.create(
+            household=household,
+            name=data.name,
+            group=data.group,
+            birthday=data.birthday,
+            give_christmas=data.give_christmas,
+            give_birthday=data.give_birthday,
+        )
+    elif data.give_christmas and not person.give_christmas:
+        person.give_christmas = True
+        person.save(update_fields=["give_christmas"])
     if not data.give_christmas:
         return person, None
     last = season.gifts.order_by("-position").values_list("position", flat=True).first()

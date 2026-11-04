@@ -24,7 +24,7 @@ from django.views.generic import TemplateView
 from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh, trigger_client_event
 
 from apps.core.money import evaluate_amount
-from apps.core.text import fold_key, split_list
+from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
 
 from . import listing
@@ -423,7 +423,19 @@ class NewRowView(GiftsMixin, View):
     template = "gifts/partials/new_row.html"
 
     def render(self, season, form, status=200):
-        ctx = {"form": form, "season": season, "group": form["group"].value()}
+        # Útfylling: fólk sem hefur fengið gjöf önnur ár en er ekki á lista þessa árs
+        on_list = season.gifts.alive().values("person_id")
+        earlier = (
+            Person.objects.filter(household=self.household, gifts__deleted_at__isnull=True)
+            .exclude(pk__in=on_list)
+            .distinct()
+        )
+        ctx = {
+            "form": form,
+            "season": season,
+            "group": form["group"].value(),
+            "suggestions": sorted({p.name for p in earlier}, key=is_sort_key),
+        }
         return self.dialog(self.template, ctx, status=status)
 
     def get(self, request, slug, year):
@@ -439,10 +451,13 @@ class NewRowView(GiftsMixin, View):
         form = NewRowForm(request.POST)
         if form.is_valid():
             try:
-                _person, gift = gift_services.add_person(season, form.to_data())
+                person, gift = gift_services.add_person(season, form.to_data())
             except ValueError as exc:
                 form.add_error("name", str(exc))
             else:
+                if person.group != form.cleaned_data["group"]:
+                    # Einstaklingur úr öðrum flokki (valinn úr útfyllingu): línan á heima þar
+                    return self.refresh_list(season, close_modal=False)
                 return self.row_response(gift)
         return self.render(season, form, status=422)
 
