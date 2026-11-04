@@ -18,7 +18,7 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
 
     # Valmynd heimilis (Alpine) → stillingar → boðshlekkur
     page.get_by_role("button", name="Heimilið á Þórsgötu").click()
-    page.get_by_role("link", name="Stillingar og meðlimir").click()
+    page.get_by_role("link", name="Stillingar").click()
     page.get_by_role("button", name="Búa til boðshlekk").click()
     invite_url = page.get_by_label("Boðshlekkur").input_value()
 

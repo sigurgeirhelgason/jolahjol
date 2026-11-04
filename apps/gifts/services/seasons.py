@@ -37,3 +37,12 @@ def history(person: Person, before_year: int | None = None) -> list[HistoryEntry
     if before_year is not None:
         gifts = gifts.filter(season__year__lt=before_year)
     return [HistoryEntry(g.season.year, g, gift_text(g)) for g in gifts]
+
+
+@transaction.atomic
+def delete_season(season: Season) -> int:
+    """Eyðir jólaári og gjöfum þess (líka eyddum). Fólk og búðir haldast. Skilar fjölda gjafa."""
+    count = season.gifts.alive().count()
+    season.gifts.all().delete()
+    season.delete()
+    return count

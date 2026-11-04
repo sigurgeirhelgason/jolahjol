@@ -11,6 +11,7 @@ urlpatterns = [
     path("h/<slug:slug>/<int:year>/", views.GiftListView.as_view(), name="season"),
     path("h/<slug:slug>/<int:year>/vidmid/", views.BudgetView.as_view(), name="budget"),
     path("h/<slug:slug>/<int:year>/opna/", views.UnlockView.as_view(), name="unlock"),
+    path("h/<slug:slug>/<int:year>/eyda/", views.SeasonDeleteView.as_view(), name="season_delete"),
     path("h/<slug:slug>/<int:year>/ny-gjof/", views.GiftDialogView.as_view(), name="gift_new"),
     path("h/<slug:slug>/<int:year>/ny-lina/", views.NewRowView.as_view(), name="new_row"),
     path("h/<slug:slug>/folk/<int:pk>/", views.PersonDialogView.as_view(), name="person"),

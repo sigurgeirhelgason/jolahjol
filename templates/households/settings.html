@@ -73,6 +73,33 @@
   </section>
   {% endif %}
 
+  <section class="card" id="seasons">
+    <h2><span class="ms">calendar_month</span>{% translate "Jólaár" %}</h2>
+    <ul class="members">
+      {% for s in seasons %}
+        <li>
+          <span class="who">
+            <strong><a href="{% url 'gifts:season' household.slug s.year %}">{% blocktranslate with year=s.year %}Jól {{ year }}{% endblocktranslate %}</a></strong>
+            <small>{% blocktranslate count n=s.gift_count %}{{ n }} gjöf{% plural %}{{ n }} gjafir{% endblocktranslate %}</small>
+          </span>
+          {% if is_owner %}
+            <span class="acts">
+              <form method="post" action="{% url 'gifts:season_delete' household.slug s.year %}" class="inline"
+                    x-data="confirm" x-on:submit="ask"
+                    data-message="{% blocktranslate count n=s.gift_count with year=s.year %}Eyða jólum {{ year }} og {{ n }} gjöf? Það er ekki hægt að afturkalla.{% plural %}Eyða jólum {{ year }} og {{ n }} gjöfum? Það er ekki hægt að afturkalla.{% endblocktranslate %}">
+                {% csrf_token %}
+                <button type="submit" class="btn small danger" aria-label="{% blocktranslate with year=s.year %}Eyða jólum {{ year }}{% endblocktranslate %}"><span class="ms">delete</span>{% translate "Eyða" %}</button>
+              </form>
+            </span>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="muted">{% translate "Engin jólaár enn." %}</li>
+      {% endfor %}
+    </ul>
+    {% if is_owner %}<p>{% translate "Gjafir ársins hverfa, en fólk og búðir haldast því þau tengjast öðrum árum." %}</p>{% else %}<p>{% translate "Aðeins eigendur geta eytt jólaárum." %}</p>{% endif %}
+  </section>
+
   <section class="card danger-zone">
     <h2><span class="ms">logout</span>{% translate "Yfirgefa heimili" %}</h2>
     <p>{% translate "Þú hættir að sjá gjafalistann. Gögnin verða áfram hjá hinum." %}</p>

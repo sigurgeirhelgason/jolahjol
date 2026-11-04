@@ -9,6 +9,7 @@ Tvær gerðir svara við breytingum:
 import json
 from datetime import timedelta
 
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponse
@@ -17,13 +18,14 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views import View
 from django.views.generic import TemplateView
 from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh, trigger_client_event
 
 from apps.core.money import evaluate_amount
 from apps.core.text import fold_key, split_list
-from apps.households.mixins import HouseholdMixin
+from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
 
 from . import listing
 from .forms import BudgetForm, GiftForm, IdeaForm, NewRowForm, NewSeasonForm, PersonEditForm, PriceForm
@@ -33,7 +35,7 @@ from .services import gifts as gift_services
 from .services import people as people_services
 from .services import stores as stores_services
 from .services.gifts import needs_price
-from .services.seasons import history, new_season
+from .services.seasons import delete_season, history, new_season
 from .services.summary import days_until_christmas
 
 LIST = "gifts/list.html"
@@ -217,6 +219,24 @@ class NewSeasonView(GiftsMixin, View):
         previous = self.household.seasons.filter(year__lt=year).order_by("-year").first()
         new_season(self.household, year, copy_from=previous if form.cleaned_data["copy"] else None)
         return HttpResponseClientRedirect(reverse("gifts:season", args=[slug, year]))
+
+
+class SeasonDeleteView(OwnerRequiredMixin, View):
+    """Eyða jólaári (stillingasíða heimilis). Aðeins eigendur."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, slug, year):
+        season = get_object_or_404(Season, household=self.household, year=year)
+        count = delete_season(season)
+        messages.success(
+            request,
+            ngettext(
+                "Jólum %(year)s og %(n)s gjöf var eytt.", "Jólum %(year)s og %(n)s gjöfum var eytt.", count
+            )
+            % {"year": year, "n": count},
+        )
+        return redirect("households:settings", slug=slug)
 
 
 # ---------- Gjafir: breytingar í línu ----------

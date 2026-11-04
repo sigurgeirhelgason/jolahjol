@@ -613,3 +613,26 @@ def test_new_season_copies_from_the_year_before_it(client, home, season):
     client.post(url("new_season", home.slug), {"year": THIS_YEAR - 1, "copy": "on"}, **HX)
     between = Season.objects.get(household=home, year=THIS_YEAR - 1)
     assert [g.person.name for g in between.gifts.all()] == ["Gamli"]
+
+
+def test_owner_can_delete_season_and_people_stay(client, home, season):
+    gift = _gift(season, "Hugi")
+    IdeaFactory(gift=gift, text="legó")
+    settings_page = client.get(reverse("households:settings", args=[home.slug]))
+    assert f"Jól {THIS_YEAR}" in settings_page.text and "1 gjöf" in settings_page.text
+    response = client.post(url("season_delete", home.slug, THIS_YEAR))
+    assert response.url == reverse("households:settings", args=[home.slug])
+    assert not Season.objects.filter(pk=season.pk).exists()
+    assert not Gift.objects.filter(pk=gift.pk).exists()
+    assert Person.objects.filter(pk=gift.person_id).exists()
+
+
+def test_member_cannot_delete_season(client, home, season):
+    member = MembershipFactory(household=home, role=Membership.Role.MEMBER)
+    client.force_login(member.user)
+    assert client.post(url("season_delete", home.slug, THIS_YEAR)).status_code == 403
+    assert Season.objects.filter(pk=season.pk).exists()
+    assert (
+        "Aðeins eigendur geta eytt jólaárum"
+        in client.get(reverse("households:settings", args=[home.slug])).text
+    )

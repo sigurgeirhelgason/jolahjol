@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -56,6 +57,9 @@ class SettingsView(HouseholdMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["members"] = self.household.memberships.select_related("user").order_by("created_at")
         ctx["owner_count"] = sum(1 for m in ctx["members"] if m.role == Membership.Role.OWNER)
+        ctx["seasons"] = self.household.seasons.annotate(
+            gift_count=Count("gifts", filter=Q(gifts__deleted_at__isnull=True))
+        ).order_by("-year")
         if self.is_owner:
             ctx["invites"] = self.household.invites.usable().select_related("created_by")
             ctx["rename_form"] = HouseholdForm(initial={"name": self.household.name})
