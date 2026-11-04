@@ -597,3 +597,19 @@ def test_person_dialog_shows_birthday_as_dd_mm_yy(client, home, season):
     Person.objects.filter(pk=gift.person_id).update(birthday="2016-05-17")
     page = client.get(url("person", home.slug, gift.person_id), **HX)
     assert 'value="17/05/16"' in page.text
+
+
+def test_new_season_never_copies_from_a_later_year(client, home, season):
+    _gift(season, "Hugi", plan=15000)  # season = þetta ár
+    client.post(url("new_season", home.slug), {"year": THIS_YEAR - 1, "copy": "on"}, **HX)
+    earlier = Season.objects.get(household=home, year=THIS_YEAR - 1)
+    assert earlier.gifts.count() == 0 and earlier.budget == 0
+
+
+def test_new_season_copies_from_the_year_before_it(client, home, season):
+    old = SeasonFactory(household=home, year=THIS_YEAR - 2)
+    _gift(old, "Gamli", plan=1000)
+    _gift(season, "Hugi", plan=15000)
+    client.post(url("new_season", home.slug), {"year": THIS_YEAR - 1, "copy": "on"}, **HX)
+    between = Season.objects.get(household=home, year=THIS_YEAR - 1)
+    assert [g.person.name for g in between.gifts.all()] == ["Gamli"]

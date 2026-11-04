@@ -9,8 +9,8 @@
     <label class="switch">
       <input type="checkbox" name="copy" value="on"{% if form.copy.value %} checked{% endif %}>
       <span class="slider" aria-hidden="true"></span>
-      <span><strong>{% blocktranslate with year=latest.year %}Afrita viðtakendur og áætlun frá {{ year }}{% endblocktranslate %}</strong>
-        <small>{% translate "Aðeins þau sem eru merkt „Gef jólagjafir“. Hugmyndir og verð fylgja ekki." %}</small></span>
+      <span><strong>{% translate "Afrita viðtakendur og áætlun frá árinu á undan" %}</strong>
+        <small>{% translate "Aðeins þau sem eru merkt „Gef jólagjafir“. Hugmyndir og verð fylgja ekki. Ekkert er afritað ef ekkert ár er á undan." %}</small></span>
     </label>
   {% endif %}
   <div class="dlg-actions">

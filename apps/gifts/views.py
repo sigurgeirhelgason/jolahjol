@@ -213,8 +213,9 @@ class NewSeasonView(GiftsMixin, View):
         if not form.is_valid():
             return self.dialog(self.template, {"form": form, "latest": latest}, status=422)
         year = form.cleaned_data["year"]
-        copy_from = latest if form.cleaned_data["copy"] and latest and latest.year != year else None
-        new_season(self.household, year, copy_from=copy_from)
+        # Afritað frá árinu á undan því nýja, aldrei frá seinna ári (2025 fær ekki fólk úr 2026)
+        previous = self.household.seasons.filter(year__lt=year).order_by("-year").first()
+        new_season(self.household, year, copy_from=previous if form.cleaned_data["copy"] else None)
         return HttpResponseClientRedirect(reverse("gifts:season", args=[slug, year]))
 
 
