@@ -543,10 +543,10 @@ def test_store_dialog_is_scoped_to_household(client, home):
 
 def test_other_locations_become_pills_when_used_by_more_than_two_stores(home):
     for i in range(3):
-        stores.set_locations(StoreFactory(household=home, name=f"Búð {i}"), "Netverslun")
+        stores.set_locations(StoreFactory(household=home, name=f"Búð {i}"), "Fjörður")
     for i in range(2):
         stores.set_locations(StoreFactory(household=home, name=f"Hin {i}"), "Akureyri")
-    assert stores.location_choices(home) == [*stores.DEFAULT_LOCATIONS, "Netverslun"]
+    assert stores.location_choices(home) == [*stores.DEFAULT_LOCATIONS, "Fjörður"]
     assert stores.location_choices(home, keep=["Akureyri"])[-1] == "Akureyri"
     assert "Akureyri" in stores.all_location_names(home)
 

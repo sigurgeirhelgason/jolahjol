@@ -12,7 +12,7 @@ from ..models import Gift, Location, Store
 
 # Staðir sem eru alltaf í boði í búðarglugganum, í þessari röð (eins og LOCATIONS í gamla appinu).
 # Location verður ekki til fyrr en staðurinn er valinn fyrir búð.
-DEFAULT_LOCATIONS = ["Kringlan", "Smáralind", "Skeifan", "Glerártorg", "Laugavegur"]
+DEFAULT_LOCATIONS = ["Kringlan", "Smáralind", "Skeifan", "Glerártorg", "Laugavegur", "Netverslun"]
 
 
 # Aðrir staðir verða að pillu þegar þeir eru skráðir á fleiri búðir en þetta
