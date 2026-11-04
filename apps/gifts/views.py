@@ -26,13 +26,13 @@ from apps.core.text import fold_key
 from apps.households.mixins import HouseholdMixin
 
 from . import listing
-from .forms import BudgetForm, GiftForm, IdeaForm, NewSeasonForm, PersonForm, PriceForm
+from .forms import BudgetForm, GiftForm, IdeaForm, NewRowForm, NewSeasonForm, PersonEditForm, PriceForm
 from .listing import ListState
 from .models import Gift, Group, Idea, Location, Person, Season, Store
 from .services import gifts as gift_services
 from .services import people as people_services
 from .services.gifts import needs_price
-from .services.seasons import new_season
+from .services.seasons import history, new_season
 from .services.summary import days_until_christmas
 
 LIST = "gifts/list.html"
@@ -392,44 +392,94 @@ class GiftDialogView(GiftsMixin, View):
         return self.render(form, status=422)
 
 
-class PersonNewView(GiftsMixin, View):
-    """„Bæta við aðila í <flokki>“: nafn, fæðingardagur og hvaða gjafir viðkomandi fær."""
+class NewRowView(GiftsMixin, View):
+    """„Bæta við aðila í <flokki>“: tóm lína með nafni og áætlun beint í flokknum.
 
-    template = "gifts/dialogs/person_new.html"
+    Línan verður að gjöf þegar farið er úr henni (eða Enter) með nafni; án nafns hverfur hún.
+    """
+
+    template = "gifts/partials/new_row.html"
 
     def render(self, season, form, status=200):
-        group = form["group"].value()
-        ctx = {
-            "form": form,
-            "season": season,
-            "group_label": Group(group).label if group in Group.values else "",
-            **_form_lists(self.household),
-        }
+        ctx = {"form": form, "season": season, "group": form["group"].value()}
         return self.dialog(self.template, ctx, status=status)
 
     def get(self, request, slug, year):
         season = self.get_season(year)
         self.ensure_editable(season)
         group = request.GET.get("flokkur")
-        initial = {"group": group if group in Group.values else Group.FJOLSKYLDA, "give_christmas": True}
-        return self.render(season, PersonForm(initial=initial))
+        form = NewRowForm(initial={"group": group if group in Group.values else Group.ANNAD})
+        return self.render(season, form)
 
     def post(self, request, slug, year):
         season = self.get_season(year)
         self.ensure_editable(season)
-        form = PersonForm(request.POST)
+        form = NewRowForm(request.POST)
         if form.is_valid():
             try:
-                person, gift = gift_services.add_person(season, form.to_data())
+                _person, gift = gift_services.add_person(season, form.to_data())
             except ValueError as exc:
                 form.add_error("name", str(exc))
             else:
-                toast = None
-                if gift is None:
-                    text = _("„%(name)s“ var bætt við en fær ekki jólagjöf, svo nafnið er ekki á listanum.")
-                    toast = {"toast_text": text % {"name": person.name}}
-                return self.refresh_list(season, toast=toast)
+                return self.row_response(gift)
         return self.render(season, form, status=422)
+
+
+class PersonDialogView(GiftsMixin, View):
+    """Smellt á nafn: nafn (gildir öll ár), flokkur, fæðingardagur, jóla- og afmælisgjafir, saga."""
+
+    template = "gifts/dialogs/person.html"
+
+    def get_person(self, pk):
+        return get_object_or_404(Person, pk=pk, household=self.household)
+
+    def render(self, person, form, conflict=None, status=200):
+        params = self.request.POST if self.request.method == "POST" else self.request.GET
+        ctx = {
+            "person": person,
+            "form": form,
+            "conflict": conflict,
+            "history": history(person),
+            "year": params.get("ar", ""),  # árið sem listinn sýnir, svo hann uppfærist eftir vistun
+        }
+        return self.dialog(self.template, ctx, status=status)
+
+    def get(self, request, slug, pk):
+        person = self.get_person(pk)
+        initial = {
+            "name": person.name,
+            "group": person.group,
+            "birthday": person.birthday.isoformat() if person.birthday else "",
+            "give_christmas": person.give_christmas,
+            "give_birthday": person.give_birthday,
+        }
+        return self.render(person, PersonEditForm(initial=initial))
+
+    def post(self, request, slug, pk):
+        person = self.get_person(pk)
+        form = PersonEditForm(request.POST)
+        if not form.is_valid():
+            return self.render(person, form, status=422)
+        d = form.cleaned_data
+        conflict = people_services.find_conflict(person, d["name"])
+        if conflict and not d["merge"]:
+            # Spurt fyrst, eins og `renamePerson`: „X“ er þegar til. Sameina?
+            return self.render(person, form, conflict=conflict, status=422)
+        with transaction.atomic():
+            person = people_services.rename(person, d["name"], merge_into_existing=True)
+            people_services.update_details(
+                person,
+                group=d["group"],
+                birthday=d["birthday"],
+                give_christmas=d["give_christmas"],
+                give_birthday=d["give_birthday"],
+            )
+        season = self.household.seasons.filter(year=self.request.POST.get("ar") or 0).first()
+        if season is None:
+            response = HttpResponse(status=204)
+            trigger_client_event(response, "closeModal", after="receive")
+            return response
+        return self.refresh_list(season)
 
 
 class IdeaDialogView(GiftsMixin, View):

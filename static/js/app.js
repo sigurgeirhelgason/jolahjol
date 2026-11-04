@@ -71,6 +71,7 @@ document.addEventListener("alpine:init", () => {
 
   // „+ Hugmynd“: Enter eða komma vistar, líka ef farið er úr reitnum með texta í honum
   Alpine.data("chipInput", () => ({
+    busy: false,
     onKey(event) {
       if (event.key !== "Enter" && event.key !== ",") return;
       event.preventDefault();
@@ -78,7 +79,14 @@ document.addEventListener("alpine:init", () => {
     },
     onBlur() { this.send(); },
     send() {
-      if (this.$el.value.trim()) htmx.trigger(this.$el, "add");
+      // busy: Enter sendir, svo kemur ný lína í stað þeirrar gömlu og gamli reiturinn missir fókus
+      // með textann enn í sér. Án þessa sendi blur hugmyndina aftur.
+      if (this.busy || !this.$el.value.trim()) return;
+      this.busy = true;
+      this.$el.addEventListener("htmx:afterRequest", () => { this.busy = false; }, { once: true });
+      // Lína sem var að birtast er kannski ekki komin í gegnum htmx enn (settle); process er óskaðlegt
+      htmx.process(this.$el);
+      htmx.trigger(this.$el, "add");
     },
   }));
 
@@ -99,16 +107,28 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
-  // Nýr aðili: jólagjafareitir birtast með „Gef jólagjafir“; aldur reiknaður úr fæðingardegi
-  Alpine.data("personForm", () => ({
-    christmas: true,
+  // Fæðingardagur í einstaklingsglugga: „Verður 8 ára 3. mars (eftir 119 daga)“
+  Alpine.data("birthday", () => ({
     age: "",
-    init() {
-      this.christmas = this.$refs.christmas.checked;
-      this.updateAge();
+    init() { this.update(); },
+    update() { this.age = birthdayInfo(this.$refs.birthday.value); },
+  }));
+
+  // Ný lína í flokki (eins og `addGift`): vistast þegar farið er úr línunni með nafni,
+  // hverfur án nafns. Escape eða × hættir við.
+  Alpine.data("newRow", () => ({
+    sent: false,
+    markSent() { this.sent = true; },
+    leave(event) {
+      if (this.sent || this.$el.contains(event.relatedTarget)) return;
+      if (!this.$el.elements.name.value.trim()) { this.cancel(); return; }
+      this.sent = true;
+      htmx.trigger(this.$el, "submit");
     },
-    toggleChristmas(event) { this.christmas = event.target.checked; },
-    updateAge() { this.age = birthdayInfo(this.$refs.birthday.value); },
+    cancel() {
+      this.sent = true;
+      this.$el.remove();
+    },
   }));
 
   // Hugmyndaglugginn: gefendur (merki + tillögur), keypt fyrir annan, hlutir, hlekkur og búð

@@ -8,8 +8,8 @@
   </div>
   <div>
     <div class="name-line">
-      <button class="name-btn" type="button" title="{% blocktranslate with name=gift.person.name %}Breyta gjöf handa {{ name }}{% endblocktranslate %}"
-              hx-get="{% url 'gifts:gift_edit' household.slug gift.pk %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ gift.person.name }}</button>
+      <button class="name-btn" type="button" title="{% blocktranslate with name=gift.person.name %}Opna upplýsingar um {{ name }}{% endblocktranslate %}"
+              hx-get="{% url 'gifts:person' household.slug gift.person_id %}?ar={{ gift.season.year }}" hx-target="#modal-body">{{ gift.person.name }}</button>
       {% if gift.bought %}<span class="badge">{% translate "KEYPT" %}</span>{% endif %}
     </div>
     {% if row.history %}<div class="hist" title="{{ row.history_title }}"><span class="ms">history</span><span>{{ row.history_line }}</span></div>{% endif %}

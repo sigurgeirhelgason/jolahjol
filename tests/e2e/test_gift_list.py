@@ -5,7 +5,7 @@ from django.utils import timezone
 from playwright.sync_api import expect
 
 from apps.accounts.models import User
-from apps.gifts.models import Gift, IdeaGiver, Season
+from apps.gifts.models import Gift, IdeaGiver, Person, Season
 from apps.households.models import Household, Membership
 
 YEAR = timezone.localdate().year
@@ -27,15 +27,21 @@ def row(page, name):
 
 
 def add_gift(page, group, name, plan="", ideas=""):
-    """„Bæta við aðila í <flokki>“ með jólagjöf (sjálfgefið á)."""
+    """„Bæta við aðila í <flokki>“ → ný lína: nafn og áætlun, Enter vistar. Hugmyndir í línunni."""
     page.get_by_role("button", name=f"Bæta við aðila í {group}").click()
-    dialog = page.locator("#modal")
-    expect(dialog.get_by_role("heading", name=f"Nýr aðili í {group}")).to_be_visible()
-    dialog.get_by_label("Nafn", exact=True).fill(name)
-    dialog.get_by_label("Áætlað verð (kr.)").fill(plan)
-    dialog.get_by_label("Gjafahugmyndir").fill(ideas)
-    dialog.get_by_role("button", name=re.compile(r"Bæta við$")).click()
-    expect(dialog).to_be_hidden()
+    new_row = page.locator(".new-row")
+    name_input = new_row.get_by_label("Nafn", exact=True)
+    expect(name_input).to_be_focused()
+    name_input.fill(name)
+    if plan:
+        new_row.get_by_label("Áætlað verð").fill(plan)
+    new_row.get_by_label("Áætlað verð").press("Enter")
+    expect(page.locator(".new-row")).to_have_count(0)
+    for idea in [i.strip() for i in ideas.split(",") if i.strip()]:
+        chip = row(page, name).get_by_label(f"Ný hugmynd handa {name}")
+        chip.fill(idea)
+        chip.press("Enter")
+        expect(row(page, name).locator(".chip", has_text=idea)).to_have_count(1)
 
 
 def test_gift_list_flow(home, page):
@@ -145,16 +151,22 @@ def test_mobile_layout_has_no_horizontal_scroll(home, page):
     expect(row(page, "Una Elínóra")).to_be_visible()
 
 
-def test_add_person_without_christmas_gift(home, page):
+def test_new_row_disappears_without_name_and_person_dialog(home, page):
     page.get_by_role("button", name="Bæta við aðila í Fjölskylda").click()
+    expect(page.locator(".new-row")).to_have_count(1)
+    page.get_by_label("Leita", exact=True).click()  # farið úr tómri línu
+    expect(page.locator(".new-row")).to_have_count(0)
+
+    add_gift(page, "Fjölskylda", "Afi", "5000")
+    expect(row(page, "Afi").get_by_label("Áætlað verð handa Afi")).to_have_value("5.000 kr.")
+
+    # Smellt á nafn: fæðingardagur og afmælisgjöf
+    row(page, "Afi").get_by_role("button", name="Afi", exact=True).click()
     dialog = page.locator("#modal")
-    dialog.get_by_label("Nafn", exact=True).fill("Afi")
     dialog.get_by_label("Fæðingardagur").fill("1950-03-03")
     expect(dialog.get_by_text(re.compile(r"Verður \d+ ára 3\. mars"))).to_be_visible()
-    dialog.get_by_text("Gef jólagjafir").click()
-    expect(dialog.get_by_label("Áætlað verð (kr.)")).to_be_hidden()
     dialog.get_by_text("Gef afmælisgjafir").click()
-    dialog.get_by_role("button", name=re.compile(r"Bæta við$")).click()
+    dialog.get_by_role("button", name="Vista").click()
     expect(dialog).to_be_hidden()
-    expect(page.locator("#toast")).to_contain_text("fær ekki jólagjöf")
-    expect(row(page, "Afi")).to_have_count(0)
+    afi = Person.objects.get(name="Afi")
+    assert str(afi.birthday) == "1950-03-03" and afi.give_birthday

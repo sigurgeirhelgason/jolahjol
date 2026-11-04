@@ -421,68 +421,64 @@ def test_save_idea_marks_all_givers_paid(season):
     assert list(IdeaGiver.objects.filter(idea=idea).values_list("paid", flat=True)) == [True, True]
 
 
-# ---------- Nýr aðili ----------
+# ---------- Ný lína og einstaklingsgluggi ----------
 
 
-def test_add_person_with_christmas_gift_and_birthday(client, home, season):
-    response = client.get(url("person_new", home.slug, THIS_YEAR) + "?flokkur=born", **HX)
-    assert "Nýr aðili í Börn" in response.text
-    assert 'value="born" selected' in response.text
-    client.post(
-        url("person_new", home.slug, THIS_YEAR),
-        {
-            "name": "Óskar Birnir",
-            "group": "born",
-            "birthday": "2019-03-03",
-            "give_christmas": "on",
-            "give_birthday": "on",
-            "plan": "15.000",
-            "ideas": "úr, segulkubbar",
-        },
-        **HX,
-    )
-    person = Person.objects.get(name="Óskar Birnir")
-    assert str(person.birthday) == "2019-03-03" and person.give_christmas and person.give_birthday
-    gift = Gift.objects.get(person=person, season=season)
-    assert gift.plan == 15000
-    assert [i.text for i in gift.ideas.all()] == ["úr", "segulkubbar"]
+def test_new_row_form_is_rendered_for_group(client, home, season):
+    response = client.get(url("new_row", home.slug, THIS_YEAR) + "?flokkur=born", **HX)
+    assert 'class="row gift new-row"' in response.text
+    assert 'name="group" value="born"' in response.text
 
 
-def test_add_person_without_christmas_is_not_on_list(client, home, season):
+def test_new_row_creates_person_and_gift_and_returns_row(client, home, season):
     response = client.post(
-        url("person_new", home.slug, THIS_YEAR),
-        {"name": "Afi", "group": "fjolskylda", "give_birthday": "on", "plan": "5000"},
+        url("new_row", home.slug, THIS_YEAR),
+        {"name": "Óskar Birnir", "group": "born", "plan": "15.000"},
         **HX,
     )
-    person = Person.objects.get(name="Afi")
-    assert not person.give_christmas and person.give_birthday
-    assert not Gift.objects.filter(person=person).exists()
-    assert "fær ekki jólagjöf" in response.text
+    gift = Gift.objects.get(person__name="Óskar Birnir", season=season)
+    assert (gift.plan, gift.person.group, gift.person.give_christmas) == (15000, "born", True)
+    assert f'id="gift-{gift.pk}"' in response.text
+    assert 'id="group-born-head" hx-swap-oob="true"' in response.text
 
 
-def test_add_person_already_on_list_or_born_in_future(client, home, season):
+def test_new_row_rejects_name_already_on_list(client, home, season):
     _gift(season, "Hugi")
-    response = client.post(
-        url("person_new", home.slug, THIS_YEAR),
-        {"name": "hugi", "group": "born", "give_christmas": "on"},
-        **HX,
-    )
-    assert response.status_code == 422 and "þegar á listanum" in response.text
-    future = f"{THIS_YEAR + 1}-01-01"
-    response = client.post(
-        url("person_new", home.slug, THIS_YEAR), {"name": "Barn", "group": "born", "birthday": future}, **HX
-    )
-    assert response.status_code == 422 and "framtíðinni" in response.text
+    response = client.post(url("new_row", home.slug, THIS_YEAR), {"name": "hugi", "group": "born"}, **HX)
+    assert response.status_code == 422
+    assert "þegar á listanum" in response.text and "new-row" in response.text
 
 
-def test_add_person_updates_existing_giver(client, home, season):
-    amma = PersonFactory(household=home, name="Amma Jóa", group="annad")
-    client.post(
-        url("person_new", home.slug, THIS_YEAR),
-        {"name": "amma jóa", "group": "fjolskylda", "give_christmas": "on"},
+def test_person_dialog_saves_birthday_and_gift_flags(client, home, season):
+    gift = _gift(season, "Hugi")
+    old = SeasonFactory(household=home, year=THIS_YEAR - 1)
+    IdeaFactory(gift=GiftFactory(season=old, person=gift.person), text="Andrés áskrift", picked=True)
+    page = client.get(url("person", home.slug, gift.person_id) + f"?ar={THIS_YEAR}", **HX)
+    assert "Andrés áskrift" in page.text and f'name="ar" value="{THIS_YEAR}"' in page.text
+    response = client.post(
+        url("person", home.slug, gift.person_id),
+        {"name": "Hugi", "group": "born", "birthday": "2016-05-04", "give_birthday": "on", "ar": THIS_YEAR},
         **HX,
     )
-    amma.refresh_from_db()
-    assert amma.group == "fjolskylda"
-    assert Person.objects.filter(household=home).count() == 1
-    assert Gift.objects.filter(person=amma, season=season).exists()
+    person = Person.objects.get(pk=gift.person_id)
+    assert str(person.birthday) == "2016-05-04"
+    assert person.give_birthday and not person.give_christmas
+    assert response["HX-Retarget"] == "#sections"
+
+
+def test_person_dialog_asks_before_merging(client, home, season):
+    gift = _gift(season, "Ömmu")
+    amma = PersonFactory(household=home, name="Amma", group="fjolskylda")
+    data = {"name": "Amma", "group": "fjolskylda", "give_christmas": "on", "ar": THIS_YEAR}
+    response = client.post(url("person", home.slug, gift.person_id), data, **HX)
+    assert response.status_code == 422 and "er þegar til" in response.text
+    assert Person.objects.filter(pk=gift.person_id).exists()
+    client.post(url("person", home.slug, gift.person_id), {**data, "merge": "on"}, **HX)
+    gift.refresh_from_db()
+    assert gift.person == amma
+    assert not Person.objects.filter(name="Ömmu").exists()
+
+
+def test_person_dialog_is_scoped_to_household(client, home):
+    stranger = PersonFactory()
+    assert client.get(url("person", home.slug, stranger.pk), **HX).status_code == 404

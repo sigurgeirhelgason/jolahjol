@@ -166,3 +166,9 @@ nav.views a.active { background: var(--high); color: var(--on); font-weight: 700
   .menu > button { padding: 6px; }
   .topbar .menu > button .lbl { max-width: 88px; }
 }
+
+/* Ný lína í flokki */
+.new-row { margin: 0; background: var(--low); }
+.new-row-hint { font-size: 12px; font-style: italic; color: var(--outline); padding: 0 6px; }
+.row-error { padding: 2px 6px 0; font-size: 12px; font-weight: 600; color: var(--primary-c); }
+.new-row .check input { opacity: .35; }

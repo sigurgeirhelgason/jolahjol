@@ -81,48 +81,40 @@ class GiftForm(forms.Form):
         )
 
 
-class PersonForm(forms.Form):
-    """„Bæta við aðila“: hver, hvenær á hann afmæli og hvaða gjafir fær hann."""
+class NewRowForm(forms.Form):
+    """Ný lína í flokki: nafn (og áætlun). Samsvarar `addGift` í gamla appinu."""
 
-    name = _text(_("Nafn"), _("t.d. Hugi, Mamma eða Frænka…"), max_length=100)
-    group = forms.ChoiceField(label=_("Flokkur"), choices=Group.choices, initial=Group.FJOLSKYLDA)
+    name = _text(_("Nafn"), _("Skrifaðu nafn"), max_length=100)
+    plan = AmountField(label=_("Áætlað verð (kr.)"))
+    group = forms.ChoiceField(choices=Group.choices, widget=forms.HiddenInput)
+
+    def to_data(self) -> PersonData:
+        d = self.cleaned_data
+        return PersonData(
+            name=d["name"].strip(), group=d["group"], birthday=None, give_christmas=True,
+            give_birthday=False, plan=d["plan"], ideas=[],
+        )  # fmt: skip
+
+
+class PersonEditForm(forms.Form):
+    """Einstaklingsglugginn (smellt á nafn). Samsvarar `personDialog`."""
+
+    name = _text(_("Nafn"), max_length=100)
+    group = forms.ChoiceField(label=_("Flokkur"), choices=Group.choices)
     birthday = forms.DateField(
         label=_("Fæðingardagur"),
         required=False,
         widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
     )
-    give_christmas = forms.BooleanField(required=False, initial=True)
+    give_christmas = forms.BooleanField(required=False)
     give_birthday = forms.BooleanField(required=False)
-    plan = AmountField(label=_("Áætlað verð (kr.)"), widget=forms.TextInput(attrs={"placeholder": "5000"}))
-    ideas = _text(
-        _("Gjafahugmyndir"),
-        _("t.d. hlýir ullarsokkar, spil"),
-        required=False,
-        max_length=1000,
-        help_text=_("Aðskildu hugmyndir með kommu"),
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["name"].widget.attrs.update({"list": "people-list", "autofocus": True})
+    merge = forms.BooleanField(required=False, widget=forms.HiddenInput)
 
     def clean_birthday(self):
         value = self.cleaned_data["birthday"]
         if value and value > timezone.localdate():
             raise forms.ValidationError(_("Fæðingardagur getur ekki verið í framtíðinni."))
         return value
-
-    def to_data(self) -> PersonData:
-        d = self.cleaned_data
-        return PersonData(
-            name=d["name"].strip(),
-            group=d["group"],
-            birthday=d["birthday"],
-            give_christmas=d["give_christmas"],
-            give_birthday=d["give_birthday"],
-            plan=d["plan"],
-            ideas=[t.strip() for t in d["ideas"].split(",") if t.strip()],
-        )
 
 
 class IdeaForm(forms.Form):

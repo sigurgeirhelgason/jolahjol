@@ -141,3 +141,13 @@ def resolve_recipient(gift: Gift, name: str) -> Person:
     if not is_shared(current):
         current.delete()
     return target
+
+
+@transaction.atomic
+def update_details(person: Person, *, group, birthday, give_christmas, give_birthday) -> Person:
+    person.group = group
+    person.birthday = birthday
+    person.give_christmas = give_christmas
+    person.give_birthday = give_birthday
+    person.save(update_fields=["group", "birthday", "give_christmas", "give_birthday"])
+    return person

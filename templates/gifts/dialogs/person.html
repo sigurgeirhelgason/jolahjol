@@ -1,0 +1,59 @@
+{% load i18n money %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">person</span>{% translate "Einstaklingur" %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:person' household.slug person.pk %}" hx-target="#modal-body" hx-include="#list-state"
+      x-data="birthday">
+  <input type="hidden" name="ar" value="{{ year }}">
+  {{ form.non_field_errors }}
+  <div class="grid2">
+    <c-field :field="form.name" />
+    <c-field :field="form.group" />
+  </div>
+  {% if conflict %}
+    <div class="flash-item error" role="alert">
+      <span class="ms">info</span>
+      <span>{% blocktranslate with name=conflict.name %}„{{ name }}“ er þegar til. Viltu sameina? Gjafir og hugmyndir færast þá yfir á „{{ name }}“.{% endblocktranslate %}</span>
+    </div>
+    <input type="hidden" name="merge" value="on">
+  {% endif %}
+  <div class="field{% if form.birthday.errors %} has-error{% endif %}">
+    <label for="{{ form.birthday.id_for_label }}">{{ form.birthday.label }}</label>
+    <input type="date" name="birthday" id="{{ form.birthday.id_for_label }}" value="{{ form.birthday.value|default_if_none:'' }}"
+           x-ref="birthday" x-on:input="update">
+    {{ form.birthday.errors }}
+    <span class="help" x-text="age"></span>
+  </div>
+  <label class="switch">
+    <input type="checkbox" name="give_christmas" value="on"{% if form.give_christmas.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Gef jólagjafir" %}</strong><small>{% translate "Fylgir með þegar nýtt jólaár er stofnað" %}</small></span>
+  </label>
+  <label class="switch">
+    <input type="checkbox" name="give_birthday" value="on"{% if form.give_birthday.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Gef afmælisgjafir" %}</strong><small>{% translate "Til að halda utan um afmælisgjafir" %}</small></span>
+  </label>
+  <div class="past">
+    <h4>{% translate "Fyrri gjafir" %}</h4>
+    <ul>
+      {% for entry in history %}
+        {% with gift=entry.gift price=entry.gift.actual_price %}
+        <li>
+          <span class="yr">{{ entry.year }}</span>
+          <span class="what" title="{{ entry.text }}">{{ entry.text|default:"—" }}</span>
+          <span class="amt{% if price is None %} plan{% endif %}">{% if price is not None %}{{ price|kr }}{% elif gift.plan is not None %}{% translate "áætl." %} {{ gift.plan|kr }}{% endif %}</span>
+          <span class="ms{% if gift.bought %} ok{% endif %}">{% if gift.bought %}check_circle{% else %}radio_button_unchecked{% endif %}</span>
+        </li>
+        {% endwith %}
+      {% empty %}
+        <li class="none">{% translate "Engar gjafir skráðar enn" %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">save</span>{% if conflict %}{% translate "Sameina og vista" %}{% else %}{% translate "Vista" %}{% endif %}</button>
+  </div>
+</form>

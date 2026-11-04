@@ -1,0 +1,24 @@
+{% load i18n %}
+{% comment %}Ný lína í flokki. Verður að gjöf þegar farið er úr henni með nafni (eða Enter); án nafns hverfur hún.{% endcomment %}
+<form class="row gift new-row" novalidate x-data="newRow" x-on:focusout="leave" x-on:submit="markSent" x-on:keydown.escape.prevent="cancel"
+      hx-post="{% url 'gifts:new_row' household.slug season.year %}" hx-target="this" hx-swap="outerHTML" hx-include="#list-state">
+  <div class="check"><input type="checkbox" disabled aria-hidden="true" tabindex="-1"></div>
+  <div>
+    <input class="cell f-name" name="name" value="{{ form.name.value|default:'' }}" placeholder="{% translate 'Skrifaðu nafn' %}"
+           aria-label="{% translate 'Nafn' %}" autocomplete="off" maxlength="100" autofocus>
+    {% if form.name.errors %}<div class="row-error">{{ form.name.errors.0 }}</div>{% endif %}
+    <input type="hidden" name="group" value="{{ group }}">
+  </div>
+  <div class="ideas new-row-hint">{% translate "Hugmyndir koma þegar nafnið er komið" %}</div>
+  <div class="store"></div>
+  <div class="amount">
+    <input class="cell num" name="plan" value="{{ form.plan.value|default:'' }}" placeholder="—" inputmode="numeric" autocomplete="off"
+           aria-label="{% translate 'Áætlað verð' %}" title="{% translate 'Áætlað verð' %}">
+  </div>
+  <div class="price-wrap"><span class="cell num ro">—</span></div>
+  <div class="actions">
+    {# Enter sendir formið aðeins ef það hefur submit-hnapp (línan hefur tvo reiti) #}
+    <button type="submit" class="visually-hidden" tabindex="-1">{% translate "Vista" %}</button>
+    <button type="button" class="icon-btn" x-on:click="cancel" aria-label="{% translate 'Hætta við' %}" title="{% translate 'Hætta við' %}"><span class="ms">close</span></button>
+  </div>
+</form>
