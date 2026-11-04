@@ -12,6 +12,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -426,9 +427,9 @@ class NewRowView(GiftsMixin, View):
         # Útfylling: fólk sem hefur fengið gjöf önnur ár en er ekki á lista þessa árs
         on_list = season.gifts.alive().values("person_id")
         earlier = (
-            Person.objects.filter(household=self.household, gifts__deleted_at__isnull=True)
+            Person.objects.filter(household=self.household)
+            .filter(Exists(Gift.objects.alive().filter(person=OuterRef("pk"))))
             .exclude(pk__in=on_list)
-            .distinct()
         )
         ctx = {
             "form": form,
