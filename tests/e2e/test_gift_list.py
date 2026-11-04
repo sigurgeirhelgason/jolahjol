@@ -182,3 +182,28 @@ def test_store_dialog_adds_location(home, page):
     expect(dialog).to_be_hidden()
     row(page, "Hugi").get_by_role("button", name="Elko").click()
     expect(dialog.locator("label.loc-pick", has_text="Kringlan").locator("input")).to_be_checked()
+
+
+def test_selecting_text_and_releasing_outside_keeps_dialog_open(home, page):
+    add_gift(page, "Börn", "Hugi", ideas="legó")
+    page.locator(".chip-t", has_text="legó").click()
+    dialog = page.locator("#modal")
+    price = dialog.get_by_label("Verð (kr.)")
+    price.fill("4990")
+
+    # Dregið yfir textann og músinni sleppt utan gluggans
+    box = price.bounding_box()
+    page.mouse.move(box["x"] + box["width"] - 5, box["y"] + box["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(5, 5, steps=5)
+    page.mouse.up()
+    expect(dialog).to_be_visible()
+
+    # Smellur á bilið inni í glugganum lokar ekki heldur
+    dbox = dialog.bounding_box()
+    page.mouse.click(dbox["x"] + 6, dbox["y"] + dbox["height"] / 2)
+    expect(dialog).to_be_visible()
+
+    # Venjulegur smellur á bakgrunninn lokar
+    page.mouse.click(5, 5)
+    expect(dialog).to_be_hidden()

@@ -91,8 +91,22 @@ document.addEventListener("alpine:init", () => {
   // Gluggi (<dialog>) sem htmx fyllir; opnast þegar efni kemur og lokast við „closeModal“
   Alpine.data("modal", () => ({
     init() {
+      // Smellur á bakgrunn lokar aðeins ef músinni var líka ýtt niður þar. Annars lokaðist
+      // glugginn þegar texti var valinn í reit og músinni sleppt utan gluggans (vafrinn sendir
+      // þá click á <dialog>, sameiginlegt foreldri beggja staða).
+      // Bakgrunnur = utan við ramma gluggans (padding inni í glugganum hefur líka target === dialog).
+      const outside = (event) => {
+        const r = this.$el.getBoundingClientRect();
+        return event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom;
+      };
+      let downOnBackdrop = false;
+      this.$el.addEventListener("mousedown", (event) => {
+        downOnBackdrop = event.target === this.$el && outside(event);
+      });
       this.$el.addEventListener("click", (event) => {
-        if (event.target.closest("[data-close]") || event.target === this.$el) this.$el.close();
+        if (event.target.closest("[data-close]")) this.$el.close();
+        else if (downOnBackdrop && event.target === this.$el && outside(event)) this.$el.close();
+        downOnBackdrop = false;
       });
     },
     cleanup() { document.getElementById("modal-body").innerHTML = ""; },
