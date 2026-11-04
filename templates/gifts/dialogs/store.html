@@ -42,4 +42,4 @@
     <button type="submit" class="btn primary"><span class="ms">save</span>{% if conflict %}{% translate "Sameina og vista" %}{% else %}{% translate "Vista" %}{% endif %}</button>
   </div>
 </form>
-<datalist id="location-list">{% for loc in all_locations %}<option value="{{ loc.name }}">{% endfor %}</datalist>
+<datalist id="location-list">{% for loc in all_locations %}<option value="{{ loc }}">{% endfor %}</datalist>

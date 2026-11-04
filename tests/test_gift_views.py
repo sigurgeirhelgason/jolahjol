@@ -5,7 +5,7 @@ from django.utils import timezone
 from apps.gifts import listing
 from apps.gifts.models import Gift, Idea, IdeaGiver, Person, Season
 from apps.gifts.services import gifts as gift_services
-from apps.gifts.services import people
+from apps.gifts.services import people, stores
 from apps.gifts.services.billing import season_billing
 from apps.households.models import Membership
 from tests.factories import (
@@ -539,3 +539,17 @@ def test_store_dialog_asks_before_merging(client, home, season):
 
 def test_store_dialog_is_scoped_to_household(client, home):
     assert client.get(url("store", home.slug, StoreFactory().pk), **HX).status_code == 404
+
+
+def test_store_dialog_offers_default_locations_first(client, home, season):
+    store = StoreFactory(household=home, name="Elko")
+    IdeaFactory(gift=_gift(season), store=store)
+    stores.set_locations(store, "Netverslun, kringlan")
+    page = client.get(url("store", home.slug, store.pk), **HX).text
+    order = [
+        n for n in ("Kringlan", "Smáralind", "Skeifan", "Glerártorg", "Laugavegur", "Netverslun") if n in page
+    ]
+    assert order == ["Kringlan", "Smáralind", "Skeifan", "Glerártorg", "Laugavegur", "Netverslun"]
+    assert sorted(page.index(n) for n in order) == [page.index(n) for n in order]
+    assert page.count('value="Kringlan" checked') == 1  # „kringlan“ telst sami staður
+    assert 'value="Smáralind" checked' not in page

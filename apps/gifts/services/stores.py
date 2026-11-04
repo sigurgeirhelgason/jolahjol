@@ -9,6 +9,17 @@ from apps.households.models import Household
 
 from ..models import Gift, Location, Store
 
+# Staðir sem eru alltaf í boði í búðarglugganum, í þessari röð (eins og LOCATIONS í gamla appinu).
+# Location verður ekki til fyrr en staðurinn er valinn fyrir búð.
+DEFAULT_LOCATIONS = ["Kringlan", "Smáralind", "Skeifan", "Glerártorg", "Laugavegur"]
+
+
+def location_choices(household: Household) -> list[str]:
+    """Sjálfgefnir staðir fyrst, svo aðrir staðir heimilisins í stafrófsröð (án tvítekninga)."""
+    defaults = {fold_key(n) for n in DEFAULT_LOCATIONS}
+    others = [loc.name for loc in Location.objects.filter(household=household) if loc.key not in defaults]
+    return DEFAULT_LOCATIONS + sorted(others, key=is_sort_key)
+
 
 def is_url(value: str | None) -> bool:
     return bool(re.match(r"^https?://", value or "", re.IGNORECASE))

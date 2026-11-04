@@ -22,13 +22,13 @@ from django.views.generic import TemplateView
 from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh, trigger_client_event
 
 from apps.core.money import evaluate_amount
-from apps.core.text import fold_key, is_sort_key, split_list
+from apps.core.text import fold_key, split_list
 from apps.households.mixins import HouseholdMixin
 
 from . import listing
 from .forms import BudgetForm, GiftForm, IdeaForm, NewRowForm, NewSeasonForm, PersonEditForm, PriceForm
 from .listing import ListState
-from .models import Gift, Group, Idea, Location, Person, Season, Store
+from .models import Gift, Group, Idea, Person, Season, Store
 from .services import gifts as gift_services
 from .services import people as people_services
 from .services import stores as stores_services
@@ -337,7 +337,7 @@ def _form_lists(household) -> dict:
     return {
         "all_people": Person.objects.filter(household=household).order_by("name"),
         "all_stores": stores,
-        "all_locations": Location.objects.filter(household=household).order_by("name"),
+        "all_locations": stores_services.location_choices(household),
         "store_locations": json.dumps(
             {s.key: ", ".join(loc.name for loc in s.locations.all()) for s in stores}, ensure_ascii=False
         ),
@@ -494,19 +494,17 @@ class StoreDialogView(GiftsMixin, View):
 
     def render(self, store, name, chosen, new_locations="", conflict=None, error=None, status=200):
         params = self.request.POST if self.request.method == "POST" else self.request.GET
-        all_locations = list(Location.objects.filter(household=self.household))
+        names = stores_services.location_choices(self.household)
         chosen_keys = {fold_key(n) for n in chosen}
         ctx = {
             "store": store,
             "name": name,
-            "locations": sorted(
-                ((loc.name, loc.key in chosen_keys) for loc in all_locations), key=lambda x: is_sort_key(x[0])
-            ),
+            "locations": [(name, fold_key(name) in chosen_keys) for name in names],
             "new_locations": new_locations,
             "conflict": conflict,
             "error": error,
             "year": params.get("ar", ""),
-            "all_locations": all_locations,
+            "all_locations": names,
         }
         return self.dialog(self.template, ctx, status=status)
 
