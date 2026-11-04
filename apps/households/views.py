@@ -57,6 +57,11 @@ class SettingsView(HouseholdMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["members"] = self.household.memberships.select_related("user").order_by("created_at")
         ctx["owner_count"] = sum(1 for m in ctx["members"] if m.role == Membership.Role.OWNER)
+        # Sömu reglur og services.leave: hnappurinn er óvirkur með skýringu frekar en villu eftir á
+        if len(ctx["members"]) == 1:
+            ctx["leave_blocked"] = _("Þú ert eini meðlimur heimilisins. Eyddu heimilinu í staðinn.")
+        elif self.is_owner and ctx["owner_count"] == 1:
+            ctx["leave_blocked"] = _("Gerðu einhvern annan að eiganda áður en þú ferð.")
         ctx["seasons"] = self.household.seasons.annotate(
             gift_count=Count("gifts", filter=Q(gifts__deleted_at__isnull=True))
         ).order_by("-year")

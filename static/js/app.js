@@ -35,6 +35,27 @@ function birthdayInfo(text) {
   return `Verður ${age} ára ${d}. ${MONTHS[m - 1]} (eftir ${days} ${days === 1 ? "dag" : "daga"})`;
 }
 
+function openConfirm(form) {
+  const dialog = document.getElementById("confirm-dialog");
+  if (!dialog) {
+    if (window.confirm(form.dataset.message)) form.submit();
+    return;
+  }
+  dialog.querySelector("#confirm-title").textContent = form.dataset.title || form.dataset.message;
+  dialog.querySelector("#confirm-message").textContent = form.dataset.title ? form.dataset.message : "";
+  const ok = dialog.querySelector("[data-confirm-ok]");
+  ok.textContent = form.dataset.confirm || "Staðfesta";
+  ok.onclick = () => {
+    dialog.close();
+    form.dataset.confirmed = "1";
+    form.requestSubmit();
+  };
+  dialog.querySelector("[data-confirm-cancel]").onclick = () => dialog.close();
+  dialog.onclick = (event) => { if (event.target === dialog) dialog.close(); };
+  dialog.showModal();
+  dialog.querySelector("[data-confirm-cancel]").focus(); // öruggari kosturinn fær fókus
+}
+
 document.addEventListener("alpine:init", () => {
   // Fellivalmynd: hnappur + spjald, lokast við smell utan, Escape eða val
   Alpine.data("menu", () => ({
@@ -61,9 +82,17 @@ document.addEventListener("alpine:init", () => {
   }));
 
   // Staðfesting á hættulegum aðgerðum: <form x-data="confirm" data-message="…" x-on:submit="ask">
+  // Staðfesting á hættulegum aðgerðum: <form x-data="confirm" x-on:submit="ask" data-title="…"
+  // data-message="…" data-confirm="Eyða">. Opnar #confirm-dialog; formið er sent ef staðfest er.
   Alpine.data("confirm", () => ({
     ask(event) {
-      if (!window.confirm(this.$el.dataset.message)) event.preventDefault();
+      const form = this.$el;
+      if (form.dataset.confirmed) {
+        delete form.dataset.confirmed;
+        return;
+      }
+      event.preventDefault();
+      openConfirm(form);
     },
   }));
 

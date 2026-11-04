@@ -56,4 +56,13 @@
   </div>
 </footer>
 {% block after %}{% endblock %}
+<dialog id="confirm-dialog" class="confirm-dlg" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+  <div class="confirm-icon"><span class="ms">warning</span></div>
+  <h3 id="confirm-title"></h3>
+  <p id="confirm-message"></p>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-confirm-cancel>{% translate "Hætta við" %}</button>
+    <button type="button" class="btn danger-solid" data-confirm-ok></button>
+  </div>
+</dialog>
 {% endblock %}

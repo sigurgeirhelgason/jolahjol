@@ -39,7 +39,10 @@
                 {% endif %}
               </form>
               <form method="post" action="{% url 'households:member_remove' household.slug m.pk %}" class="inline"
-                    x-data="confirm" data-message="{% blocktranslate with name=m.user %}Fjarlægja {{ name }} úr heimilinu?{% endblocktranslate %}" x-on:submit="ask">
+                    x-data="confirm" x-on:submit="ask"
+                    data-title="{% blocktranslate with name=m.user %}Fjarlægja {{ name }}?{% endblocktranslate %}"
+                    data-message="{% translate 'Viðkomandi hættir að sjá gjafalistann. Hægt er að bjóða aftur seinna.' %}"
+                    data-confirm="{% translate 'Fjarlægja' %}">
                 {% csrf_token %}
                 <button type="submit" class="btn small danger"><span class="ms">person_remove</span>{% translate "Fjarlægja" %}</button>
               </form>
@@ -86,7 +89,9 @@
             <span class="acts">
               <form method="post" action="{% url 'gifts:season_delete' household.slug s.year %}" class="inline"
                     x-data="confirm" x-on:submit="ask"
-                    data-message="{% blocktranslate count n=s.gift_count with year=s.year %}Eyða jólum {{ year }} og {{ n }} gjöf? Það er ekki hægt að afturkalla.{% plural %}Eyða jólum {{ year }} og {{ n }} gjöfum? Það er ekki hægt að afturkalla.{% endblocktranslate %}">
+                    data-title="{% blocktranslate with year=s.year %}Eyða jólum {{ year }}?{% endblocktranslate %}"
+                    data-message="{% if not s.gift_count %}{% translate 'Engar gjafir eru skráðar á þetta ár.' %}{% else %}{% blocktranslate count n=s.gift_count %}{{ n }} gjöf og hugmyndum hennar verður eytt. Fólk og búðir haldast. Það er ekki hægt að afturkalla.{% plural %}{{ n }} gjöfum og hugmyndum þeirra verður eytt. Fólk og búðir haldast. Það er ekki hægt að afturkalla.{% endblocktranslate %}{% endif %}"
+                    data-confirm="{% blocktranslate with year=s.year %}Eyða jólum {{ year }}{% endblocktranslate %}">
                 {% csrf_token %}
                 <button type="submit" class="btn small danger" aria-label="{% blocktranslate with year=s.year %}Eyða jólum {{ year }}{% endblocktranslate %}"><span class="ms">delete</span>{% translate "Eyða" %}</button>
               </form>
@@ -104,10 +109,14 @@
     <h2><span class="ms">logout</span>{% translate "Yfirgefa heimili" %}</h2>
     <p>{% translate "Þú hættir að sjá gjafalistann. Gögnin verða áfram hjá hinum." %}</p>
     <form method="post" action="{% url 'households:leave' household.slug %}"
-          x-data="confirm" data-message="{% translate 'Yfirgefa heimilið?' %}" x-on:submit="ask">
+          x-data="confirm" x-on:submit="ask"
+          data-title="{% blocktranslate with name=household.name %}Yfirgefa „{{ name }}“?{% endblocktranslate %}"
+          data-message="{% translate 'Þú hættir að sjá gjafalistann. Gögnin verða áfram hjá hinum í heimilinu.' %}"
+          data-confirm="{% translate 'Yfirgefa' %}">
       {% csrf_token %}
-      <button type="submit" class="btn danger">{% translate "Yfirgefa heimili" %}</button>
+      <button type="submit" class="btn danger"{% if leave_blocked %} disabled aria-describedby="leave-blocked"{% endif %}>{% translate "Yfirgefa heimili" %}</button>
     </form>
+    {% if leave_blocked %}<p class="help" id="leave-blocked">{{ leave_blocked }}</p>{% endif %}
     {% if is_owner %}
       <h2><span class="ms">delete</span>{% translate "Eyða heimili" %}</h2>
       <p>{% translate "Öllum gjöfum, hugmyndum og fólki heimilisins er eytt fyrir alla meðlimi. Það er ekki hægt að afturkalla." %}</p>

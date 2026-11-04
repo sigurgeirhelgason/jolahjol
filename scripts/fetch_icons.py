@@ -65,6 +65,7 @@ ICONS = [
     "storefront",
     "undo",
     "upload_file",
+    "warning",
 ]
 
 OUT = Path(__file__).resolve().parent.parent / "static" / "fonts" / "material-symbols.woff2"

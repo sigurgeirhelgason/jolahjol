@@ -2,6 +2,7 @@ import re
 
 from playwright.sync_api import expect
 
+from apps.gifts.models import Season
 from apps.households.models import Membership
 
 
@@ -43,3 +44,24 @@ def test_user_menu_logs_out(live_server, page, login):
     page.get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()
     expect(page.get_by_role("link", name="Byrja")).to_be_visible()
+
+
+def test_deleting_season_asks_in_styled_dialog(live_server, page, login):
+    login(page, "eigandi@example.com")
+    page.get_by_label("Nafn heimilis").fill("Okkar")
+    page.get_by_role("button", name="Stofna heimili").click()
+    page.get_by_role("button", name="Okkar").click()
+    page.get_by_role("link", name="Stillingar").click()
+
+    page.get_by_role("button", name=re.compile(r"^Eyða jólum")).first.click()
+    dialog = page.locator("#confirm-dialog")
+    expect(dialog).to_be_visible()
+    expect(dialog.get_by_role("heading")).to_contain_text("Eyða jólum")
+    dialog.get_by_role("button", name="Hætta við").click()
+    expect(dialog).to_be_hidden()
+    assert Season.objects.count() == 1
+
+    page.get_by_role("button", name=re.compile(r"^Eyða jólum")).first.click()
+    dialog.get_by_role("button", name=re.compile(r"^Eyða jólum")).click()
+    expect(page.get_by_text("Engin jólaár enn.")).to_be_visible()
+    assert Season.objects.count() == 0

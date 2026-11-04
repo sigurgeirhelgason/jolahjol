@@ -274,3 +274,23 @@ def test_pages_have_strict_csp_but_admin_does_not(client, admin_user):
     assert "unsafe-inline" not in csp
     client.force_login(admin_user)
     assert "Content-Security-Policy" not in client.get(f"/{settings.ADMIN_URL}").headers
+
+
+def _leave_button(html):
+    """Textinn í <button> fyrir „Yfirgefa heimili“ (eigindir hans)."""
+    end = html.index(">Yfirgefa heimili</button>")
+    return html[html.rindex("<button", 0, end) : end]
+
+
+def test_leave_button_disabled_when_alone_or_last_owner(client, home, owner):
+    client.force_login(owner.user)
+    page = client.get(reverse("households:settings", args=[home.slug])).text
+    assert "disabled" in _leave_button(page) and "eini meðlimur" in page
+
+    member = _member(home)
+    page = client.get(reverse("households:settings", args=[home.slug])).text
+    assert "disabled" in _leave_button(page) and "annan að eiganda" in page
+
+    client.force_login(member.user)
+    page = client.get(reverse("households:settings", args=[home.slug])).text
+    assert "disabled" not in _leave_button(page)

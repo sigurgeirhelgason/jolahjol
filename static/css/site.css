@@ -182,3 +182,17 @@ label.loc-pick:has(input:checked) .on-icon { display: inline-block; }
 label.loc-pick:has(input:checked) { background: var(--secondary); border-color: var(--secondary); color: #fff; }
 label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26, .2); }
 .store-btn { font-size: 14px; }
+
+/* Staðfestingargluggi (eyða ári, fjarlægja meðlim …) */
+.confirm-dlg { width: min(420px, calc(100% - 32px)); text-align: center; }
+.confirm-dlg .confirm-icon {
+  width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--primary-soft); color: var(--primary-c);
+}
+.confirm-dlg .confirm-icon .ms { font-size: 30px; }
+.confirm-dlg h3 { margin: 0 0 8px; font: 600 20px/28px var(--display); }
+.confirm-dlg p { margin: 0; color: var(--on-var); }
+.confirm-dlg p:empty { display: none; }
+.confirm-dlg .dlg-actions { justify-content: center; padding-top: 24px; }
+.btn.danger-solid { background: var(--primary-c); color: #fff; box-shadow: 0 2px 8px -2px rgba(164, 22, 26, .3); }
+.btn.danger-solid:hover { background: var(--primary); }
