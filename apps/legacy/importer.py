@@ -5,7 +5,6 @@ hreinsist eins og þau gerðu við hleðslu í gamla appinu.
 """
 
 import datetime
-import re
 from dataclasses import dataclass, field
 
 from django.db import transaction
@@ -30,18 +29,12 @@ STORE_NAMES = [
     "Vínbúðin", "IngaElín", "Joe Boxer", "Minigarðurinn",
 ]  # fmt: skip
 STORE_ALIASES = {"vinbuð": "Vínbúðin", "internetið": "Netverslun"}
-# „frá okkur“ þýðir engir gefendur
-FROM_US = {"okkur", "við", "frá okkur", "við öll"}
+FROM_US = people.FROM_US
 VALID_GROUPS = {value for value, _ in Group.choices}
 
 
-def _is_url(value) -> bool:
-    return bool(re.match(r"^https?://", value or "", re.IGNORECASE))
-
-
-def _store_from_url(url: str) -> str:
-    host = re.sub(r"^https?://(www\.)?", "", url, flags=re.IGNORECASE).split("/")[0].split(".")[0]
-    return host[:1].upper() + host[1:]
+_is_url = stores.is_url
+_store_from_url = stores.store_from_url
 
 
 def _parts(value: str | None) -> list[str]:

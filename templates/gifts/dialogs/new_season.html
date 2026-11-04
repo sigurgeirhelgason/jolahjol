@@ -1,0 +1,20 @@
+{% load i18n %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">calendar_month</span>{% translate "Nýtt ár" %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:new_season' household.slug %}" hx-target="#modal-body">
+  <c-field :field="form.year" />
+  {% if latest %}
+    <label class="switch">
+      <input type="checkbox" name="copy" value="on"{% if form.copy.value %} checked{% endif %}>
+      <span class="slider" aria-hidden="true"></span>
+      <span><strong>{% blocktranslate with year=latest.year %}Afrita viðtakendur og áætlun frá {{ year }}{% endblocktranslate %}</strong>
+        <small>{% translate "Aðeins þau sem eru merkt „Gef jólagjafir“. Hugmyndir og verð fylgja ekki." %}</small></span>
+    </label>
+  {% endif %}
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta við" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">add</span>{% translate "Stofna ár" %}</button>
+  </div>
+</form>

@@ -1,0 +1,63 @@
+{% load i18n money gifts %}
+{% with gift=row.gift %}
+<div class="row gift{% if gift.bought %} done{% endif %}" id="gift-{{ gift.pk }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="check">
+    <input type="checkbox" name="bought" value="on"{% if gift.bought %} checked{% endif %}{% if locked %} disabled{% endif %}
+           aria-label="{% blocktranslate with name=gift.person.name %}Keypt handa {{ name }}{% endblocktranslate %}"
+           hx-post="{% url 'gifts:bought' household.slug gift.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">
+  </div>
+  <div>
+    <div class="name-line">
+      <button class="name-btn" type="button" title="{% blocktranslate with name=gift.person.name %}Breyta gjöf handa {{ name }}{% endblocktranslate %}"
+              hx-get="{% url 'gifts:gift_edit' household.slug gift.pk %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ gift.person.name }}</button>
+      {% if gift.bought %}<span class="badge">{% translate "KEYPT" %}</span>{% endif %}
+    </div>
+    {% if row.history %}<div class="hist" title="{{ row.history_title }}"><span class="ms">history</span><span>{{ row.history_line }}</span></div>{% endif %}
+  </div>
+  <div class="ideas">
+    {% for idea in gift.ideas.all %}
+      <span class="chip{% if idea.picked %} picked{% endif %}">
+        <button type="button" class="chip-t" title="{{ idea|idea_title }}"{% if locked %} disabled{% endif %}
+                hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% with names=idea|giver_names %}{% if names %}<span class="from"> – {% translate "frá" %} {{ names }}</span>{% endif %}{% endwith %}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}{% if idea.for_other %}<span class="ms">{% if idea|all_paid %}paid{% else %}request_quote{% endif %}</span>{% endif %}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
+        {% if not locked %}<button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
+                hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">×</button>{% endif %}
+      </span>
+    {% endfor %}
+    {% if not locked %}
+      <input class="chip-input" name="text" placeholder="{% translate '+ Hugmynd' %}" aria-label="{% blocktranslate with name=gift.person.name %}Ný hugmynd handa {{ name }}{% endblocktranslate %}"
+             autocomplete="off" id="chip-{{ gift.pk }}" x-data="chipInput" x-on:keydown="onKey" x-on:blur="onBlur"
+             hx-post="{% url 'gifts:idea_add' household.slug gift.pk %}" hx-trigger="add" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">
+    {% endif %}
+  </div>
+  <div class="store">
+    {% if row.stores %}<span class="stores">{% for store in row.stores %}<span class="store-name" title="{{ store|locations_title }}">{{ store.name }}</span>{% endfor %}</span>{% else %}<span class="stores none">{% translate "Óákveðin" %}</span>{% endif %}
+    {% if gift.link %}<a href="{{ gift.link }}" target="_blank" rel="noopener noreferrer" title="{{ gift.link }}"><span class="ms">open_in_new</span></a>{% endif %}
+  </div>
+  <div class="amount">
+    <input class="cell num" name="plan" id="plan-{{ gift.pk }}" value="{% if gift.plan is not None %}{{ gift.plan|kr }}{% endif %}" placeholder="—"
+           aria-label="{% blocktranslate with name=gift.person.name %}Áætlað verð handa {{ name }}{% endblocktranslate %}"
+           title="{% translate 'Skrifaðu +upphæð til að bæta við' %}" autocomplete="off" inputmode="numeric"{% if locked %} disabled{% endif %}
+           x-data="amountCell" data-raw="{{ gift.plan|default_if_none:'' }}" x-on:focus="showRaw" x-on:keydown.enter.prevent="commit"
+           hx-post="{% url 'gifts:plan' household.slug gift.pk %}" hx-trigger="change" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">
+  </div>
+  <div class="price-wrap">
+    {% if row.breakdown %}
+      <span class="split">
+        {% for who, n in row.breakdown %}<span class="who">{% if who %}{{ who.name }}{% else %}{% translate "Frá okkur" %}{% endif %}:</span><span class="n">{{ n|kr }}</span>{% endfor %}
+        <span class="n sum">{{ row.breakdown_total|kr }}</span>
+      </span>
+    {% else %}
+      <span class="cell num ro">{% if row.price is not None %}{{ row.price|kr }}{% else %}—{% endif %}</span>
+    {% endif %}
+    {% if row.over_plan %}<span class="over"><span>{% translate "Yfir áætlun:" %}</span><span class="n">{{ row.over_plan|kr }}</span></span>{% endif %}
+  </div>
+  <div class="actions">
+    {% if not locked %}
+      <button type="button" class="icon-btn" title="{% translate 'Breyta' %}" aria-label="{% translate 'Breyta' %}"
+              hx-get="{% url 'gifts:gift_edit' household.slug gift.pk %}" hx-target="#modal-body"><span class="ms">edit</span></button>
+      <button type="button" class="icon-btn" title="{% translate 'Eyða' %}" aria-label="{% blocktranslate with name=gift.person.name %}Eyða gjöf handa {{ name }}{% endblocktranslate %}"
+              hx-post="{% url 'gifts:delete' household.slug gift.pk %}"><span class="ms">delete</span></button>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}

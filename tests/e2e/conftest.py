@@ -3,6 +3,7 @@ import re
 
 import pytest
 from django.core import mail
+from django.core.cache import cache
 from django.urls import reverse
 
 # Playwright (sync) keyrir event loop í sama þræði; Django þarf leyfi til að nota ORM þar
@@ -14,6 +15,12 @@ def pytest_collection_modifyitems(items):
         if "/e2e/" in item.nodeid.replace("\\", "/"):
             item.add_marker(pytest.mark.e2e)
             item.add_marker(pytest.mark.django_db(transaction=True))
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    """Rate limit allauth er í cache; án hreinsunar fá seinni próf með sama netfangi engan kóða."""
+    cache.clear()
 
 
 @pytest.fixture

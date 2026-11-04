@@ -1,11 +1,14 @@
 """Aðgerðir á gjöfum og hugmyndum. Samsvarar keypt-flæðinu (`askPrice`/`finishPrice`) og `saveIdea`."""
 
+from dataclasses import dataclass
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.core.text import normalize
 
-from ..models import Gift, Idea, IdeaGiver, Person
+from ..models import Gift, Idea, IdeaGiver, Person, Season
+from . import people, stores
 from .pricing import actual_price
 
 
@@ -130,3 +133,100 @@ def gift_text(gift: Gift) -> str:
         names = [link.person.name for link in idea.giver_links.all()]
         parts.append(idea.text + (f" (frá {' og '.join(names)})" if names else ""))
     return ", ".join(parts)
+
+
+# ---------- Gluggarnir: gjöf og hugmynd ----------
+
+
+@dataclass(frozen=True)
+class GiftData:
+    name: str
+    group: str
+    plan: int | None
+    ideas: list[str]
+    store: str
+    link: str
+
+
+@transaction.atomic
+def save_gift(season: Season, gift: Gift | None, data: GiftData) -> Gift:
+    """Gjafaglugginn: ný gjöf eða breyting. Samsvarar `giftForm` submit.
+
+    Kastar ValueError ef viðtakandinn á þegar (aðra) gjöf þetta ár.
+    """
+    household = season.household
+    if gift is None:
+        person = people.find_or_create(household, data.name, data.group)
+        if Gift.objects.alive().filter(season=season, person=person).exists():
+            raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
+        last = season.gifts.order_by("-position").values_list("position", flat=True).first()
+        gift = Gift.objects.create(season=season, person=person, position=(last or 0) + 1)
+    else:
+        person = people.resolve_recipient(gift, data.name)
+    if person.group != data.group:
+        person.group = data.group
+        person.save(update_fields=["group"])
+
+    sync_ideas(gift, data.ideas)
+    store_name = data.store or (stores.store_from_url(data.link) if stores.is_url(data.link) else "")
+    store = stores.get_or_create_store(household, store_name)
+    gift.stores.set([store] if store else [])
+    gift.link = data.link
+    gift.plan = data.plan
+    gift.save()
+    return gift
+
+
+@dataclass(frozen=True)
+class IdeaData:
+    text: str
+    givers: list[str]
+    shares: list[int | None]  # í sömu röð og givers; aðeins notað með fleiri en einum gefanda
+    for_other: bool
+    paid: bool
+    note: str
+    store: str
+    locations: str
+    price: int | None
+    link: str
+    picked: bool
+
+
+@transaction.atomic
+def save_idea(idea: Idea, data: IdeaData) -> Idea:
+    """Hugmyndaglugginn. Samsvarar `saveIdea`.
+
+    „Keypt fyrir annan“ krefst gefanda; „Greitt“ gildir um alla gefendur hugmyndarinnar
+    (hver gefandi er merktur sér undir Rukkun).
+    """
+    gift = idea.gift
+    household = gift.season.household
+    idea.text = data.text.strip()
+    idea.note = data.note.strip()
+    idea.link = data.link.strip()
+    idea.price = data.price
+    store_name = data.store or (stores.store_from_url(idea.link) if stores.is_url(idea.link) else "")
+    idea.store = stores.get_or_create_store(household, store_name)
+    if idea.store:
+        stores.set_locations(idea.store, data.locations)
+
+    givers = people.givers_from_names(household, data.givers)
+    idea.for_other = data.for_other and bool(givers)
+    idea.save()
+    set_givers(idea, givers)
+
+    shares = dict(zip((normalize(n) for n in data.givers), data.shares, strict=False))
+    use_shares = idea.for_other and len(givers) > 1 and any(v is not None for v in shares.values())
+    for link in idea.giver_links.select_related("person"):
+        link.share = shares.get(link.person.key) if use_shares else None
+        link.paid = idea.for_other and data.paid
+        link.save(update_fields=["share", "paid"])
+
+    if data.picked and not idea.picked:
+        pick_idea(idea)
+        if not gift.link and idea.link:
+            gift.link = idea.link
+            gift.save(update_fields=["link", "updated_at"])
+    elif not data.picked and idea.picked:
+        unpick_idea(idea)
+    return idea

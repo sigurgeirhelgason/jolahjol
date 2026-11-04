@@ -1,10 +1,206 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
-{% block title %}{{ household.name }} · Jólahjól{% endblock %}
+{% load i18n l10n money gifts %}
+{% comment %}
+  Gjafalistinn. Hver partialdef er sendur einn og sér í htmx-svörum (sjá apps/gifts/views.py);
+  `oob` bætir við hx-swap-oob þegar hlutinn uppfærist samhliða öðrum.
+{% endcomment %}
+{% block title %}{% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %} · {{ household.name }}{% endblock %}
+
+{% block year_pill %}<span class="year-pill"><span class="ms">calendar_today</span>{% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %}</span>{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn primary" hx-get="{% url 'gifts:gift_new' household.slug season.year %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>
+    <span class="ms">add</span><span class="lbl">{% translate "Bæta við gjöf" %}</span>
+  </button>
+{% endblock %}
+
 {% block content %}
 <section class="card hero">
   <div class="glow g-hero-1"></div>
   <div class="glow g-hero-2"></div>
-  <div><h1>{{ household.name }}</h1><p>{% translate "Gjafalistinn kemur í áfanga 3." %}</p></div>
+  <div>
+    <span class="pill green"><span class="ms">ac_unit</span>{{ hero_pill }}</span>
+    <h1>{{ household.name }}</h1>
+    <p><strong>{{ hero_strong }}</strong><span class="dot">•</span>{{ hero_rest }}</p>
+  </div>
+  <div class="hero-actions">
+    <label class="select-wrap" x-data="navSelect">
+      <span class="ms">calendar_month</span>
+      <select aria-label="{% translate 'Ár' %}" x-on:change="go">
+        {% for s in seasons %}
+          <option value="{% url 'gifts:season' household.slug s.year %}"{% if s.pk == season.pk %} selected{% endif %}>{% blocktranslate with year=s.year %}Jól {{ year }}{% endblocktranslate %}</option>
+        {% endfor %}
+      </select>
+      <span class="ms">expand_more</span>
+    </label>
+    <button class="btn soft" hx-get="{% url 'gifts:new_season' household.slug %}" hx-target="#modal-body">
+      <span class="ms">add_circle_outline</span>{% translate "Nýtt ár" %}
+    </button>
+    <button class="btn primary" hx-get="{% url 'gifts:gift_new' household.slug season.year %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>
+      <span class="ms">card_giftcard</span>{% translate "Ný gjöf / hugmynd" %}
+    </button>
+  </div>
 </section>
+
+{% if locked %}
+<div class="banners">
+  <div class="card banner">
+    <span class="msg"><span class="ms">lock</span>{% blocktranslate with year=season.year %}Jól {{ year }} eru liðin og listinn er læstur.{% endblocktranslate %}</span>
+    <button class="btn soft" hx-post="{% url 'gifts:unlock' household.slug season.year %}"><span class="ms">lock_open</span>{% translate "Opna til breytinga" %}</button>
+  </div>
+</div>
+{% endif %}
+
+{% partialdef summary inline %}
+<section class="card dash" id="summary"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="glow g-dash-1"></div>
+  <div class="glow g-dash-2"></div>
+  <div class="dash-left">
+    <div class="chips-row">
+      {% if summary.days_left >= 0 %}
+        <span class="tag green"><span class="ms">alarm</span>{% if summary.days_left == 0 %}{% translate "Aðfangadagur í dag" %}{% else %}{% blocktranslate count n=summary.days_left %}{{ n }} dagur til jóla{% plural %}{{ n }} dagar til jóla{% endblocktranslate %}{% endif %}</span>
+      {% endif %}
+      {% if pace %}<span class="tag neutral"><span class="ms">speed</span>{% translate "Ráðlagður hraði:" %} {{ pace }}</span>{% endif %}
+    </div>
+    <div>
+      <div class="big-stat">
+        <span class="num">{{ summary.done }} <small>/ {{ summary.count }}</small></span>
+        <span class="lbl">{% translate "gjafir kláraðar" %}</span>
+        <span class="pct">{% widthratio summary.done summary.count|default:1 100 %}% {% translate "tilbúið" %}</span>
+      </div>
+      <p class="dash-note">{{ dash_note }}</p>
+    </div>
+    <div class="money">
+      <div class="money-head">
+        <span><span class="ms">payments</span>{% translate "Peningastaða" %}</span>
+        <form class="val" hx-post="{% url 'gifts:budget' household.slug season.year %}" hx-trigger="change" hx-target="#summary" hx-swap="outerHTML">
+          <strong>{{ summary.spent|kr }}</strong> {% translate "eytt af" %}
+          <input class="budget-input" name="budget" inputmode="numeric" aria-label="{% translate 'Peningaviðmið' %}"
+                 title="{% translate 'Smelltu til að breyta peningaviðmiði' %}" value="{{ summary.budget|kr }}"
+                 x-data="amountCell" data-raw="{{ summary.budget }}" x-on:focus="showRaw" x-on:keydown.enter.prevent="commit"{% if locked %} disabled{% endif %}>
+          {% if summary.budget %}<span>({{ summary.spent_pct }}%)</span>{% endif %}
+        </form>
+      </div>
+      <div class="track"><progress class="bar{% if summary.spent > summary.budget %} over{% endif %}" max="100" value="{% if summary.spent_pct > 100 %}100{% else %}{{ summary.spent_pct }}{% endif %}" aria-label="{% translate 'Eytt af viðmiði' %}"></progress></div>
+      <div class="money-foot">
+        {% if summary.left >= 0 %}<span>{% translate "Eftir af viðmiði:" %} <strong>{{ summary.left|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.left|abs_kr %}{{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
+        {% if summary.unallocated >= 0 %}<span>{% translate "Óráðstafað:" %} <strong>{{ summary.unallocated|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.unallocated|abs_kr %}Áætlun {{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
+        {% if summary.bought_plan %}<span class="t">{% translate "Áætlun keyptra:" %} {{ summary.bought_plan|kr }} ({{ summary.bought_diff|signed }})</span>{% endif %}
+        {% if summary.owed %}<span class="t">{% translate "Til innheimtu:" %} {{ summary.owed|kr }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="mini-groups">
+      {% for g in summary.groups %}
+        <div class="mini"><span>{{ g.group|group_icon }} {{ g.group|group_label }}</span><span class="c{% if g.done %} ok{% endif %}">{{ g.done }} / {{ g.count }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="tree-box">
+    {% localize off %}
+    <div class="tree">
+      <span class="ms star{% if tree.lit %} lit{% endif %}">star</span>
+      <svg viewBox="0 0 200 250" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <path id="treeShape" d="M100 35 L125 75 L115 75 L145 125 L130 125 L170 185 L145 185 L180 225 L112 225 L112 245 L88 245 L88 225 L20 225 L55 185 L30 185 L70 125 L55 125 L85 75 L75 75 Z"/>
+          <clipPath id="treeClip"><use href="#treeShape"/></clipPath>
+        </defs>
+        <use href="#treeShape" fill="#e6e2dc" stroke="rgba(142,112,109,.4)" stroke-width="2" stroke-dasharray="4 3"/>
+        <g clip-path="url(#treeClip)">
+          <rect class="fill" x="0" y="{{ tree.fill_y }}" width="200" height="{{ tree.fill_height }}" fill="#274e3d"/>
+          {% if tree.line %}<line x1="0" x2="200" y1="{{ tree.fill_y }}" y2="{{ tree.fill_y }}" stroke="#f0bd8b" stroke-width="2.5" stroke-dasharray="3 3"/>{% endif %}
+        </g>
+        {% for x, y, color, on in tree.ornaments %}
+          {% if on %}<circle cx="{{ x }}" cy="{{ y }}" r="4" fill="{{ color }}"/>{% else %}<circle cx="{{ x }}" cy="{{ y }}" r="3.5" fill="none" stroke="#8e706d" stroke-width="1.5" stroke-dasharray="2 2" opacity=".5"/>{% endif %}
+        {% endfor %}
+        <use href="#treeShape" stroke="#3f6653" stroke-width="2"/>
+      </svg>
+    </div>
+    {% endlocalize %}
+    <div class="tree-cap">
+      <div><span class="ms">park</span>{% blocktranslate with done=summary.done count=summary.count %}Jólatréð fyllist: {{ done }} / {{ count }} gjafir{% endblocktranslate %} ({% widthratio summary.done summary.count|default:1 100 %}%)</div>
+      <p>{% translate "Skreyttu og lýstu upp tréð með því að klára pakkana 🎄✨" %}</p>
+    </div>
+  </div>
+</section>
+{% endpartialdef %}
+
+<form class="card toolbar" id="list-state" role="search"
+      hx-get="{% url 'gifts:season' household.slug season.year %}" hx-target="#sections" hx-swap="outerHTML"
+      hx-trigger="change, input from:#search delay:250ms, search from:#search" hx-push-url="true" hx-sync="this:replace">
+  {% partialdef filter_tabs inline %}
+  <div class="seg" id="filter-tabs"{% if oob %} hx-swap-oob="true"{% endif %}>
+    <input type="hidden" name="syna" value="{{ state.filter }}">
+    {% for key, label in filters.items %}
+      <button type="button" class="{% if key == state.filter %}active{% endif %}" aria-pressed="{% if key == state.filter %}true{% else %}false{% endif %}"
+              hx-get="{% url 'gifts:season' household.slug season.year %}" hx-include="#list-state" hx-vals='{"syna": "{{ key }}"}'
+              hx-target="#sections" hx-swap="outerHTML" hx-push-url="true">{{ label }} ({{ gl.counts|get:key }})</button>
+    {% endfor %}
+  </div>
+  {% endpartialdef %}
+  <div class="tools">
+    <label class="search">
+      <span class="ms">search</span>
+      <input id="search" type="search" name="leit" value="{{ state.q }}" placeholder="{% translate 'Leita að nafni, gjöf eða búð…' %}" aria-label="{% translate 'Leita' %}" autocomplete="off">
+    </label>
+    <label class="select-wrap small">
+      <span class="ms">storefront</span>
+      {% partialdef store_select inline %}
+      <select name="bud" id="store-filter" aria-label="{% translate 'Búð' %}"{% if oob %} hx-swap-oob="true"{% endif %}>
+        <option value="*">{% translate "Allar búðir" %}</option>
+        {% for key, name in gl.store_options %}<option value="{{ key }}"{% if key == state.store %} selected{% endif %}>{{ name }}</option>{% endfor %}
+        {% if gl.has_undecided %}<option value="-"{% if state.store == "-" %} selected{% endif %}>{% translate "Óákveðin búð" %}</option>{% endif %}
+      </select>
+      {% endpartialdef %}
+      <span class="ms">expand_more</span>
+    </label>
+    <label class="select-wrap small">
+      <span class="ms">sort</span>
+      <select name="rod" aria-label="{% translate 'Röðun' %}">
+        {% for key, label in sorts.items %}<option value="{{ key }}"{% if key == state.sort %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <span class="ms">expand_more</span>
+    </label>
+  </div>
+</form>
+
+{% partialdef sections inline %}
+<section class="sections" id="sections" hx-include="#list-state" hx-disinherit="hx-get hx-trigger hx-target hx-swap"
+         hx-get="{% url 'gifts:season' household.slug season.year %}" hx-trigger="refresh" hx-target="this" hx-swap="outerHTML">
+  {% for section in gl.sections %}
+    <div class="card" id="{{ section.dom_id }}">
+      {% include "gifts/partials/group_head.html" %}
+      {% if section.rows %}
+        <div class="row thead" aria-hidden="true">
+          <div class="c">{% translate "Tilbúið" %}</div><div>{% translate "Nafn & saga" %}</div><div>{% translate "Hugmyndir & valin gjöf" %}</div>
+          <div>{% translate "Búð" %}</div><div class="r">{% translate "Áætlað" %}</div><div class="r">{% translate "Raunverð" %}</div><div class="c">{% translate "Aðgerðir" %}</div>
+        </div>
+        {% for row in section.rows %}
+          {% include "gifts/partials/gift_row.html" %}
+        {% endfor %}
+      {% endif %}
+      {% if not locked %}
+        <div class="add-person">
+          <button type="button" hx-get="{% url 'gifts:gift_new' household.slug season.year %}?flokkur={{ section.group }}" hx-target="#modal-body">
+            <span class="ms">person_add</span>{% blocktranslate with group=section.label %}Bæta við aðila í {{ group }}{% endblocktranslate %}
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="empty"><span class="ms">ac_unit</span>{% translate "Ekkert passar við leitina" %}</div>
+  {% endfor %}
+</section>
+{% endpartialdef %}
+{% endblock %}
+
+{% block after %}
+<dialog id="modal" x-data="modal" x-on:close="cleanup" aria-labelledby="modal-title">
+  <div id="modal-body"></div>
+</dialog>
+{% partialdef toast inline %}
+<div class="toast{% if toast_text and not toast_hide %} show{% endif %}" id="toast" role="status"{% if oob %} hx-swap-oob="true"{% endif %}{% if toast_text %} x-data="toast"{% endif %}>
+  <span>{{ toast_text }}</span>
+  {% if undo_url %}<button type="button" hx-post="{{ undo_url }}" hx-include="#list-state">{% translate "Afturkalla" %}</button>{% endif %}
+</div>
+{% endpartialdef %}
 {% endblock %}

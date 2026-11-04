@@ -8,14 +8,18 @@ Django 6 + HTMX + Alpine. Arftaki `gjafalistinn/index.html`, sem er forskriftin 
 Skipanirnar eru í `justfile` (`just` sýnir þær allar):
 
 ```bash
-just setup              # pakkar, pre-commit, Postgres í Docker og migrations
-just createsuperuser
+just setup              # pakkar, pre-commit, Postgres í Docker, migrations og Chromium fyrir e2e
 just dev                # Postgres + runserver
-just check              # það sama og CI: lint, migrations í takt og próf
+just check              # það sama og CI: lint, migrations í takt, próf og e2e
 just test -k billing    # aukarök fara til pytest
+just e2e --headed       # Playwright-próf í vafra (sýnilegum)
 ```
 
 Docker Desktop þarf að vera í gangi fyrir gagnagrunninn (127.0.0.1:5433).
+
+**Innskráning í þróun:** sláðu inn hvaða netfang sem er á `/accounts/login/code/`. Kóðinn prentast
+í terminal þar sem `just dev` keyrir (pósturinn fer í console). Admin er á `/admin/` með
+`just createsuperuser`.
 
 ## Gögn úr gamla appinu
 
@@ -33,10 +37,14 @@ Til að gera notanda að eiganda: `just manage import_legacy … --owner netfang
 | App | Hlutverk |
 |---|---|
 | `core` | texta- og upphæðarföll (`normalize`, `fold_key`, `evaluate_amount`, `kr`-filter) |
-| `accounts` | notandi auðkenndur með netfangi |
-| `households` | heimili og aðild; `Household.objects.for_member(user)` stýrir aðgangi |
-| `gifts` | líkön og `services/`: raunverð, rukkun, búðir, fólk, ár, eftir búðum |
+| `accounts` | notandi auðkenndur með netfangi; innskráning með kóða (allauth), `prune_users` |
+| `households` | heimili, aðild, boð; `HouseholdMixin` sækir heimilið úr `/h/<slug>/` og skilar 404 annars |
+| `gifts` | líkön og `services/` (reglur), `listing.py` (framsetning listans), views og gluggar |
 | `wishlists` | opnir óskalistahlekkir |
 | `legacy` | `import_legacy` |
 
 Reglurnar eru í `apps/gifts/services/` og eru prófaðar óháð viðmóti.
+
+**Framendi:** sniðmát í `templates/`, `gifts/list.html` með `partialdef` fyrir htmx-svör. Allt JS
+er í `static/js/app.js` (Alpine CSP-útgáfa: engar inline-segðir). htmx, Alpine og leturgerðir eru
+hýst sjálf og CSP er ströng. Nýjar táknmyndir: bæta við `scripts/fetch_icons.py` og keyra `just icons`.

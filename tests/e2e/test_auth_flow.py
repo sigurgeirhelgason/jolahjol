@@ -1,3 +1,5 @@
+import re
+
 from playwright.sync_api import expect
 
 from apps.households.models import Membership
@@ -12,7 +14,7 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
     page.get_by_label("Nafn heimilis").fill("Heimilið á Þórsgötu")
     page.get_by_label("Hvað heitir þú?").fill("Sibbi")
     page.get_by_role("button", name="Stofna heimili").click()
-    expect(page).to_have_url(f"{live_server.url}/h/heimilid-a-thorsgotu/")
+    expect(page).to_have_url(re.compile(r"/h/heimilid-a-thorsgotu/\d{4}/$"))
 
     # Valmynd heimilis (Alpine) → stillingar → boðshlekkur
     page.get_by_role("button", name="Heimilið á Þórsgötu").click()

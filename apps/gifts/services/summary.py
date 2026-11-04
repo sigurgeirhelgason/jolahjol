@@ -47,6 +47,11 @@ class SeasonSummary:
         return self.budget - self.spent
 
     @property
+    def bought_diff(self) -> int:
+        """Raunverð keyptra miðað við áætlun þeirra (jákvætt = dýrara en áætlað)."""
+        return self.bought_spent - self.bought_plan
+
+    @property
     def unallocated(self) -> int:
         return self.budget - self.total_plan
 

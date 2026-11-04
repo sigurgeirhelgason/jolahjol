@@ -1,0 +1,5 @@
+{% load i18n %}{% for p in people %}
+<li role="none"><button type="button" role="option" tabindex="-1" data-name="{{ p.name }}">{{ p.name }}</button></li>
+{% endfor %}{% if offer_new %}
+<li role="none" class="new"><button type="button" role="option" tabindex="-1" data-name="{{ q }}"><span class="ms">add</span>{% blocktranslate %}Búa til „{{ q }}“{% endblocktranslate %}</button></li>
+{% endif %}

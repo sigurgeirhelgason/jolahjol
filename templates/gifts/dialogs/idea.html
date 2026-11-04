@@ -1,0 +1,92 @@
+{% load i18n %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">lightbulb</span>{% translate "Gjafahugmynd" %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body" hx-include="#list-state"
+      x-data="ideaForm" data-givers="{{ givers_json }}" data-store-locations="{{ store_locations }}">
+  <p class="price-sub">{% blocktranslate with name=gift.person.name %}Handa <strong>{{ name }}</strong>{% endblocktranslate %}{% if idea.picked %} <span class="count-pill ok">{% translate "KEYPT" %}</span>{% endif %}</p>
+  {{ form.non_field_errors }}
+  <c-field :field="form.text" />
+
+  <div class="field">
+    <label for="giver-input">{% translate "Frá hverjum?" %}</label>
+    <div class="picker" x-on:click="focusInput">
+      <template x-for="(tag, index) in tags" x-bind:key="tag.name">
+        <span class="picker-tag">
+          <span x-text="tag.name"></span>
+          <button type="button" x-bind:data-index="index" x-on:click="removeTag" aria-label="{% translate 'Fjarlægja gefanda' %}">×</button>
+          <input type="hidden" name="givers" x-bind:value="tag.name">
+        </span>
+      </template>
+      <input id="giver-input" x-ref="input" name="q" autocomplete="off" role="combobox" aria-expanded="false"
+             aria-autocomplete="list" aria-controls="giver-options" placeholder="{% translate 'Tómt = frá okkur' %}"
+             x-on:keydown="onKey" x-on:input="search" x-on:blur="commitTyped"
+             data-search-url="{% url 'gifts:people_search' household.slug %}">
+    </div>
+    <ul class="picker-options" id="giver-options" role="listbox" x-ref="options" x-on:mousedown.prevent x-on:click="pick"></ul>
+    <span class="help">{% translate "Skrifaðu nafn og ýttu á Enter. Fleiri en einn ef gjöfin er sameiginleg." %}</span>
+  </div>
+
+  <label class="switch" x-show="hasGivers" x-cloak>
+    <input type="checkbox" name="for_other" value="on" x-ref="other" x-on:change="toggleOther"{% if form.for_other.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Keypt fyrir annan" %}</strong><small>{% translate "Gefandinn greiðir – birtist undir Rukkun" %}</small></span>
+  </label>
+
+  <div class="shares" x-show="showShares" x-cloak>
+    <p class="price-sub">{% translate "Hlutur hvers og eins. Tómt = jöfn skipting; það sem upp á vantar greiðum við." %}</p>
+    <template x-for="(tag, index) in tags" x-bind:key="tag.name">
+      <label class="share-row">
+        <span x-text="tag.name"></span>
+        <input name="shares" inputmode="numeric" autocomplete="off" placeholder="{% translate 'jafnt' %}"
+               x-bind:value="tag.share" x-bind:data-index="index" x-on:input="setShare">
+      </label>
+    </template>
+  </div>
+
+  <label class="switch" x-show="showPaid" x-cloak>
+    <input type="checkbox" name="paid" value="on"{% if form.paid.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Greitt" %}</strong><small>{% translate "Búið að fá endurgreitt" %}</small></span>
+  </label>
+
+  <c-field :field="form.note" />
+  <div class="grid2">
+    <div class="field{% if form.store.errors %} has-error{% endif %}">
+      <label for="{{ form.store.id_for_label }}">{{ form.store.label }}</label>
+      <input type="text" name="store" id="{{ form.store.id_for_label }}" value="{{ form.store.value|default:'' }}" list="store-list"
+             placeholder="{% translate 't.d. Elko, Epal…' %}" autocomplete="off" maxlength="100" x-on:change="storeChanged">
+      {{ form.store.errors }}
+    </div>
+    <div class="field">
+      <label for="{{ form.locations.id_for_label }}">{{ form.locations.label }}</label>
+      <input type="text" name="locations" id="{{ form.locations.id_for_label }}" value="{{ form.locations.value|default:'' }}" list="location-list"
+             placeholder="{% translate 't.d. Kringlan, Smáralind…' %}" autocomplete="off" maxlength="300" x-ref="locations">
+      <span class="help">{{ form.locations.help_text }}</span>
+    </div>
+  </div>
+  <div class="grid2">
+    <c-field :field="form.price" />
+  </div>
+  <div class="field{% if form.link.errors %} has-error{% endif %}">
+    <label for="{{ form.link.id_for_label }}">{{ form.link.label }}</label>
+    <div class="link-field">
+      <input type="url" name="link" id="{{ form.link.id_for_label }}" value="{{ form.link.value|default:'' }}" placeholder="https://…" maxlength="500"
+             x-ref="link" x-on:input="setLink">
+      <a x-show="hasLink" x-bind:href="link" target="_blank" rel="noopener noreferrer" title="{% translate 'Opna hlekk' %}" x-cloak><span class="ms">open_in_new</span></a>
+    </div>
+    {{ form.link.errors }}
+  </div>
+  <label class="switch">
+    <input type="checkbox" name="picked" value="on"{% if form.picked.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Keypt" %}</strong><small>{% translate "Verðið bætist við raunverð gjafarinnar" %}</small></span>
+  </label>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">save</span>{% translate "Vista" %}</button>
+  </div>
+</form>
+<datalist id="store-list">{% for s in all_stores %}<option value="{{ s.name }}">{% endfor %}</datalist>
+<datalist id="location-list">{% for loc in all_locations %}<option value="{{ loc.name }}">{% endfor %}</datalist>

@@ -1,0 +1,25 @@
+{% load i18n %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">card_giftcard</span>{% if gift %}{% translate "Breyta gjöf" %}{% else %}{% translate "Bæta við nýrri gjöf eða hugmynd" %}{% endif %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-include="#list-state" hx-target="#modal-body"
+      hx-post="{% if gift %}{% url 'gifts:gift_edit' household.slug gift.pk %}{% else %}{% url 'gifts:gift_new' household.slug season.year %}{% endif %}">
+  {{ form.non_field_errors }}
+  <c-field :field="form.name" />
+  <div class="grid2">
+    <c-field :field="form.group" />
+    <c-field :field="form.plan" />
+  </div>
+  <c-field :field="form.ideas" />
+  <div class="grid2">
+    <c-field :field="form.store" />
+    <c-field :field="form.link" />
+  </div>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta við" %}</button>
+    <button type="submit" class="btn primary">{% translate "Vista gjöf" %}</button>
+  </div>
+</form>
+<datalist id="people-list">{% for p in all_people %}<option value="{{ p.name }}">{% endfor %}</datalist>
+<datalist id="store-list">{% for s in all_stores %}<option value="{{ s.name }}">{% endfor %}</datalist>

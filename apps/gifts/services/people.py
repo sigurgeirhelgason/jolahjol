@@ -8,6 +8,9 @@ from apps.households.models import Household
 
 from ..models import Gift, Group, Idea, IdeaGiver, Person
 
+# „frá okkur“ þýðir engir gefendur; þessi nöfn verða aldrei að einstaklingum
+FROM_US = {"okkur", "við", "frá okkur", "við öll"}
+
 
 def find_or_create(household: Household, name: str, group: str = Group.ANNAD) -> Person:
     """Einstaklingur eftir nafni (há- og lágstafir skipta ekki máli). Nýr fer í `group`.
@@ -83,3 +86,58 @@ def rename(person: Person, new_name: str, *, merge_into_existing: bool = False) 
     if not merge_into_existing:
         raise ValueError(f"„{other.name}“ er þegar til")
     return merge(person, other)
+
+
+def givers_from_names(household: Household, names: list[str]) -> list[Person]:
+    """Gefendur úr nöfnum í gefendareitnum, í sömu röð og án tvítekninga.
+
+    Nafn sem er ekki til verður að einstaklingi sem er bara gefandi (falinn sem viðtakandi).
+    """
+    out: dict[str, Person] = {}
+    for name in names:
+        key = normalize(name)
+        if key and key not in FROM_US and key not in out:
+            out[key] = find_or_create(household, name)
+    return list(out.values())
+
+
+def is_shared(person: Person, except_gift: Gift | None = None) -> bool:
+    """Er einstaklingurinn notaður annars staðar en í `except_gift` (önnur ár, gefandi, frátekning)?"""
+    gifts = Gift.objects.filter(person=person)
+    if except_gift is not None:
+        gifts = gifts.exclude(pk=except_gift.pk)
+    return (
+        gifts.exists()
+        or IdeaGiver.objects.filter(person=person).exists()
+        or Idea.objects.filter(reserved_by=person).exists()
+    )
+
+
+@transaction.atomic
+def resolve_recipient(gift: Gift, name: str) -> Person:
+    """Nafni viðtakanda breytt í gjafaglugganum. Samsvarar `resolveName`.
+
+    - Nafn annars einstaklings: gjöfin færist á hann.
+    - Annars er einstaklingurinn endurnefndur, nema hann sé notaður annars staðar
+      (t.d. gjafir fyrri ára). Þá er þetta nýr viðtakandi, ekki nafnabreyting.
+    """
+    current = gift.person
+    name = name.strip()
+    if normalize(name) == current.key:
+        if name != current.name:
+            current.name = name
+            current.save()
+        return current
+    other = Person.objects.filter(household=current.household, key=normalize(name)).first()
+    if other and Gift.objects.alive().filter(season=gift.season, person=other).exclude(pk=gift.pk).exists():
+        raise ValueError(f"„{other.name}“ er þegar á listanum þetta ár")
+    if other is None and not is_shared(current, except_gift=gift):
+        current.name = name
+        current.save()
+        return current
+    target = other or Person.objects.create(household=current.household, name=name, group=current.group)
+    gift.person = target
+    gift.save(update_fields=["person", "updated_at"])
+    if not is_shared(current):
+        current.delete()
+    return target

@@ -1,11 +1,23 @@
 """Búðir og staðsetningar. Samsvarar `canonStore`, `renameStore`, `setLocs` og `storesOf`."""
 
+import re
+
 from django.db import transaction
 
 from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.models import Household
 
 from ..models import Gift, Location, Store
+
+
+def is_url(value: str | None) -> bool:
+    return bool(re.match(r"^https?://", value or "", re.IGNORECASE))
+
+
+def store_from_url(url: str) -> str:
+    """https://www.elko.is/vara → „Elko“. Samsvarar `storeFromUrl`."""
+    host = re.sub(r"^https?://(www\.)?", "", url, flags=re.IGNORECASE).split("/")[0].split(".")[0]
+    return host[:1].upper() + host[1:]
 
 
 def get_or_create_store(household: Household, name: str) -> Store | None:
