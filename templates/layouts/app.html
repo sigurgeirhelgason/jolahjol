@@ -26,15 +26,8 @@
           <hr>
           <a href="{% url 'households:settings' household.slug %}"><span class="ms">settings</span>{% translate "Stillingar" %}</a>
           <a href="{% url 'households:create' %}"><span class="ms">add</span>{% translate "Nýtt heimili" %}</a>
-        </div>
-      </div>
-      <div class="menu user" x-data="menu" x-on:click.outside="close" x-on:keydown.escape="close">
-        <button type="button" x-on:click="toggle" x-bind:aria-expanded="open" aria-haspopup="true" aria-label="{% translate 'Aðgangur' %}">
-          <span class="ms">person</span><span class="lbl">{{ request.user }}</span>
-        </button>
-        <div class="menu-panel" x-show="open" x-cloak>
-          <div class="who">{{ request.user.email }}</div>
           <hr>
+          <div class="who">{{ request.user.email }}</div>
           <form method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
             <button type="submit"><span class="ms">logout</span>{% translate "Skrá út" %}</button>

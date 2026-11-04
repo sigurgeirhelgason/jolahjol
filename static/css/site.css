@@ -102,7 +102,6 @@ form.inline { display: inline; margin: 0; }
 @media (max-width: 760px) {
   .entrance-card { padding: 28px 20px; }
   .menu > button .lbl { max-width: 120px; }
-  .topbar .menu.user > button .lbl { display: none; }
 }
 
 [x-cloak] { display: none !important; }
@@ -164,7 +163,7 @@ nav.views a.active { background: var(--high); color: var(--on); font-weight: 700
   .topbar-right { gap: 2px; min-width: 0; }
   .topbar .btn.primary { padding: 8px 10px; }
   .menu > button { padding: 6px; }
-  .topbar .menu > button .lbl { max-width: 88px; }
+  .topbar .menu > button .lbl { max-width: 140px; }
 }
 
 /* Ný lína í flokki */

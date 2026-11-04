@@ -40,6 +40,6 @@ def test_user_menu_logs_out(live_server, page, login):
     login(page, "a@example.com")
     page.get_by_label("Nafn heimilis").fill("Okkar")
     page.get_by_role("button", name="Stofna heimili").click()
-    page.get_by_role("button", name="Aðgangur").click()
+    page.get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()
     expect(page.get_by_role("link", name="Byrja")).to_be_visible()
