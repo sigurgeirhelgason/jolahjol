@@ -1,0 +1,67 @@
+{% extends "layouts/app.html" %}
+{% load i18n l10n money gifts %}
+{% comment %}
+  Sameiginlegt fyrir síður jólaárs (gjafalisti, eftir búðum, fólk, rukkun): hetjuhluti með
+  ársvali, borði ef árið er læst, yfirlit og gluggi. Síðan sjálf er í {% block page %}.
+{% endcomment %}
+{% block title %}{% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %} · {{ household.name }}{% endblock %}
+
+{% block year_pill %}<span class="year-pill"><span class="ms">calendar_today</span>{% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %}</span>{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn primary" hx-get="{% url 'gifts:gift_new' household.slug season.year %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>
+    <span class="ms">add</span><span class="lbl">{% translate "Bæta við gjöf" %}</span>
+  </button>
+{% endblock %}
+
+{% block body_attrs %} data-page="{{ page_name }}"{% endblock %}
+
+{% block content %}
+<section class="card hero">
+  <div class="glow g-hero-1"></div>
+  <div class="glow g-hero-2"></div>
+  <div>
+    <span class="pill green"><span class="ms">ac_unit</span>{{ hero_pill }}</span>
+    <h1>{{ household.name }}</h1>
+    <p><strong>{{ hero_strong }}</strong><span class="dot">•</span>{{ hero_rest }}</p>
+  </div>
+  <div class="hero-actions">
+    <label class="select-wrap" x-data="navSelect">
+      <span class="ms">calendar_month</span>
+      <select aria-label="{% translate 'Ár' %}" x-on:change="go">
+        {% for s, url in year_urls %}
+          <option value="{{ url }}"{% if s.pk == season.pk %} selected{% endif %}>{% blocktranslate with year=s.year %}Jól {{ year }}{% endblocktranslate %}</option>
+        {% endfor %}
+      </select>
+      <span class="ms">expand_more</span>
+    </label>
+    <button class="btn soft" hx-get="{% url 'gifts:new_season' household.slug %}" hx-target="#modal-body">
+      <span class="ms">add_circle_outline</span>{% translate "Nýtt ár" %}
+    </button>
+    <button class="btn primary" hx-get="{% url 'gifts:gift_new' household.slug season.year %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>
+      <span class="ms">card_giftcard</span>{% translate "Ný gjöf / hugmynd" %}
+    </button>
+  </div>
+</section>
+
+{% if locked %}
+<div class="banners">
+  <div class="card banner">
+    <span class="msg"><span class="ms">lock</span>{% blocktranslate with year=season.year %}Jól {{ year }} eru liðin og listinn er læstur.{% endblocktranslate %}</span>
+    <button class="btn soft" hx-post="{% url 'gifts:unlock' household.slug season.year %}"><span class="ms">lock_open</span>{% translate "Opna til breytinga" %}</button>
+  </div>
+</div>
+{% endif %}
+
+{% include "gifts/partials/summary.html" %}
+
+{% if page_name != "listi" %}<form id="list-state" hidden></form>{# gluggar taka með stöðu listans (hx-include) #}{% endif %}
+{% block page %}{% endblock %}
+{% endblock %}
+
+{% block after %}
+<dialog id="modal" x-data="modal" x-on:close="cleanup" aria-labelledby="modal-title">
+  <div id="modal-body"></div>
+</dialog>
+{% include "gifts/partials/toast.html" %}
+{% endblock %}

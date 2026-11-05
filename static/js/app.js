@@ -116,6 +116,26 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // „Afrita rukkun“: deilir texta (símar) eða afritar hann á klippiborð
+  Alpine.data("share", () => ({
+    done: false,
+    get label() { return this.done ? this.$root.dataset.done : this.$root.dataset.label; },
+    async share() {
+      const text = this.$root.dataset.text;
+      try {
+        if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+          await navigator.share({ text });
+          return;
+        }
+        await navigator.clipboard.writeText(text);
+        this.done = true;
+        setTimeout(() => { this.done = false; }, 2000);
+      } catch {
+        /* hætt við deilingu eða klippiborð ekki leyft */
+      }
+    },
+  }));
+
   // Ársval: <select> þar sem gildi hvers valkosts er slóð
   Alpine.data("navSelect", () => ({
     go(event) { window.location.href = event.target.value; },
@@ -329,10 +349,19 @@ document.addEventListener("alpine:init", () => {
   }));
 });
 
-// CSRF-tóki fylgir öllum htmx-beiðnum (lesið úr <meta>, ekki inline-skriftu)
+// CSRF-tóki fylgir öllum htmx-beiðnum (lesið úr <meta>, ekki inline-skriftu), og nafn síðunnar
+// (X-Page) svo þjónninn viti hvort uppfæra eigi listann eða alla síðuna eftir vistun í glugga
 document.addEventListener("htmx:configRequest", (event) => {
   const token = document.querySelector('meta[name="csrf-token"]');
   if (token) event.detail.headers["X-CSRFToken"] = token.content;
+  if (document.body.dataset.page) event.detail.headers["X-Page"] = document.body.dataset.page;
+});
+
+// Breyting á annarri síðu en listanum (Eftir búðum, Fólk, Rukkun): síðan sótt aftur í heild,
+// svo yfirlit og teljari á Rukkun-flipanum uppfærist líka. Skrunstaða helst.
+document.body.addEventListener("refreshPage", () => {
+  const y = window.scrollY;
+  htmx.ajax("GET", window.location.href, { target: "body", swap: "innerHTML" }).then(() => window.scrollTo(0, y));
 });
 
 // Gluggi opnast um leið og htmx setur efni í hann (afterSwap). htmx.process tengir formið strax,

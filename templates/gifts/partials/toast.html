@@ -1,0 +1,5 @@
+{% load i18n %}
+<div class="toast{% if toast_text and not toast_hide %} show{% endif %}" id="toast" role="status"{% if oob %} hx-swap-oob="true"{% endif %}{% if toast_text %} x-data="toast"{% endif %}>
+  <span>{{ toast_text }}</span>
+  {% if undo_url %}<button type="button" hx-post="{{ undo_url }}" hx-include="#list-state">{% translate "Afturkalla" %}</button>{% endif %}
+</div>

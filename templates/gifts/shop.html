@@ -1,0 +1,30 @@
+{% extends "gifts/base_season.html" %}
+{% load i18n money gifts %}
+{% comment %}Eftir búðum: ókeyptar gjafir eftir búð eða staðsetningu. Samsvarar `shopHtml`.{% endcomment %}
+{% block page %}
+{% if not any_left %}
+  <div class="empty"><span class="ms">celebration</span>{% translate "Allar gjafir eru keyptar! 🎉" %}</div>
+{% else %}
+  <div class="shop-tools">
+    <span>{% translate "Flokka eftir" %}</span>
+    <div class="seg">
+      <a class="{% if not by_location %}active{% endif %}" href="{% url 'gifts:shop' household.slug season.year %}">{% translate "Búð" %}</a>
+      <a class="{% if by_location %}active{% endif %}" href="{% url 'gifts:shop' household.slug season.year %}?eftir=stadsetningu">{% translate "Staðsetningu" %}</a>
+    </div>
+  </div>
+  <div class="sections">
+    {% if by_location %}
+      {% for group in location_groups %}
+        <h2 class="loc-head">
+          <span class="ms">{% if group.location.name == "Netverslun" %}language{% else %}location_on{% endif %}</span>
+          {% if group.location %}{{ group.location.name }}{% else %}{% translate "Staðsetning óákveðin" %}{% endif %}
+          <span class="count-pill">{% blocktranslate count n=group.stores|length %}{{ n }} búð{% plural %}{{ n }} búðir{% endblocktranslate %} · {% blocktranslate count n=group.gift_count %}{{ n }} gjöf{% plural %}{{ n }} gjafir{% endblocktranslate %}</span>
+        </h2>
+        {% for store_group in group.stores %}{% include "gifts/partials/shop_card.html" %}{% endfor %}
+      {% endfor %}
+    {% else %}
+      {% for store_group in store_groups %}{% include "gifts/partials/shop_card.html" %}{% endfor %}
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

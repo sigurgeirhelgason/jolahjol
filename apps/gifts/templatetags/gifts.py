@@ -66,3 +66,11 @@ def group_label(value) -> str:
 @register.filter
 def get(mapping, key):
     return mapping.get(key)
+
+
+@register.filter
+def gift_summary(gift) -> str:
+    """Valdar hugmyndir (annars allar) með gefendum: „púsl (frá Ömmu Jóu), bók“."""
+    from apps.gifts.services.gifts import gift_text
+
+    return gift_text(gift)

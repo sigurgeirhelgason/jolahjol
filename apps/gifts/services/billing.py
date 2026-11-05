@@ -64,6 +64,18 @@ def season_billing(season: Season, gifts: list[Gift] | None = None) -> list[Paye
     return sorted(payers.values(), key=lambda p: (not p.unpaid_lines, is_sort_key(p.person.name)))
 
 
+def bill_text(payer: Payer, year: int) -> str:
+    """„Afrita rukkun“: texti til að senda gefanda. Aðeins keypt og ógreitt."""
+    from apps.core.money import format_kr
+
+    lines = [f"Hæ {payer.person.name}! Hér er yfirlit yfir jólagjafirnar {year}:", ""]
+    for line in payer.unpaid_lines:
+        amount = format_kr(line.amount) if line.amount else "verð vantar"
+        lines.append(f"• {line.idea.text} handa {line.gift.person.name}: {amount}")
+    lines += ["", f"Samtals: {format_kr(payer.unpaid)}"]
+    return "\n".join(lines)
+
+
 def owed_total(payers: list[Payer]) -> int:
     """„Til innheimtu“ í peningastöðu."""
     return sum(p.unpaid for p in payers)

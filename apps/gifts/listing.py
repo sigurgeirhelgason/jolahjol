@@ -124,6 +124,17 @@ def histories(season: Season, person_ids) -> dict[int, list[tuple[int, str]]]:
     return out
 
 
+def histories_bought(household, person_ids) -> dict[int, list[tuple[int, str]]]:
+    """Keyptar gjafir hvers einstaklings öll ár (nýjasta fyrst), fyrir „Fólk“."""
+    gifts = with_details(
+        Gift.objects.alive().filter(season__household=household, person_id__in=person_ids, bought=True)
+    ).order_by("-season__year")
+    out: dict[int, list] = defaultdict(list)
+    for gift in gifts:
+        out[gift.person_id].append((gift.season.year, gift_text(gift) or "—"))
+    return out
+
+
 def build_row(gift: Gift) -> Row:
     gift = with_details(Gift.objects.filter(pk=gift.pk)).get()
     return _row(gift, histories(gift.season, [gift.person_id]))

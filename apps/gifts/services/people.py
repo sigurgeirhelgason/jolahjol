@@ -151,3 +151,18 @@ def update_details(person: Person, *, group, birthday, give_christmas, give_birt
     person.give_birthday = give_birthday
     person.save(update_fields=["group", "birthday", "give_christmas", "give_birthday"])
     return person
+
+
+def for_people_page(household: Household) -> list[Person]:
+    """„Fólk & Fjölskylda“: þau sem fá gjafir eða eru með afmæli skráð.
+
+    Gefendur sem hafa aldrei fengið gjöf (t.d. Amma Jóa sem gefandi) birtast ekki hér.
+    """
+    from django.db.models import Exists, OuterRef, Q
+
+    live = Gift.objects.filter(person=OuterRef("pk"), deleted_at__isnull=True)
+    return list(
+        Person.objects.filter(household=household)
+        .filter(Q(Exists(live)) | Q(birthday__isnull=False) | Q(give_birthday=True))
+        .order_by("key")
+    )

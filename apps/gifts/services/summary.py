@@ -30,6 +30,7 @@ class SeasonSummary:
     bought_plan: int  # áætlun keyptra með þekkt raunverð
     bought_spent: int
     owed: int  # til innheimtu
+    due_payers: int  # gefendur sem skulda (teljari á Rukkun-flipanum)
     days_left: int
     groups: list[GroupProgress]
 
@@ -102,7 +103,8 @@ def season_summary(season: Season, gifts: list[Gift] | None = None, today=None) 
         planned_left=sum(g.plan or 0 for g in gifts if not g.bought),
         bought_plan=sum(g.plan or 0 for g in bought_known),
         bought_spent=sum(prices[g.pk] for g in bought_known),
-        owed=owed_total(season_billing(season, gifts)),
+        owed=owed_total(payers := season_billing(season, gifts)),
+        due_payers=sum(1 for p in payers if p.unpaid_lines),
         days_left=days_until_christmas(season.year, today),
         groups=group_progress(gifts),
     )

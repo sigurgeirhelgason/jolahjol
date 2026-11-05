@@ -1,0 +1,37 @@
+{% load i18n money gifts %}
+{% with store=store_group.store %}
+<div class="card">
+  <div class="g-head">
+    <div class="g-title">
+      <span class="ms emoji">storefront</span>
+      <h2>{% if store %}{{ store.name }}{% else %}{% translate "Búð óákveðin" %}{% endif %}</h2>
+      <span class="count-pill">{% blocktranslate count n=store_group.gifts|length %}{{ n }} gjöf{% plural %}{{ n }} gjafir{% endblocktranslate %}</span>
+    </div>
+    <div class="g-meta">
+      {% if store %}
+        <button type="button" class="loc-btn" hx-get="{% url 'gifts:store' household.slug store.pk %}?ar={{ season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>
+          <span class="ms">location_on</span>{{ store|locations_title|default:_("+ Staðsetning") }}
+        </button>
+      {% endif %}
+      <span>{% translate "Áætlað:" %} <strong>{{ store_group.plan|kr }}</strong></span>
+    </div>
+  </div>
+  {% for gift in store_group.gifts %}
+    <div class="shop-item">
+      <div class="check">
+        <input type="checkbox" name="bought" value="on"{% if locked %} disabled{% endif %}
+               aria-label="{% blocktranslate with name=gift.person.name %}Keypt handa {{ name }}{% endblocktranslate %}"
+               hx-post="{% url 'gifts:bought' household.slug gift.pk %}" hx-trigger="change">
+      </div>
+      <div>
+        <div class="who">
+          <button type="button" class="name-btn" hx-get="{% url 'gifts:person' household.slug gift.person_id %}?ar={{ season.year }}" hx-target="#modal-body">{{ gift.person.name }}</button>
+          {% if gift.link %}<a href="{{ gift.link }}" target="_blank" rel="noopener noreferrer" title="{{ gift.link }}"><span class="ms">open_in_new</span></a>{% endif %}
+        </div>
+        <div class="what">{{ gift|gift_summary|default:_("Engin hugmynd enn") }}</div>
+      </div>
+      <div class="num">{% if gift.plan is not None %}{{ gift.plan|kr }}{% else %}—{% endif %}</div>
+    </div>
+  {% endfor %}
+</div>
+{% endwith %}

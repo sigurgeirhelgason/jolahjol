@@ -1,0 +1,71 @@
+{% load i18n l10n money gifts %}
+<section class="card dash" id="summary"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="glow g-dash-1"></div>
+  <div class="glow g-dash-2"></div>
+  <div class="dash-left">
+    <div class="chips-row">
+      {% if summary.days_left >= 0 %}
+        <span class="tag green"><span class="ms">alarm</span>{% if summary.days_left == 0 %}{% translate "Aðfangadagur í dag" %}{% else %}{% blocktranslate count n=summary.days_left %}{{ n }} dagur til jóla{% plural %}{{ n }} dagar til jóla{% endblocktranslate %}{% endif %}</span>
+      {% endif %}
+      {% if pace %}<span class="tag neutral"><span class="ms">speed</span>{% translate "Ráðlagður hraði:" %} {{ pace }}</span>{% endif %}
+    </div>
+    <div>
+      <div class="big-stat">
+        <span class="num">{{ summary.done }} <small>/ {{ summary.count }}</small></span>
+        <span class="lbl">{% translate "gjafir kláraðar" %}</span>
+        <span class="pct">{% widthratio summary.done summary.count|default:1 100 %}% {% translate "tilbúið" %}</span>
+      </div>
+      <p class="dash-note">{{ dash_note }}</p>
+    </div>
+    <div class="money">
+      <div class="money-head">
+        <span><span class="ms">payments</span>{% translate "Peningastaða" %}</span>
+        <form class="val" hx-post="{% url 'gifts:budget' household.slug season.year %}" hx-trigger="change" hx-target="#summary" hx-swap="outerHTML">
+          <strong>{{ summary.spent|kr }}</strong> {% translate "eytt af" %}
+          <input class="budget-input" name="budget" inputmode="numeric" aria-label="{% translate 'Peningaviðmið' %}"
+                 title="{% translate 'Smelltu til að breyta peningaviðmiði' %}" value="{{ summary.budget|kr }}"
+                 x-data="amountCell" data-raw="{{ summary.budget }}" x-on:focus="showRaw" x-on:keydown.enter.prevent="commit"{% if locked %} disabled{% endif %}>
+          {% if summary.budget %}<span>({{ summary.spent_pct }}%)</span>{% endif %}
+        </form>
+      </div>
+      <div class="track"><progress class="bar{% if summary.spent > summary.budget %} over{% endif %}" max="100" value="{% if summary.spent_pct > 100 %}100{% else %}{{ summary.spent_pct }}{% endif %}" aria-label="{% translate 'Eytt af viðmiði' %}"></progress></div>
+      <div class="money-foot">
+        {% if summary.left >= 0 %}<span>{% translate "Eftir af viðmiði:" %} <strong>{{ summary.left|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.left|abs_kr %}{{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
+        {% if summary.unallocated >= 0 %}<span>{% translate "Óráðstafað:" %} <strong>{{ summary.unallocated|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.unallocated|abs_kr %}Áætlun {{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
+        {% if summary.bought_plan %}<span class="t">{% translate "Áætlun keyptra:" %} {{ summary.bought_plan|kr }} ({{ summary.bought_diff|signed }})</span>{% endif %}
+        {% if summary.owed %}<span class="t">{% translate "Til innheimtu:" %} {{ summary.owed|kr }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="mini-groups">
+      {% for g in summary.groups %}
+        <div class="mini"><span>{{ g.group|group_icon }} {{ g.group|group_label }}</span><span class="c{% if g.done %} ok{% endif %}">{{ g.done }} / {{ g.count }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="tree-box">
+    {% localize off %}
+    <div class="tree">
+      <span class="ms star{% if tree.lit %} lit{% endif %}">star</span>
+      <svg viewBox="0 0 200 250" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <path id="treeShape" d="M100 35 L125 75 L115 75 L145 125 L130 125 L170 185 L145 185 L180 225 L112 225 L112 245 L88 245 L88 225 L20 225 L55 185 L30 185 L70 125 L55 125 L85 75 L75 75 Z"/>
+          <clipPath id="treeClip"><use href="#treeShape"/></clipPath>
+        </defs>
+        <use href="#treeShape" fill="#e6e2dc" stroke="rgba(142,112,109,.4)" stroke-width="2" stroke-dasharray="4 3"/>
+        <g clip-path="url(#treeClip)">
+          <rect class="fill" x="0" y="{{ tree.fill_y }}" width="200" height="{{ tree.fill_height }}" fill="#274e3d"/>
+          {% if tree.line %}<line x1="0" x2="200" y1="{{ tree.fill_y }}" y2="{{ tree.fill_y }}" stroke="#f0bd8b" stroke-width="2.5" stroke-dasharray="3 3"/>{% endif %}
+        </g>
+        {% for x, y, color, on in tree.ornaments %}
+          {% if on %}<circle cx="{{ x }}" cy="{{ y }}" r="4" fill="{{ color }}"/>{% else %}<circle cx="{{ x }}" cy="{{ y }}" r="3.5" fill="none" stroke="#8e706d" stroke-width="1.5" stroke-dasharray="2 2" opacity=".5"/>{% endif %}
+        {% endfor %}
+        <use href="#treeShape" stroke="#3f6653" stroke-width="2"/>
+      </svg>
+    </div>
+    {% endlocalize %}
+    <div class="tree-cap">
+      <div><span class="ms">park</span>{% blocktranslate with done=summary.done count=summary.count %}Jólatréð fyllist: {{ done }} / {{ count }} gjafir{% endblocktranslate %} ({% widthratio summary.done summary.count|default:1 100 %}%)</div>
+      <p>{% translate "Skreyttu og lýstu upp tréð með því að klára pakkana 🎄✨" %}</p>
+    </div>
+  </div>
+</section>

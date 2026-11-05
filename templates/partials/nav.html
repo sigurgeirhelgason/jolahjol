@@ -1,3 +1,14 @@
-{% load i18n %}{% with name=request.resolver_match.view_name %}
-<a class="tab{% if name == 'gifts:season' %} active{% endif %}" href="{% url 'gifts:list' household.slug %}"{% if name == 'gifts:season' %} aria-current="page"{% endif %}>{% translate "Gjafalisti" %}</a>
+{% load i18n %}{% with name=request.resolver_match.url_name %}
+{% comment %}Flipar síðna. Á síðum ársins halda þeir sama ári; annars fara þeir á núverandi ár.{% endcomment %}
+{% if season %}
+  <a class="tab{% if name == 'season' %} active{% endif %}" href="{% url 'gifts:season' household.slug season.year %}"{% if name == 'season' %} aria-current="page"{% endif %}>{% translate "Gjafalisti" %}</a>
+  <a class="tab{% if name == 'shop' %} active{% endif %}" href="{% url 'gifts:shop' household.slug season.year %}"{% if name == 'shop' %} aria-current="page"{% endif %}>{% translate "Eftir búðum" %}</a>
+  <a class="tab{% if name == 'people' %} active{% endif %}" href="{% url 'gifts:people' household.slug season.year %}"{% if name == 'people' %} aria-current="page"{% endif %}>{% translate "Fólk & Fjölskylda" %}</a>
+  <a class="tab{% if name == 'billing' %} active{% endif %}" href="{% url 'gifts:billing' household.slug season.year %}"{% if name == 'billing' %} aria-current="page"{% endif %}>{% translate "Rukkun" %}{% if summary.due_payers %}<span class="nav-count" aria-label="{% blocktranslate count n=summary.due_payers %}{{ n }} skuldar{% plural %}{{ n }} skulda{% endblocktranslate %}">{{ summary.due_payers }}</span>{% endif %}</a>
+{% else %}
+  <a class="tab" href="{% url 'gifts:list' household.slug %}">{% translate "Gjafalisti" %}</a>
+  <a class="tab" href="{% url 'gifts:shop_now' household.slug %}">{% translate "Eftir búðum" %}</a>
+  <a class="tab" href="{% url 'gifts:people_now' household.slug %}">{% translate "Fólk & Fjölskylda" %}</a>
+  <a class="tab" href="{% url 'gifts:billing_now' household.slug %}">{% translate "Rukkun" %}</a>
+{% endif %}
 {% endwith %}

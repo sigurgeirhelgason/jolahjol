@@ -1,0 +1,58 @@
+{% extends "gifts/base_season.html" %}
+{% load i18n money %}
+{% comment %}Rukkun: hverja þarf að rukka, fyrir hvað og hve mikið. Samsvarar `billHtml`.{% endcomment %}
+{% block page %}
+{% if not payers %}
+  <div class="empty"><span class="ms">request_quote</span>{% translate "Ekkert til að rukka. Merktu hugmynd „Keypt fyrir annan“ í hugmyndaglugganum." %}</div>
+{% else %}
+  <p class="note"><span class="ms">info</span>
+    {% if due_count %}
+      <span>{% blocktranslate count n=due_count with kr=due_total|kr %}Ógreitt samtals <strong>{{ kr }}</strong> frá {{ n }} aðila.{% plural %}Ógreitt samtals <strong>{{ kr }}</strong> frá {{ n }} aðilum.{% endblocktranslate %}</span>
+    {% else %}
+      {% translate "Allt greitt – engin útistandandi rukkun." %}
+    {% endif %}
+  </p>
+  <div class="sections">
+    {% for payer, text in payers %}
+      <div class="card">
+        <div class="g-head">
+          <div class="g-title">
+            <span class="ms emoji">person</span><h2>{{ payer.person.name }}</h2>
+            {% with n=payer.unpaid_lines|length %}
+              {% if n %}<span class="count-pill">{% blocktranslate %}{{ n }} ógreitt{% endblocktranslate %}</span>{% else %}<span class="count-pill ok">{% translate "Greitt" %}</span>{% endif %}
+            {% endwith %}
+          </div>
+          <div class="g-meta">
+            <span>{% translate "Samtals:" %} <strong>{{ payer.total|kr }}</strong></span><span>•</span>
+            <span>{% translate "Ógreitt:" %} <strong{% if payer.unpaid_lines %} class="spent"{% endif %}>{{ payer.unpaid|kr }}</strong></span>
+            {% if payer.unpaid_lines %}
+              <span x-data="share" data-text="{{ text }}" data-label="{% translate 'Afrita rukkun' %}" data-done="{% translate 'Afritað!' %}">
+                <button type="button" class="loc-btn" x-on:click="share"><span class="ms">share</span><span x-text="label">{% translate "Afrita rukkun" %}</span></button>
+              </span>
+              <button type="button" class="loc-btn" hx-post="{% url 'gifts:payer_all_paid' household.slug season.year payer.person.pk %}">
+                <span class="ms">done_all</span>{% translate "Merkja allt greitt" %}
+              </button>
+            {% endif %}
+          </div>
+        </div>
+        {% for line in payer.lines %}
+          <div class="bill-item{% if line.paid %} paid{% endif %}{% if line.pending %} pending{% endif %}">
+            <div class="check">
+              <input type="checkbox" name="paid" value="on"{% if line.paid %} checked{% endif %}{% if line.pending %} disabled{% endif %}
+                     aria-label="{% blocktranslate with what=line.idea.text %}Greitt: {{ what }}{% endblocktranslate %}"
+                     hx-post="{% url 'gifts:giver_paid' household.slug line.link.pk %}" hx-trigger="change">
+            </div>
+            <div>
+              <button type="button" class="what" hx-get="{% url 'gifts:idea' household.slug line.idea.pk %}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ line.idea.text }}</button>
+              <div class="for">
+                {% blocktranslate with name=line.gift.person.name %}Handa {{ name }}{% endblocktranslate %}{% if line.idea.store %} · {{ line.idea.store.name }}{% endif %}{% if line.pending %} · {% translate "ekki keypt enn" %}{% endif %}
+              </div>
+            </div>
+            <div class="num{% if not line.amount %} none{% endif %}">{% if line.amount %}{{ line.amount|kr }}{% else %}{% translate "Verð vantar" %}{% endif %}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

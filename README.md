@@ -46,6 +46,11 @@ Til að gera notanda að eiganda: `just manage import_legacy … --owner netfang
 
 Reglurnar eru í `apps/gifts/services/` og eru prófaðar óháð viðmóti.
 
+**Síður jólaárs** (`/h/<heimili>/<ár>/…`): gjafalisti, `budir/` (eftir búð eða staðsetningu),
+`folk/` og `rukkun/`. Þær deila `gifts/base_season.html` (hetjuhluti, ársval, yfirlit). Gluggar vita
+frá hvaða síðu þeir voru opnaðir (`<body data-page>` → `X-Page`); á öðrum síðum en listanum er
+síðan sótt aftur eftir vistun.
+
 **Framendi:** sniðmát í `templates/`, `gifts/list.html` með `partialdef` fyrir htmx-svör. Allt JS
 er í `static/js/app.js` (Alpine CSP-útgáfa: engar inline-segðir). htmx, Alpine og leturgerðir eru
 hýst sjálf og CSP er ströng. Nýjar táknmyndir: bæta við `scripts/fetch_icons.py` og keyra `just icons`.

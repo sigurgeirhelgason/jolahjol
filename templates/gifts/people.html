@@ -1,0 +1,42 @@
+{% extends "gifts/base_season.html" %}
+{% load i18n gifts %}
+{% comment %}Fólk & Fjölskylda: allir eftir flokkum. Samsvarar `peopleHtml`.{% endcomment %}
+{% block page %}
+<p class="note"><span class="ms">info</span>{% translate "Smelltu á nafn til að breyta upplýsingum. Nafnabreyting gildir í öllum árum." %}</p>
+<div class="sections">
+  {% for value, label, members in people_groups %}
+    <div class="card">
+      <div class="g-head">
+        <div class="g-title">
+          <span class="emoji">{{ value|group_icon }}</span><h2>{{ label }}</h2>
+          <span class="count-pill">{% blocktranslate count n=members|length %}{{ n }} aðili{% plural %}{{ n }} aðilar{% endblocktranslate %}</span>
+        </div>
+      </div>
+      {% for person, past in members %}
+        <div class="person">
+          <div>
+            <button type="button" class="name-btn" title="{% translate 'Opna upplýsingar' %}"
+                    hx-get="{% url 'gifts:person' household.slug person.pk %}?ar={{ season.year }}" hx-target="#modal-body">{{ person.name }}</button>
+            {% if person.birthday or not person.give_christmas or person.give_birthday %}
+              <div class="person-meta">
+                {% if person.birthday %}<span>🎂 {{ person.birthday|date:"j. N" }}</span>{% endif %}
+                {% if not person.give_christmas %}<span>{% translate "Engin jólagjöf" %}</span>{% endif %}
+                {% if person.give_birthday %}<span>{% translate "Afmælisgjöf" %}</span>{% endif %}
+              </div>
+            {% endif %}
+          </div>
+          <select name="group" aria-label="{% blocktranslate with name=person.name %}Flokkur {{ name }}{% endblocktranslate %}"
+                  hx-post="{% url 'gifts:person_group' household.slug person.pk %}" hx-trigger="change">
+            {% for gvalue, glabel in group_choices %}<option value="{{ gvalue }}"{% if gvalue == person.group %} selected{% endif %}>{{ gvalue|group_icon }} {{ glabel }}</option>{% endfor %}
+          </select>
+          <div class="years" title="{% for year, text in past %}{{ year }}: {{ text }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+            {% for year, text in past %}<b>{{ year }}</b> {{ text }}{% if not forloop.last %} · {% endif %}{% empty %}{% translate "Engar gjafir keyptar enn" %}{% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% empty %}
+    <div class="empty"><span class="ms">group</span>{% translate "Enginn skráður enn. Bættu fólki við á gjafalistanum." %}</div>
+  {% endfor %}
+</div>
+{% endblock %}

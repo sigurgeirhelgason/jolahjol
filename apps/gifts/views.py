@@ -31,11 +31,14 @@ from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
 from . import listing
 from .forms import BudgetForm, GiftForm, IdeaForm, NewRowForm, NewSeasonForm, PersonEditForm, PriceForm
 from .listing import ListState
-from .models import Gift, Group, Idea, Person, Season, Store
+from .models import Gift, Group, Idea, IdeaGiver, Person, Season, Store
 from .services import gifts as gift_services
 from .services import people as people_services
+from .services import shopping
 from .services import stores as stores_services
+from .services.billing import bill_text, mark_all_paid, season_billing
 from .services.gifts import needs_price
+from .services.queries import season_gifts
 from .services.seasons import delete_season, history, new_season
 from .services.summary import days_until_christmas
 
@@ -43,8 +46,14 @@ LIST = "gifts/list.html"
 UNLOCK_FOR = timedelta(hours=1)
 
 
-# Línur og hausar flokka eru sér skrár (include); hinir hlutarnir eru partialdef í list.html
-_FILES = {"gift_row": "gifts/partials/gift_row.html", "group_head": "gifts/partials/group_head.html"}
+# Sumir hlutar eru sér skrár (include); hinir eru partialdef í list.html
+_FILES = {
+    "gift_row": "gifts/partials/gift_row.html",
+    "group_head": "gifts/partials/group_head.html",
+    "summary": "gifts/partials/summary.html",
+    "toast": "gifts/partials/toast.html",
+}
+PAGES = {"listi": "season", "budir": "shop", "folk": "people", "rukkun": "billing"}
 
 
 def _partial(request, name: str, ctx: dict) -> str:
@@ -72,6 +81,21 @@ class GiftsMixin(HouseholdMixin):
         """Liðin jól eru læst; viðmótið sýnir ekki breytingarhnappa en þjónninn ver líka."""
         if season.is_locked():
             raise PermissionDenied
+
+    def page_name(self) -> str:
+        """Síðan sem beiðnin kom frá (X-Page úr <body data-page>); gluggar eru opnaðir af mörgum síðum."""
+        page = self.request.headers.get("X-Page", "listi")
+        return page if page in PAGES else "listi"
+
+    def changed(self, season: Season | None, *, toast=None) -> HttpResponse:
+        """Svar eftir vistun: listinn teiknaður upp á nýtt, eða öll síðan ef hún er önnur en listinn."""
+        if season is not None and self.page_name() == "listi":
+            return self.refresh_list(season, toast=toast)
+        response = HttpResponse("")
+        response["HX-Reswap"] = "none"
+        trigger_client_event(response, "closeModal", after="receive")
+        trigger_client_event(response, "refreshPage", after="receive")
+        return response
 
     def list_state(self) -> ListState:
         params = self.request.POST if self.request.method == "POST" else self.request.GET
@@ -145,7 +169,10 @@ class GiftsMixin(HouseholdMixin):
 
 
 class SeasonRedirectView(GiftsMixin, View):
-    """/h/<slug>/ → ár þessa árs ef það er til, annars nýjasta. Fyrsta heimsókn stofnar árið."""
+    """/h/<slug>/ (eða /h/<slug>/budir/ …) → sama síða á ári þessa árs ef það er til, annars
+    nýjasta. Fyrsta heimsókn stofnar árið."""
+
+    target = "season"
 
     def get(self, request, slug):
         this_year = timezone.localdate().year
@@ -153,10 +180,28 @@ class SeasonRedirectView(GiftsMixin, View):
         season = seasons.filter(year=this_year).first() or seasons.order_by("-year").first()
         if season is None:
             season = Season.objects.create(household=self.household, year=this_year)
-        return redirect("gifts:season", slug=slug, year=season.year)
+        return redirect(f"gifts:{self.target}", slug=slug, year=season.year)
 
 
-class GiftListView(GiftsMixin, TemplateView):
+class SeasonPageMixin(GiftsMixin):
+    """Síður jólaárs: hetjuhluti með ársvali (sem heldur sömu síðu), borði og yfirlit."""
+
+    page = "listi"
+
+    def season_context(self, season: Season) -> dict:
+        ctx = self.base_context(season)
+        days = days_until_christmas(season.year)
+        ctx["hero_pill"], ctx["hero_strong"], ctx["hero_rest"] = listing.hero_texts(season, days)
+        url_name = f"gifts:{PAGES[self.page]}"
+        ctx["year_urls"] = [
+            (s, reverse(url_name, args=[self.household.slug, s.year]))
+            for s in self.household.seasons.order_by("-year")
+        ]
+        ctx["page_name"] = self.page
+        return ctx
+
+
+class GiftListView(SeasonPageMixin, TemplateView):
     template_name = LIST
 
     def get(self, request, *args, **kwargs):
@@ -172,12 +217,106 @@ class GiftListView(GiftsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        season = self.season
-        ctx.update(self.base_context(season))
-        days = days_until_christmas(season.year)
-        ctx["hero_pill"], ctx["hero_strong"], ctx["hero_rest"] = listing.hero_texts(season, days)
-        ctx["seasons"] = self.household.seasons.order_by("-year")
+        ctx.update(self.season_context(self.season))
         return ctx
+
+
+class ShopView(SeasonPageMixin, TemplateView):
+    """Eftir búðum: ókeyptar gjafir eftir búð, eða eftir staðsetningu búðanna."""
+
+    template_name = "gifts/shop.html"
+    page = "budir"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        season = self.get_season(kwargs["year"])
+        ctx.update(self.season_context(season))
+        by_location = self.request.GET.get("eftir") == "stadsetningu"
+        gifts = season_gifts(season)
+        ctx["by_location"] = by_location
+        if by_location:
+            ctx["location_groups"] = shopping.by_location(season, gifts)
+        else:
+            ctx["store_groups"] = shopping.by_store(season, gifts)
+        ctx["any_left"] = any(not g.bought for g in gifts)
+        return ctx
+
+
+class PeopleView(SeasonPageMixin, TemplateView):
+    """Fólk & Fjölskylda: allir eftir flokkum, með afmæli og keyptum gjöfum fyrri ára."""
+
+    template_name = "gifts/people.html"
+    page = "folk"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        season = self.get_season(kwargs["year"])
+        ctx.update(self.season_context(season))
+        everyone = people_services.for_people_page(self.household)
+        hist = listing.histories_bought(self.household, [p.pk for p in everyone])
+        groups = []
+        for value, label in Group.choices:
+            members = sorted((p for p in everyone if p.group == value), key=lambda p: is_sort_key(p.name))
+            if members:
+                groups.append((value, label, [(p, hist.get(p.pk, [])) for p in members]))
+        ctx["people_groups"] = groups
+        ctx["group_choices"] = Group.choices
+        return ctx
+
+
+class BillingView(SeasonPageMixin, TemplateView):
+    """Rukkun: hverja þarf að rukka, fyrir hvað og hve mikið."""
+
+    template_name = "gifts/billing.html"
+    page = "rukkun"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        season = self.get_season(kwargs["year"])
+        ctx.update(self.season_context(season))
+        payers = season_billing(season, season_gifts(season))
+        ctx["payers"] = [(p, bill_text(p, season.year)) for p in payers]
+        due = [p for p in payers if p.unpaid_lines]
+        ctx["due_count"] = len(due)
+        ctx["due_total"] = sum(p.unpaid for p in due)
+        return ctx
+
+
+class GiverPaidView(GiftsMixin, View):
+    """Rukkun: „Greitt“ fyrir einn gefanda á einni hugmynd. Leyft líka á læstu ári (eins og áður)."""
+
+    def post(self, request, slug, pk):
+        link = get_object_or_404(
+            IdeaGiver.objects.select_related("idea__gift__season"),
+            pk=pk,
+            idea__gift__season__household=self.household,
+            idea__gift__deleted_at__isnull=True,
+        )
+        link.paid = bool(request.POST.get("paid"))
+        link.save(update_fields=["paid"])
+        return self.changed(link.idea.gift.season)
+
+
+class PayerAllPaidView(GiftsMixin, View):
+    """Rukkun: „Merkja allt greitt“ fyrir einn gefanda á árinu."""
+
+    def post(self, request, slug, year, pk):
+        season = self.get_season(year)
+        person = get_object_or_404(Person, pk=pk, household=self.household)
+        mark_all_paid(season, person)
+        return self.changed(season)
+
+
+class PersonGroupView(GiftsMixin, View):
+    """Fólk: flokki breytt beint í listanum."""
+
+    def post(self, request, slug, pk):
+        person = get_object_or_404(Person, pk=pk, household=self.household)
+        group = request.POST.get("group")
+        if group in Group.values:
+            person.group = group
+            person.save(update_fields=["group"])
+        return self.changed(None)
 
 
 class BudgetView(GiftsMixin, View):
@@ -256,7 +395,8 @@ class GiftBoughtView(GiftsMixin, View):
                 # (óbreytt, óhökuð) er send með svo gátreiturinn sýni rétta stöðu
                 gift.refresh_from_db()
                 response = self.dialog("gifts/dialogs/price.html", self.price_context(gift))
-                response.content += self.row_html(gift, oob=True).encode()
+                if self.page_name() == "listi":
+                    response.content += self.row_html(gift, oob=True).encode()
                 response["HX-Retarget"] = "#modal-body"
                 response["HX-Reswap"] = "innerHTML"
                 return response
@@ -264,6 +404,8 @@ class GiftBoughtView(GiftsMixin, View):
             gift_services.mark_bought(gift)
         else:
             gift_services.mark_unbought(gift)
+        if self.page_name() != "listi":
+            return self.changed(gift.season)
         return self.row_response(gift)
 
     @staticmethod
@@ -285,6 +427,8 @@ class GiftPriceView(GiftsMixin, View):
                 ctx = GiftBoughtView.price_context(gift, form)
                 return self.dialog("gifts/dialogs/price.html", ctx, status=422)
             gift_services.mark_bought(gift, form.cleaned_data["amount"])
+        if self.page_name() != "listi":
+            return self.changed(gift.season)
         response = self.row_response(gift)
         # Formið er í glugganum, en svarið er línan sjálf
         response["HX-Retarget"] = f"#gift-{gift.pk}"
@@ -411,7 +555,7 @@ class GiftDialogView(GiftsMixin, View):
             except ValueError as exc:
                 form.add_error("name", str(exc))
             else:
-                return self.refresh_list(self.season)
+                return self.changed(self.season)
         return self.render(form, status=422)
 
 
@@ -514,11 +658,7 @@ class PersonDialogView(GiftsMixin, View):
                 give_birthday=d["give_birthday"],
             )
         season = self.household.seasons.filter(year=self.request.POST.get("ar") or 0).first()
-        if season is None:
-            response = HttpResponse(status=204)
-            trigger_client_event(response, "closeModal", after="receive")
-            return response
-        return self.refresh_list(season)
+        return self.changed(season)
 
 
 class StoreDialogView(GiftsMixin, View):
@@ -567,11 +707,7 @@ class StoreDialogView(GiftsMixin, View):
                 names += [loc.name for loc in target.locations.all()]
             stores_services.set_locations(target, split_list(", ".join(names)))
         season = self.household.seasons.filter(year=request.POST.get("ar") or 0).first()
-        if season is None:
-            response = HttpResponse(status=204)
-            trigger_client_event(response, "closeModal", after="receive")
-            return response
-        return self.refresh_list(season)
+        return self.changed(season)
 
 
 class IdeaDialogView(GiftsMixin, View):
@@ -612,7 +748,7 @@ class IdeaDialogView(GiftsMixin, View):
         if form.is_valid():
             with transaction.atomic():
                 gift_services.save_idea(idea, form.to_data())
-            return self.refresh_list(idea.gift.season)
+            return self.changed(idea.gift.season)
         givers = request.POST.getlist("givers")
         return self.render(idea, form, givers, status=422)
 

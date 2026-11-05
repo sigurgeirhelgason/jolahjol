@@ -6,6 +6,19 @@ app_name = "gifts"
 
 urlpatterns = [
     path("h/<slug:slug>/", views.SeasonRedirectView.as_view(), name="list"),
+    path("h/<slug:slug>/budir/", views.SeasonRedirectView.as_view(target="shop"), name="shop_now"),
+    path("h/<slug:slug>/folk/", views.SeasonRedirectView.as_view(target="people"), name="people_now"),
+    path("h/<slug:slug>/rukkun/", views.SeasonRedirectView.as_view(target="billing"), name="billing_now"),
+    path("h/<slug:slug>/<int:year>/budir/", views.ShopView.as_view(), name="shop"),
+    path("h/<slug:slug>/<int:year>/folk/", views.PeopleView.as_view(), name="people"),
+    path("h/<slug:slug>/<int:year>/rukkun/", views.BillingView.as_view(), name="billing"),
+    path(
+        "h/<slug:slug>/<int:year>/rukkun/<int:pk>/allt-greitt/",
+        views.PayerAllPaidView.as_view(),
+        name="payer_all_paid",
+    ),
+    path("h/<slug:slug>/gefendur/<int:pk>/greitt/", views.GiverPaidView.as_view(), name="giver_paid"),
+    path("h/<slug:slug>/folk/<int:pk>/flokkur/", views.PersonGroupView.as_view(), name="person_group"),
     path("h/<slug:slug>/nytt-ar/", views.NewSeasonView.as_view(), name="new_season"),
     path("h/<slug:slug>/folk/leit/", views.PeopleSearchView.as_view(), name="people_search"),
     path("h/<slug:slug>/<int:year>/", views.GiftListView.as_view(), name="season"),
