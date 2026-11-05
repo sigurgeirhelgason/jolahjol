@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 
 ICONS = [
+    "language",
     "link_off",
     "bookmark",
     "ac_unit",
