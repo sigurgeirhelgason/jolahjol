@@ -153,7 +153,7 @@ class LegacyImporter:
             if person is None:
                 self.report.skipped_gifts += 1  # ónefnd lína
                 continue
-            existing = Gift.objects.alive().filter(season=season, person=person).first()
+            existing = Gift.objects.alive().christmas().filter(season=season, person=person).first()
             gift = Gift.objects.create(
                 season=season,
                 person=person,

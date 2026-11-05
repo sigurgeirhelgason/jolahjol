@@ -42,7 +42,7 @@
       {% for entry in history %}
         {% with gift=entry.gift price=entry.gift.actual_price %}
         <li>
-          <span class="yr">{{ entry.year }}</span>
+          <span class="yr">{{ entry.year }}{% if entry.gift.occasion == "afmaeli" %} 🎂{% endif %}</span>
           <span class="what" title="{{ entry.text }}">{{ entry.text|default:"—" }}</span>
           <span class="amt{% if price is None %} plan{% endif %}">{% if price is not None %}{{ price|kr }}{% elif gift.plan is not None %}{% translate "áætl." %} {{ gift.plan|kr }}{% endif %}</span>
           <span class="ms{% if gift.bought %} ok{% endif %}">{% if gift.bought %}check_circle{% else %}radio_button_unchecked{% endif %}</span>

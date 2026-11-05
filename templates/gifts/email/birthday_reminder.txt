@@ -1,0 +1,14 @@
+{% load i18n money gifts %}{% autoescape off %}{% translate "Hæ!" %}
+
+{% blocktranslate with name=entry.person.name date=entry.date|date:"j. F" age=entry.age %}{{ name }} á afmæli {{ date }} og verður {{ age }} ára.{% endblocktranslate %}{% if entry.round_birthday %} {% translate "Stórafmæli! 🎉" %}{% endif %}
+
+{% if entry.bought %}{% translate "Gjöfin er keypt. 🎁" %}{% elif entry.gift and entry.gift.ideas.all %}{% translate "Hugmyndir:" %}
+{% for idea in entry.gift.ideas.all %}• {{ idea.text }}
+{% endfor %}{% else %}{% translate "Engar hugmyndir skráðar enn." %}{% endif %}
+
+{% translate "Skoða afmælin:" %} {{ url }}
+
+{% translate "Kveðja," %}
+Jólahjól 🎄
+{% translate "Þú færð þennan póst því kveikt er á afmælisáminningum í heimilinu. Hægt er að slökkva á þeim á afmælissíðunni." %}
+{% endautoescape %}

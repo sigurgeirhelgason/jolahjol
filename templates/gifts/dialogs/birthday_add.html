@@ -1,0 +1,21 @@
+{% load i18n %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">cake</span>{% translate "Bæta við afmæli" %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:birthday_add' household.slug %}" hx-target="#modal-body" x-data="birthday">
+  <p class="price-sub">{% translate "Ef viðkomandi er þegar til (t.d. á jólalistanum) bætist afmælið við hjá viðkomandi." %}</p>
+  <c-field :field="form.name" />
+  <div class="field{% if form.birthday.errors %} has-error{% endif %}">
+    <label for="{{ form.birthday.id_for_label }}">{{ form.birthday.label }}</label>
+    <input type="text" name="birthday" id="{{ form.birthday.id_for_label }}" value="{{ form.birthday.value|default_if_none:'' }}"
+           placeholder="dd/mm/áá" inputmode="numeric" autocomplete="off" maxlength="10" x-ref="birthday" x-on:input="update">
+    {{ form.birthday.errors }}
+    <span class="help" x-text="age"></span>
+  </div>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta við" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">cake</span>{% translate "Bæta við" %}</button>
+  </div>
+</form>
+<datalist id="people-list">{% for p in all_people %}<option value="{{ p.name }}">{% endfor %}</datalist>

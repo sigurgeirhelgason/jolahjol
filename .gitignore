@@ -9,3 +9,6 @@ media/
 *.mo
 test-results/
 playwright-report/
+
+# Tilvísunargögn (gamla appið, Excel, hönnun): aldrei í git
+reff/

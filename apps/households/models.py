@@ -19,6 +19,9 @@ class Household(models.Model):
     name = models.CharField(_("nafn"), max_length=100)
     slug = models.SlugField(_("slóð"), unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Afmælisáminningar í tölvupósti til meðlima (manage.py send_birthday_reminders, daglega)
+    birthday_reminders = models.BooleanField(_("afmælisáminningar"), default=False)
+    reminder_days = models.PositiveSmallIntegerField(_("dögum fyrir afmæli"), default=14)
 
     objects = HouseholdQuerySet.as_manager()
 

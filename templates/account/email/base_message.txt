@@ -2,5 +2,6 @@
 
 {% block content %}{% endblock content %}
 
-{% translate "Gleðileg jól,\nJólahjól 🎄" %}
+{% translate "Gleðileg jól," %}
+Jólahjól 🎄
 {% endautoescape %}

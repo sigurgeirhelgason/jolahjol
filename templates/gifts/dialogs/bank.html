@@ -1,0 +1,21 @@
+{% load i18n money %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">{{ idea.0 }}</span>{{ idea.1 }}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:bank_add' household.slug index %}" hx-target="#modal-body">
+  <p class="price-sub">{% blocktranslate with kr=idea.2|kr %}U.þ.b. {{ kr }}. Hjá hverjum á hugmyndin að bætast við?{% endblocktranslate %}</p>
+  <div class="field{% if error %} has-error{% endif %}">
+    <label for="bank-who">{% translate "Afmælisbarn" %}</label>
+    <select id="bank-who" name="who" autofocus>
+      {% for value, e in choices %}
+        <option value="{{ value }}">{{ e.person.name }} · {{ e.date|date:"j. b" }}{% if e.days <= 30 %} ({% blocktranslate with n=e.days %}eftir {{ n }} daga{% endblocktranslate %}){% endif %}</option>
+      {% endfor %}
+    </select>
+    {% if error %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endif %}
+  </div>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta við" %}</button>
+    <button type="submit" class="btn primary"><span class="ms">add</span>{% translate "Bæta við" %}</button>
+  </div>
+</form>

@@ -55,7 +55,7 @@ def visible_ideas(share: WishlistShare) -> tuple[Season | None, list[Idea]]:
     season = current_season(share.person.household)
     if season is None:
         return None, []
-    gift = Gift.objects.alive().filter(season=season, person=share.person).first()
+    gift = Gift.objects.alive().christmas().filter(season=season, person=share.person).first()
     if gift is None:
         return season, []
     return season, list(gift.ideas.select_related("store").order_by("position", "id"))

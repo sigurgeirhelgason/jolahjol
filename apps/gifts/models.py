@@ -133,16 +133,33 @@ class Season(models.Model):
         return not (self.unlocked_until and self.unlocked_until > now)
 
 
+class Occasion(models.TextChoices):
+    CHRISTMAS = "jol", _("Jól")
+    BIRTHDAY = "afmaeli", _("Afmæli")
+
+
 class GiftQuerySet(models.QuerySet):
     def alive(self):
         return self.filter(deleted_at__isnull=True)
 
+    def christmas(self):
+        return self.filter(occasion=Occasion.CHRISTMAS)
+
+    def birthdays(self):
+        return self.filter(occasion=Occasion.BIRTHDAY)
+
 
 class Gift(models.Model):
-    """Gjöf til eins einstaklings á einu ári. Hugmyndirnar eru það sem er (eða verður) keypt."""
+    """Gjöf til eins einstaklings á einu ári og einu tilefni (jól eða afmæli).
+
+    Hugmyndirnar eru það sem er (eða verður) keypt. Afmælisgjöf tilheyrir árinu sem afmælið er á.
+    """
 
     season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="gifts")
     person = models.ForeignKey(Person, on_delete=models.PROTECT, related_name="gifts")
+    occasion = models.CharField(
+        _("tilefni"), max_length=10, choices=Occasion.choices, default=Occasion.CHRISTMAS
+    )
     plan = models.PositiveIntegerField(_("áætlað verð"), null=True, blank=True)
     bought = models.BooleanField(_("keypt"), default=False)
     # Upphæð slegin inn þegar gjöf er merkt keypt án verðs á hugmyndum
@@ -162,9 +179,9 @@ class Gift(models.Model):
         ordering = ["position", "id"]
         constraints = [
             models.UniqueConstraint(
-                fields=["season", "person"],
+                fields=["season", "person", "occasion"],
                 condition=Q(deleted_at__isnull=True),
-                name="unique_live_gift_per_person",
+                name="unique_live_gift_per_person_occasion",
             )
         ]
 
@@ -223,3 +240,19 @@ class IdeaGiver(models.Model):
 
     def __str__(self):
         return f"{self.person} → {self.idea}"
+
+
+class BirthdayReminder(models.Model):
+    """Áminning sem hefur verið send, svo sama afmæli fái aldrei tvær."""
+
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="birthday_reminders")
+    date = models.DateField(_("afmælisdagur"))
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("afmælisáminning")
+        verbose_name_plural = _("afmælisáminningar")
+        constraints = [models.UniqueConstraint(fields=["person", "date"], name="unique_birthday_reminder")]
+
+    def __str__(self):
+        return f"{self.person} {self.date}"

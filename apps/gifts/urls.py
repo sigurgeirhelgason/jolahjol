@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import birthday_views, views
 
 app_name = "gifts"
 
@@ -20,6 +20,19 @@ urlpatterns = [
     path("h/<slug:slug>/gefendur/<int:pk>/greitt/", views.GiverPaidView.as_view(), name="giver_paid"),
     path("h/<slug:slug>/folk/<int:pk>/flokkur/", views.PersonGroupView.as_view(), name="person_group"),
     path("h/<slug:slug>/nytt-ar/", views.NewSeasonView.as_view(), name="new_season"),
+    path("h/<slug:slug>/afmaeli/", birthday_views.BirthdaysView.as_view(), name="birthdays"),
+    path("h/<slug:slug>/afmaeli/nytt/", birthday_views.BirthdayAddView.as_view(), name="birthday_add"),
+    path(
+        "h/<slug:slug>/afmaeli/aminningar/",
+        birthday_views.ReminderSettingsView.as_view(),
+        name="birthday_reminders",
+    ),
+    path("h/<slug:slug>/afmaeli/banki/<int:index>/", birthday_views.BankAddView.as_view(), name="bank_add"),
+    path(
+        "h/<slug:slug>/afmaeli/<int:person>/<int:year>/<str:action>/",
+        birthday_views.BirthdayActionView.as_view(),
+        name="birthday_action",
+    ),
     path("h/<slug:slug>/folk/leit/", views.PeopleSearchView.as_view(), name="people_search"),
     path("h/<slug:slug>/<int:year>/", views.GiftListView.as_view(), name="season"),
     path("h/<slug:slug>/<int:year>/vidmid/", views.BudgetView.as_view(), name="budget"),

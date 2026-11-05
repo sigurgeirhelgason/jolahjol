@@ -54,7 +54,7 @@ _FILES = {
     "summary": "gifts/partials/summary.html",
     "toast": "gifts/partials/toast.html",
 }
-PAGES = {"listi": "season", "budir": "shop", "folk": "people", "rukkun": "billing"}
+PAGES = {"listi": "season", "budir": "shop", "folk": "people", "rukkun": "billing", "afmaeli": "birthdays"}
 
 
 def _partial(request, name: str, ctx: dict) -> str:
@@ -448,6 +448,8 @@ class GiftPlanView(GiftsMixin, View):
         if gift.plan is not None and gift.plan < 0:
             gift.plan = 0
         gift.save(update_fields=["plan", "updated_at"])
+        if self.page_name() != "listi":
+            return self.changed(gift.season)
         return self.row_response(gift)
 
 
@@ -456,6 +458,8 @@ class IdeaAddView(GiftsMixin, View):
         gift = self.get_gift(pk)
         self.ensure_editable(gift.season)
         gift_services.add_ideas(gift, request.POST.get("text", "")[:1000])
+        if self.page_name() != "listi":
+            return self.changed(gift.season)
         return self.row_response(gift)
 
 
@@ -465,6 +469,8 @@ class IdeaRemoveView(GiftsMixin, View):
         gift = idea.gift
         self.ensure_editable(gift.season)
         gift_services.remove_idea(idea)
+        if self.page_name() != "listi":
+            return self.changed(gift.season)
         return self.row_response(gift)
 
 
@@ -570,7 +576,7 @@ class NewRowView(GiftsMixin, View):
 
     def render(self, season, form, status=200):
         # Útfylling: fólk sem hefur fengið gjöf önnur ár en er ekki á lista þessa árs
-        on_list = season.gifts.alive().values("person_id")
+        on_list = season.gifts.alive().christmas().values("person_id")
         earlier = (
             Person.objects.filter(household=self.household)
             .filter(Exists(Gift.objects.alive().filter(person=OuterRef("pk"))))

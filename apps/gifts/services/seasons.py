@@ -17,8 +17,13 @@ def new_season(household: Household, year: int, copy_from: Season | None = None)
     season, created = Season.objects.get_or_create(
         household=household, year=year, defaults={"budget": copy_from.budget if copy_from else 0}
     )
-    if created and copy_from:
-        for position, gift in enumerate(copy_from.gifts.alive().select_related("person")):
+    # Árið gæti hafa orðið til vegna afmælisgjafar; jólin eru þá samt ný
+    fresh = created or not season.gifts.christmas().exists()
+    if fresh and copy_from:
+        if not created and not season.budget:
+            season.budget = copy_from.budget
+            season.save(update_fields=["budget"])
+        for position, gift in enumerate(copy_from.gifts.alive().christmas().select_related("person")):
             if gift.person.give_christmas:
                 Gift.objects.create(season=season, person=gift.person, plan=gift.plan, position=position)
     return season

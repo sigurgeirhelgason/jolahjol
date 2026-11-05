@@ -161,6 +161,8 @@ ADMIN_URL = config("DJANGO_ADMIN_URL", default="admin/")
 
 EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Jólahjól <noreply@localhost>")
+# Full slóð vefsins fyrir hlekki í pósti sem er sendur utan beiðna (t.d. afmælisáminningar)
+SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000").rstrip("/")
 
 # Öryggishausar (virkjaðir í prod með umhverfisbreytum)
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)

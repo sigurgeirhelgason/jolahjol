@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{% if entry.days == 0 %}{% blocktranslate with name=entry.person.name %}🎂 {{ name }} á afmæli í dag!{% endblocktranslate %}{% else %}{% blocktranslate count n=entry.days with name=entry.person.name %}🎂 {{ name }} á afmæli eftir {{ n }} dag{% plural %}🎂 {{ name }} á afmæli eftir {{ n }} daga{% endblocktranslate %}{% endif %}{% endautoescape %}

@@ -1,0 +1,194 @@
+{% extends "layouts/app.html" %}
+{% load i18n l10n money gifts %}
+{% comment %}Afmælisgjafir: næstu 12 mánuðir. Hönnun: reff/design2. Gögn: apps/gifts/services/birthdays.py.{% endcomment %}
+{% block title %}{% translate "Afmælisgjafir" %} · {{ household.name }}{% endblock %}
+{% block body_attrs %} data-page="afmaeli"{% endblock %}
+
+{% block topbar_actions %}
+  <button class="btn primary" hx-get="{% url 'gifts:birthday_add' household.slug %}" hx-target="#modal-body">
+    <span class="ms">add</span><span class="lbl">{% translate "Bæta við afmæli" %}</span>
+  </button>
+{% endblock %}
+
+{% block content %}
+<form id="list-state" hidden></form>
+
+<section class="bday-hero">
+  <div>
+    <span class="bday-kicker"><span class="ms">cake</span>{% translate "Afmæli næstu 12 mánuði" %}</span>
+    <h1>{% translate "Afmælisgjafir" %} 🎂</h1>
+    <p>{% translate "Yfirsýn yfir afmælisdaga, hugmyndir og gjafir í tíma, án stress." %}</p>
+  </div>
+  <button class="btn amber" hx-get="{% url 'gifts:birthday_add' household.slug %}" hx-target="#modal-body">
+    <span class="ms">add_circle</span>{% translate "Bæta við afmæli" %}
+  </button>
+</section>
+
+{# ---------- Yfirlit ---------- #}
+<section class="card bday-summary">
+  <div class="bday-summary-main">
+    <div>
+      <span class="bday-eyebrow"><span class="ms">verified</span>{% translate "Næstu 30 daga" %}</span>
+      <p class="bday-headline">
+        {% with n=ov.soon|length %}
+          {% if n %}{% blocktranslate count n=n %}{{ n }} afmælisbarn framundan{% plural %}{{ n }} afmælisbörn framundan{% endblocktranslate %}{% else %}{% translate "Engin afmæli næstu 30 daga" %}{% endif %}
+        {% endwith %}
+      </p>
+    </div>
+    <div class="bday-metrics">
+      <div class="bday-metric">
+        <div class="bday-metric-head"><span>{% translate "Afmælisgjafir" %}</span><span class="ok">{% widthratio ov.done ov.count|default:1 100 %}%</span></div>
+        <p>{% blocktranslate with done=ov.done count=ov.count %}{{ done }} af {{ count }} gjöfum keyptar{% endblocktranslate %}</p>
+        <progress class="bday-bar" max="{{ ov.count|default:1 }}" value="{{ ov.done }}"></progress>
+      </div>
+      <div class="bday-metric">
+        <div class="bday-metric-head"><span>{% translate "Áætlað og eytt" %}</span></div>
+        <p>{{ ov.spent|kr }} <span class="muted">/ {{ ov.plan|kr }}</span></p>
+        <progress class="bday-bar amber" max="{{ ov.plan|default:1 }}" value="{% if ov.spent > ov.plan %}{{ ov.plan }}{% else %}{{ ov.spent }}{% endif %}"></progress>
+      </div>
+    </div>
+    {% with e=ov.next_up %}{% if e %}
+      <div class="bday-next">
+        <span class="bday-next-icon"><span class="ms">notifications_active</span></span>
+        <div>
+          <p class="bday-next-title">
+            {% if e.days == 0 %}{% blocktranslate with name=e.person.name %}Í dag: {{ name }} á afmæli! 🎂{% endblocktranslate %}
+            {% else %}{% blocktranslate count n=e.days with name=e.person.name date=e.date|date:"j. b" %}Næst á dagskrá: {{ name }} á afmæli á morgun ({{ date }}){% plural %}Næst á dagskrá: {{ name }} á afmæli eftir {{ n }} daga ({{ date }}){% endblocktranslate %}{% endif %}
+          </p>
+          <p class="muted">
+            {% if e.bought %}{% translate "Gjöfin er keypt." %}{% elif e.gift and e.gift.ideas.all %}{% blocktranslate with what=e.gift|gift_summary %}Ókeypt: {{ what }}{% endblocktranslate %}{% else %}{% translate "Engin hugmynd skráð enn." %}{% endif %}
+          </p>
+        </div>
+        <a class="bday-next-link" href="#person-{{ e.person.pk }}">{% translate "Skoða" %}<span class="ms">chevron_right</span></a>
+      </div>
+    {% endif %}{% endwith %}
+  </div>
+  <div class="bday-box">
+    {% localize off %}
+    <svg viewBox="0 0 200 220" aria-hidden="true">
+      <defs>
+        <clipPath id="boxClip"><rect x="35" y="60" width="130" height="130" rx="14"/></clipPath>
+        <pattern id="confetti" width="24" height="24" patternUnits="userSpaceOnUse">
+          <circle cx="5" cy="5" r="1.5" fill="#f0bd8b"/><circle cx="17" cy="12" r="1.2" fill="#beead1"/>
+          <rect x="10" y="17" width="2" height="3" rx=".5" fill="#a4161a" transform="rotate(30 10 17)"/>
+        </pattern>
+      </defs>
+      <rect x="35" y="60" width="130" height="130" rx="14" fill="#ebe8e2" stroke="#dddad4" stroke-width="2"/>
+      <g clip-path="url(#boxClip)">
+        <rect x="35" y="{{ box.y }}" width="130" height="{{ box.h }}" fill="#3f6653"/>
+        <rect x="35" y="{{ box.y }}" width="130" height="{{ box.h }}" fill="url(#confetti)" opacity=".6"/>
+        {% if box.line %}<line x1="35" x2="165" y1="{{ box.y }}" y2="{{ box.y }}" stroke="#beead1" stroke-width="3" stroke-linecap="round"/>{% endif %}
+      </g>
+      <rect x="91" y="60" width="18" height="130" fill="#f0bd8b" opacity=".9"/>
+      <rect x="35" y="120" width="130" height="16" fill="#f0bd8b" opacity=".9"/>
+      <rect x="30" y="52" width="140" height="16" rx="6" fill="#f1ede7" stroke="#dddad4" stroke-width="1.5"/>
+      <rect x="91" y="52" width="18" height="16" fill="#f0bd8b"/>
+      <path d="M96 52 C70 20 40 38 75 50 C86 54 94 53 96 52 Z" fill="#704b23"/><path d="M96 52 C78 28 55 42 78 50 Z" fill="#f0bd8b"/>
+      <path d="M104 52 C130 20 160 38 125 50 C114 54 106 53 104 52 Z" fill="#704b23"/><path d="M104 52 C122 28 145 42 122 50 Z" fill="#f0bd8b"/>
+      <circle cx="100" cy="52" r="7" fill="#56340e"/>
+    </svg>
+    {% endlocalize %}
+    <p class="bday-box-cap">{% blocktranslate with done=ov.done count=ov.count %}Gjafapakkinn fyllist: {{ done }} / {{ count }}{% endblocktranslate %}</p>
+    <p class="muted">{% translate "Pakkinn fyllist þegar afmælisgjafirnar eru keyptar 🎁✨" %}</p>
+  </div>
+</section>
+
+{% if ov.missing_date %}
+<div class="card banner">
+  <span class="msg"><span class="ms">info</span>
+    {% blocktranslate count n=ov.missing_date|length %}Fæðingardag vantar hjá:{% plural %}Fæðingardag vantar hjá:{% endblocktranslate %}
+    {% for p in ov.missing_date %}<button type="button" class="store-btn" hx-get="{% url 'gifts:person' household.slug p.pk %}" hx-target="#modal-body">{{ p.name }}</button>{% if not forloop.last %}, {% endif %}{% endfor %}
+  </span>
+</div>
+{% endif %}
+
+{# ---------- Mánuðir og síur ---------- #}
+<nav class="bday-months" aria-label="{% translate 'Mánuðir' %}">
+  {% for month, label in pills %}
+    <a href="#m-{{ month.key }}" class="{% if forloop.first %}now{% endif %}{% if not month.entries %} no-birthdays{% endif %}">
+      {{ label }}{% if month.entries %} <b>({{ month.entries|length }})</b>{% endif %}{% if forloop.first %} · {% translate "núna" %}{% endif %}
+    </a>
+  {% endfor %}
+</nav>
+
+<form class="card toolbar" method="get" role="search">
+  <label class="search">
+    <span class="ms">search</span>
+    <input type="search" name="leit" value="{{ q }}" placeholder="{% translate 'Leita að nafni eða gjöf…' %}" aria-label="{% translate 'Leita' %}">
+  </label>
+  <input type="hidden" name="syna" value="{{ state }}">
+  <div class="seg">
+    {% for key, label in filters.items %}
+      <a class="{% if key == state %}active{% endif %}" href="?syna={{ key }}{% if q %}&amp;leit={{ q|urlencode }}{% endif %}">{{ label }} ({{ counts|get:key }})</a>
+    {% endfor %}
+  </div>
+</form>
+
+<div class="bday-grid">
+  <div class="bday-sections">
+    {% for month, title, entries in sections %}
+      <section class="bday-month" id="m-{{ month.key }}">
+        <div class="bday-month-head">
+          <h2>{{ title }}{% if month.key == ov.months.0.key %} <span class="bday-now">{% translate "Núna" %}</span>{% endif %}</h2>
+          <p class="muted">{% blocktranslate count n=entries|length %}{{ n }} afmæli{% plural %}{{ n }} afmæli{% endblocktranslate %} · {% blocktranslate with done=month.done %}{{ done }} keypt{% endblocktranslate %} · {% blocktranslate with kr=month.plan|kr %}{{ kr }} áætlun{% endblocktranslate %}</p>
+        </div>
+        {% for e in entries %}{% include "gifts/partials/birthday_card.html" %}{% endfor %}
+      </section>
+    {% empty %}
+      <div class="empty"><span class="ms">cake</span>
+        {% if ov.count %}{% translate "Ekkert passar við leitina." %}{% else %}{% translate "Engin afmæli skráð enn. Merktu „Gef afmælisgjafir“ hjá einstaklingi eða ýttu á „Bæta við afmæli“." %}{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <aside class="bday-rail">
+    <div class="card rail-card">
+      <h3><span class="ms">bar_chart</span>{% translate "Afmælisdreifing" %}</h3>
+      {% if busiest %}<p class="muted">{% blocktranslate with months=busiest|join:", " %}Flest afmæli í: {{ months }}{% endblocktranslate %}</p>{% endif %}
+      {% localize off %}
+      <svg class="bday-chart" viewBox="0 0 280 90" role="img" aria-label="{% translate 'Fjöldi afmæla eftir mánuðum' %}">
+        {% for bar in distribution %}
+          <rect x="{{ bar.x }}" y="{{ bar.y }}" width="16" height="{{ bar.h }}" rx="3" fill="{{ bar.fill }}"><title>{{ bar.title }}</title></rect>
+          <text x="{{ bar.label_x }}" y="90" text-anchor="middle" class="bday-chart-label{% if bar.current %} now{% endif %}">{{ bar.letter }}</text>
+        {% endfor %}
+      </svg>
+      {% endlocalize %}
+    </div>
+
+    <div class="card rail-card">
+      <h3><span class="ms">lightbulb</span>{% translate "Gjafahugmyndabanki" %}</h3>
+      <p class="muted">{% translate "Smelltu á hugmynd til að bæta henni við hjá einhverjum sem á afmæli." %}</p>
+      <ul class="bank">
+        {% for i, idea in bank %}
+          <li><button type="button" hx-get="{% url 'gifts:bank_add' household.slug i %}" hx-target="#modal-body"{% if not ov.count %} disabled{% endif %}>
+            <span class="ms">{{ idea.0 }}</span><span class="bank-text">{{ idea.1 }}</span><span class="muted">~{{ idea.2|kr }}</span>
+          </button></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <form class="card rail-card" hx-post="{% url 'gifts:birthday_reminders' household.slug %}" hx-trigger="change">
+      <h3><span class="ms">notifications</span>{% translate "Áminningar í tölvupósti" %}</h3>
+      <label class="switch">
+        <input type="checkbox" name="enabled" value="on"{% if household.birthday_reminders %} checked{% endif %}>
+        <span class="slider" aria-hidden="true"></span>
+        <span><strong>{% if household.birthday_reminders %}{% translate "Kveikt" %}{% else %}{% translate "Slökkt" %}{% endif %}</strong>
+          <small>{% translate "Allir í heimilinu fá póst fyrir hvert afmæli." %}</small></span>
+      </label>
+      <label class="field">
+        <span class="visually-hidden">{% translate "Hve löngu fyrir afmæli" %}</span>
+        <select name="days" aria-label="{% translate 'Hve löngu fyrir afmæli' %}">
+          {% for d in reminder_choices %}<option value="{{ d }}"{% if d == household.reminder_days %} selected{% endif %}>{% blocktranslate with d=d %}{{ d }} dögum fyrir afmæli{% endblocktranslate %}</option>{% endfor %}
+        </select>
+      </label>
+    </form>
+  </aside>
+</div>
+{% endblock %}
+
+{% block after %}
+<dialog id="modal" x-data="modal" x-on:close="cleanup" aria-labelledby="modal-title">
+  <div id="modal-body"></div>
+</dialog>
+{% include "gifts/partials/toast.html" %}
+{% endblock %}

@@ -11,6 +11,22 @@ import urllib.request
 from pathlib import Path
 
 ICONS = [
+    "add_circle",
+    "local_florist",
+    "extension",
+    "theater_comedy",
+    "restaurant",
+    "menu_book",
+    "spa",
+    "museum",
+    "local_cafe",
+    "schedule",
+    "bar_chart",
+    "chevron_right",
+    "notifications",
+    "notifications_active",
+    "verified",
+    "cake",
     "language",
     "link_off",
     "bookmark",

@@ -70,6 +70,10 @@ import-legacy file household="okkar" name="Heimilið okkar":
 import-legacy-replace file household="okkar":
     {{manage}} import_legacy "{{file}}" --household {{household}} --replace
 
+# Senda afmælisáminningar í tölvupósti (keyrt daglega í prod; í þróun prentast pósturinn)
+reminders:
+    {{manage}} send_birthday_reminders
+
 # Eyða aðgöngum sem báðu um kóða en skráðu sig aldrei inn
 prune-users *args:
     {{manage}} prune_users {{args}}

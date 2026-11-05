@@ -1,0 +1,64 @@
+{% load i18n money gifts %}
+{% comment %}Afmæliskort: `e` er services.birthdays.Entry. Gjöfin verður til við fyrstu aðgerð.{% endcomment %}
+{% with gift=e.gift year=e.date.year %}
+<article class="card bday-card{% if e.bought %} done{% endif %}" id="person-{{ e.person.pk }}">
+  <div class="bday-card-head">
+    <span class="avatar{% if e.urgent %} urgent{% elif e.bought %} ok{% endif %}" aria-hidden="true">{{ e.person.name|first|upper }}</span>
+    <div class="bday-who">
+      <h3>
+        <button type="button" class="name-btn" hx-get="{% url 'gifts:person' household.slug e.person.pk %}?ar={{ year }}" hx-target="#modal-body">{{ e.person.name }}</button>
+        <span class="muted">· {% blocktranslate with age=e.age %}verður {{ age }} ára{% endblocktranslate %}{% if e.round_birthday %} ({% translate "Stórafmæli" %} 🎉){% endif %}</span>
+      </h3>
+      <p class="muted">{{ e.date|date:"j. F Y" }}{% if e.near_christmas %} · {% translate "Jólakrakki" %} 🌟{% endif %}</p>
+    </div>
+    <span class="days-chip{% if e.urgent %} urgent{% endif %}">
+      <span class="ms">{% if e.urgent %}alarm{% else %}schedule{% endif %}</span>
+      {% if e.days == 0 %}{% translate "Í dag! 🎂" %}{% elif e.days == 1 %}{% translate "Á morgun" %}{% else %}{% blocktranslate with n=e.days %}Eftir {{ n }} daga{% endblocktranslate %}{% endif %}
+    </span>
+  </div>
+
+  {% if e.near_christmas %}
+    <p class="bday-note"><span class="ms">info</span>{% translate "Passa að afmælisgjöfin renni ekki saman við jólagjöfina!" %}</p>
+  {% endif %}
+
+  <div class="bday-ideas">
+    <span class="bday-label">{% translate "Hugmyndir:" %}</span>
+    <div class="ideas">
+      {% if gift %}
+        {% for idea in gift.ideas.all %}
+          <span class="chip{% if idea.picked %} picked{% endif %}">
+            <button type="button" class="chip-t" title="{{ idea|idea_title }}" hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}</button>
+            <button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
+                    hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-swap="none">×</button>
+          </span>
+        {% endfor %}
+      {% endif %}
+      <input class="chip-input" name="text" placeholder="{% translate '+ Hugmynd' %}" autocomplete="off"
+             aria-label="{% blocktranslate with name=e.person.name %}Ný afmælishugmynd handa {{ name }}{% endblocktranslate %}"
+             x-data="chipInput" x-on:keydown="onKey" x-on:blur="onBlur"
+             hx-post="{% url 'gifts:birthday_action' household.slug e.person.pk year 'hugmynd' %}" hx-trigger="add" hx-swap="none">
+    </div>
+  </div>
+
+  <div class="bday-gift">
+    <input type="checkbox" name="bought" value="on"{% if e.bought %} checked{% endif %}
+           aria-label="{% blocktranslate with name=e.person.name %}Afmælisgjöf keypt handa {{ name }}{% endblocktranslate %}"
+           hx-post="{% url 'gifts:birthday_action' household.slug e.person.pk year 'keypt' %}" hx-swap="none">
+    <div class="bday-gift-text">
+      <strong>{% if gift and gift.ideas.all %}{{ gift|gift_summary }}{% else %}{% translate "Engin gjöf valin enn" %}{% endif %}</strong>
+      <span class="muted">
+        {% if e.bought and e.price %}{% blocktranslate with kr=e.price|kr %}Keypt fyrir {{ kr }}{% endblocktranslate %}{% endif %}
+        {% for s in e.stores %}{% if forloop.first %} · {% endif %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </span>
+    </div>
+    <label class="bday-plan">
+      <span class="muted">{% translate "Áætlun" %}</span>
+      <input class="cell num" name="plan" value="{% if gift.plan is not None %}{{ gift.plan|kr }}{% endif %}" placeholder="—" inputmode="numeric" autocomplete="off"
+             aria-label="{% blocktranslate with name=e.person.name %}Áætlað verð afmælisgjafar handa {{ name }}{% endblocktranslate %}"
+             x-data="amountCell" data-raw="{{ gift.plan|default_if_none:'' }}" x-on:focus="showRaw" x-on:keydown.enter.prevent="commit"
+             hx-post="{% url 'gifts:birthday_action' household.slug e.person.pk year 'aaetlun' %}" hx-trigger="change" hx-swap="none">
+    </label>
+    <span class="status-pill{% if e.bought %} ok{% endif %}">{% if e.bought %}{% translate "Keypt" %}{% else %}{% translate "Ókeypt" %}{% endif %}</span>
+  </div>
+</article>
+{% endwith %}

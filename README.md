@@ -56,6 +56,12 @@ sýnir aðeins hugmyndir viðkomandi á árinu; „Ég kaupi þetta“ gerir naf
 getur hætt við (undirritað cookie). Takmörkun á beiðnum notar cache í gagnagrunni
 (`just migrate` keyrir `createcachetable`).
 
+**Afmæli** (`/h/<heimili>/afmaeli/`): afmæli næstu 12 mánuði hjá þeim sem eru merktir „Gef
+afmælisgjafir“. Afmælisgjöf er venjuleg `Gift` með `occasion=afmaeli` á afmælisárinu (jólasíðurnar
+sía á `.christmas()`). Gjöfin verður ekki til fyrr en eitthvað er skráð á hana.
+Áminningar í pósti: `just reminders` (`send_birthday_reminders`, keyrt daglega í prod; `SITE_URL`
+fyrir hlekkinn í póstinum).
+
 **Framendi:** sniðmát í `templates/`, `gifts/list.html` með `partialdef` fyrir htmx-svör. Allt JS
 er í `static/js/app.js` (Alpine CSP-útgáfa: engar inline-segðir). htmx, Alpine og leturgerðir eru
 hýst sjálf og CSP er ströng. Nýjar táknmyndir: bæta við `scripts/fetch_icons.py` og keyra `just icons`.

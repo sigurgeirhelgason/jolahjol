@@ -15,4 +15,5 @@ def with_details(gifts: QuerySet[Gift]) -> QuerySet[Gift]:
 
 
 def season_gifts(season: Season) -> list[Gift]:
-    return list(with_details(season.gifts.alive()))
+    """Jólagjafir ársins (listinn, Verslanir, Rukkun, yfirlit). Afmælisgjafir: services/birthdays.py."""
+    return list(with_details(season.gifts.alive().christmas()))

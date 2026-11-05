@@ -127,7 +127,7 @@ def soft_delete(gift: Gift) -> Gift:
 
 def restore(gift: Gift) -> Gift:
     """„Afturkalla“. Ef önnur gjöf til sama einstaklings varð til á meðan er ekki hægt að endurheimta."""
-    if Gift.objects.alive().filter(season=gift.season, person=gift.person).exists():
+    if Gift.objects.alive().filter(season=gift.season, person=gift.person, occasion=gift.occasion).exists():
         raise ValueError("Önnur gjöf til sama einstaklings er til")
     gift.deleted_at = None
     gift.save(update_fields=["deleted_at", "updated_at"])
@@ -167,9 +167,9 @@ def save_gift(season: Season, gift: Gift | None, data: GiftData) -> Gift:
     household = season.household
     if gift is None:
         person = people.find_or_create(household, data.name, data.group)
-        if Gift.objects.alive().filter(season=season, person=person).exists():
+        if Gift.objects.alive().christmas().filter(season=season, person=person).exists():
             raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
-        last = season.gifts.order_by("-position").values_list("position", flat=True).first()
+        last = season.gifts.christmas().order_by("-position").values_list("position", flat=True).first()
         gift = Gift.objects.create(season=season, person=person, position=(last or 0) + 1)
     else:
         person = people.resolve_recipient(gift, data.name)
@@ -262,7 +262,8 @@ def add_person(season: Season, data: PersonData) -> tuple[Person, Gift | None]:
     """
     household = season.household
     person = Person.objects.filter(household=household, key=normalize(data.name)).first()
-    if person and data.give_christmas and Gift.objects.alive().filter(season=season, person=person).exists():
+    on_list = Gift.objects.alive().christmas().filter(season=season, person=person)
+    if person and data.give_christmas and on_list.exists():
         raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
     if person is None:
         person = Person.objects.create(
@@ -278,7 +279,7 @@ def add_person(season: Season, data: PersonData) -> tuple[Person, Gift | None]:
         person.save(update_fields=["give_christmas"])
     if not data.give_christmas:
         return person, None
-    last = season.gifts.order_by("-position").values_list("position", flat=True).first()
+    last = season.gifts.christmas().order_by("-position").values_list("position", flat=True).first()
     gift = Gift.objects.create(season=season, person=person, plan=data.plan, position=(last or 0) + 1)
     sync_ideas(gift, data.ideas)
     return person, gift

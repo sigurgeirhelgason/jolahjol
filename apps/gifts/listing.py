@@ -113,7 +113,9 @@ def _row(gift: Gift, histories: dict[int, list]) -> Row:
 def histories(season: Season, person_ids) -> dict[int, list[tuple[int, str]]]:
     """Fyrri gjafir hvers einstaklings (nýjasta fyrst), sóttar í einu lagi fyrir allan listann."""
     gifts = with_details(
-        Gift.objects.alive().filter(
+        Gift.objects.alive()
+        .christmas()
+        .filter(
             season__household_id=season.household_id, season__year__lt=season.year, person_id__in=person_ids
         )
     ).order_by("-season__year")
@@ -127,7 +129,9 @@ def histories(season: Season, person_ids) -> dict[int, list[tuple[int, str]]]:
 def histories_bought(household, person_ids) -> dict[int, list[tuple[int, str]]]:
     """Keyptar gjafir hvers einstaklings öll ár (nýjasta fyrst), fyrir „Fólk“."""
     gifts = with_details(
-        Gift.objects.alive().filter(season__household=household, person_id__in=person_ids, bought=True)
+        Gift.objects.alive()
+        .christmas()
+        .filter(season__household=household, person_id__in=person_ids, bought=True)
     ).order_by("-season__year")
     out: dict[int, list] = defaultdict(list)
     for gift in gifts:

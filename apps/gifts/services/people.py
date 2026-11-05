@@ -50,7 +50,9 @@ def merge(source: Person, target: Person) -> Person:
     Eigi bæði gjöf sama ár sameinast hugmyndirnar í gjöf `target`.
     """
     for gift in Gift.objects.filter(person=source).select_related("season"):
-        existing = Gift.objects.alive().filter(person=target, season=gift.season).first()
+        existing = (
+            Gift.objects.alive().filter(person=target, season=gift.season, occasion=gift.occasion).first()
+        )
         if existing and gift.deleted_at is None:
             gift.ideas.update(gift=existing)
             existing.stores.add(*gift.stores.all())
@@ -129,7 +131,8 @@ def resolve_recipient(gift: Gift, name: str) -> Person:
             current.save()
         return current
     other = Person.objects.filter(household=current.household, key=normalize(name)).first()
-    if other and Gift.objects.alive().filter(season=gift.season, person=other).exclude(pk=gift.pk).exists():
+    same = Gift.objects.alive().filter(season=gift.season, person=other, occasion=gift.occasion)
+    if other and same.exclude(pk=gift.pk).exists():
         raise ValueError(f"„{other.name}“ er þegar á listanum þetta ár")
     if other is None and not is_shared(current, except_gift=gift):
         current.name = name
