@@ -1,0 +1,26 @@
+{% load i18n %}
+{% comment %}Óskalisti í einstaklingsglugga: hlekkur sem hægt er að senda (búa til, afrita, afturkalla).{% endcomment %}
+<div class="past wish-share" id="wishlist-share">
+  <h4><span class="ms">share</span> {% translate "Óskalisti" %}</h4>
+  {% if share %}
+    <p class="help">{% blocktranslate with name=person.name %}Sendu hlekkinn til þeirra sem vilja gefa {{ name }} gjöf. Þau sjá hugmyndirnar og geta tekið frá, án innskráningar.{% endblocktranslate %}</p>
+    <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">
+      <input x-ref="source" readonly aria-label="{% translate 'Hlekkur á óskalista' %}"
+             value="{{ request.scheme }}://{{ request.get_host }}{% url 'wishlists:public' share.token %}">
+      <button type="button" class="btn small soft" x-on:click="copy"><span class="ms">content_copy</span><span x-text="label">{% translate "Afrita" %}</span></button>
+    </div>
+    <div class="wish-share-actions">
+      <button type="button" class="btn small ghost" hx-post="{% url 'wishlists:share_create' household.slug person.pk %}" hx-target="#wishlist-share" hx-swap="outerHTML">
+        <span class="ms">link</span>{% translate "Nýr hlekkur" %}
+      </button>
+      <button type="button" class="btn small danger" hx-post="{% url 'wishlists:share_revoke' household.slug person.pk %}" hx-target="#wishlist-share" hx-swap="outerHTML">
+        <span class="ms">link_off</span>{% translate "Loka hlekk" %}
+      </button>
+    </div>
+  {% else %}
+    <p class="help">{% translate "Búðu til hlekk sem þú getur sent öðrum. Þau sjá hugmyndirnar og geta tekið frá svo enginn kaupi það sama." %}</p>
+    <button type="button" class="btn small soft" hx-post="{% url 'wishlists:share_create' household.slug person.pk %}" hx-target="#wishlist-share" hx-swap="outerHTML">
+      <span class="ms">link</span>{% translate "Búa til hlekk" %}
+    </button>
+  {% endif %}
+</div>

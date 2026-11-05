@@ -7,6 +7,7 @@ until pg_isready -h "${POSTGRES_HOST:-db}" -p "${POSTGRES_PORT:-5432}" -U "${POS
 done
 
 python manage.py migrate --noinput
+python manage.py createcachetable
 python manage.py compilemessages --ignore=.venv
 python manage.py collectstatic --noinput
 

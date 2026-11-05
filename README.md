@@ -51,6 +51,11 @@ Reglurnar eru í `apps/gifts/services/` og eru prófaðar óháð viðmóti.
 frá hvaða síðu þeir voru opnaðir (`<body data-page>` → `X-Page`); á öðrum síðum en listanum er
 síðan sótt aftur eftir vistun.
 
+**Óskalistar** (`apps/wishlists`): einstaklingsglugginn býr til hlekk `/o/<tóki>/`. Opna síðan
+sýnir aðeins hugmyndir viðkomandi á árinu; „Ég kaupi þetta“ gerir nafnið að gefanda. Sama tæki
+getur hætt við (undirritað cookie). Takmörkun á beiðnum notar cache í gagnagrunni
+(`just migrate` keyrir `createcachetable`).
+
 **Framendi:** sniðmát í `templates/`, `gifts/list.html` með `partialdef` fyrir htmx-svör. Allt JS
 er í `static/js/app.js` (Alpine CSP-útgáfa: engar inline-segðir). htmx, Alpine og leturgerðir eru
 hýst sjálf og CSP er ströng. Nýjar táknmyndir: bæta við `scripts/fetch_icons.py` og keyra `just icons`.

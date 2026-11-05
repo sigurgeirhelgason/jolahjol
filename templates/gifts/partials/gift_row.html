@@ -18,7 +18,7 @@
     {% for idea in gift.ideas.all %}
       <span class="chip{% if idea.picked %} picked{% endif %}">
         <button type="button" class="chip-t" title="{{ idea|idea_title }}"{% if locked %} disabled{% endif %}
-                hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% with names=idea|giver_names %}{% if names %}<span class="from"> – {% translate "frá" %} {{ names }}</span>{% endif %}{% endwith %}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}{% if idea.for_other %}<span class="ms">{% if idea|all_paid %}paid{% else %}request_quote{% endif %}</span>{% endif %}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
+                hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% with names=idea|giver_names %}{% if names %}<span class="from"> – {% translate "frá" %} {{ names }}</span>{% endif %}{% endwith %}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}{% if idea.for_other %}<span class="ms">{% if idea|all_paid %}paid{% else %}request_quote{% endif %}</span>{% endif %}{% if idea.reserved_by and not idea.picked %}<span class="ms reserved-icon">bookmark</span>{% endif %}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
         {% if not locked %}<button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
                 hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">×</button>{% endif %}
       </span>

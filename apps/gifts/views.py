@@ -27,6 +27,7 @@ from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefre
 from apps.core.money import evaluate_amount
 from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
+from apps.wishlists import services as wishlist_services
 
 from . import listing
 from .forms import BudgetForm, GiftForm, IdeaForm, NewRowForm, NewSeasonForm, PersonEditForm, PriceForm
@@ -623,6 +624,7 @@ class PersonDialogView(GiftsMixin, View):
             "conflict": conflict,
             # Fyrri gjafir: aðeins það sem var keypt (merkt „Tilbúið“), ekki hugmyndir sem urðu ekki að gjöf
             "history": [entry for entry in history(person) if entry.gift.bought],
+            "share": wishlist_services.active_share(person),
             "year": params.get("ar", ""),  # árið sem listinn sýnir, svo hann uppfærist eftir vistun
         }
         return self.dialog(self.template, ctx, status=status)
@@ -708,6 +710,17 @@ class StoreDialogView(GiftsMixin, View):
             stores_services.set_locations(target, split_list(", ".join(names)))
         season = self.household.seasons.filter(year=request.POST.get("ar") or 0).first()
         return self.changed(season)
+
+
+class ReservationRemoveView(GiftsMixin, View):
+    """Heimilið fjarlægir frátekningu af opnum óskalista (gefandinn helst á hugmyndinni)."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, slug, pk):
+        idea = self.get_idea(pk)
+        wishlist_services.clear_reservation(idea)
+        return self.changed(idea.gift.season)
 
 
 class IdeaDialogView(GiftsMixin, View):

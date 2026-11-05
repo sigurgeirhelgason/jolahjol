@@ -7,6 +7,13 @@
       x-data="ideaForm" data-givers="{{ givers_json }}" data-store-locations="{{ store_locations }}">
   <p class="price-sub">{% blocktranslate with name=gift.person.name %}Handa <strong>{{ name }}</strong>{% endblocktranslate %}{% if idea.picked %} <span class="count-pill ok">{% translate "KEYPT" %}</span>{% endif %}</p>
   {{ form.non_field_errors }}
+  {% if idea.reserved_by %}
+    <div class="flash-item reserved-note">
+      <span class="ms">bookmark</span>
+      <span>{% blocktranslate with name=idea.reserved_by.name when=idea.reserved_at|date:"j. N" %}Frátekið af {{ name }} á óskalista ({{ when }}){% endblocktranslate %}</span>
+      <button type="button" class="btn small ghost" hx-post="{% url 'gifts:reservation_remove' household.slug idea.pk %}">{% translate "Fjarlægja frátekningu" %}</button>
+    </div>
+  {% endif %}
   <c-field :field="form.text" />
 
   <div class="field">

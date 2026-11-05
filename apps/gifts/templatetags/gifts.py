@@ -30,6 +30,8 @@ def idea_title(idea) -> str:
     if idea.for_other:
         paid = links and all(link.paid for link in links)
         parts.append(_("keypt fyrir annan, greitt") if paid else _("keypt fyrir annan, ógreitt"))
+    if idea.reserved_by and not idea.picked:
+        parts.append(_("frátekið af %(name)s") % {"name": idea.reserved_by.name})
     if idea.price:
         parts.append(format_kr(idea.price))
     if idea.note:

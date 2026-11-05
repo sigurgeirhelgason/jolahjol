@@ -53,6 +53,7 @@
       {% endfor %}
     </ul>
   </div>
+  {% include "wishlists/partials/share.html" %}
   <div class="dlg-actions">
     <button type="button" class="btn ghost" data-close>{% translate "Hætta" %}</button>
     <button type="submit" class="btn primary"><span class="ms">save</span>{% if conflict %}{% translate "Sameina og vista" %}{% else %}{% translate "Vista" %}{% endif %}</button>

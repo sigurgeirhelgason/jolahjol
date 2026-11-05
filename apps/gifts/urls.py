@@ -38,4 +38,9 @@ urlpatterns = [
     path("h/<slug:slug>/gjafir/<int:pk>/endurheimta/", views.GiftRestoreView.as_view(), name="restore"),
     path("h/<slug:slug>/hugmyndir/<int:pk>/", views.IdeaDialogView.as_view(), name="idea"),
     path("h/<slug:slug>/hugmyndir/<int:pk>/eyda/", views.IdeaRemoveView.as_view(), name="idea_remove"),
+    path(
+        "h/<slug:slug>/hugmyndir/<int:pk>/fratekning/eyda/",
+        views.ReservationRemoveView.as_view(),
+        name="reservation_remove",
+    ),
 ]

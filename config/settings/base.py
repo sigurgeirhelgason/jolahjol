@@ -83,6 +83,15 @@ DATABASES = {
 DATABASES["default"].setdefault("OPTIONS", {})["connect_timeout"] = 5
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Cache í gagnagrunninum svo takmörkun á beiðnum (allauth, óskalistar) gildi þvert á gunicorn-ferla.
+# Taflan verður til með `manage.py createcachetable` (just migrate og entrypoint.sh).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "cache"}}
+RATELIMIT_USE_CACHE = "default"
+# Á bak við Cloudflare + nginx er REMOTE_ADDR alltaf nginx; þá deila allir einni takmörkun.
+# Í prod: RATELIMIT_IP_META_KEY=HTTP_CF_CONNECTING_IP (raunveruleg IP-tala frá Cloudflare).
+# Áfangi 6: sambærilegt fyrir allauth (ALLAUTH_TRUSTED_CLIENT_IP_HEADER).
+RATELIMIT_IP_META_KEY = config("RATELIMIT_IP_META_KEY", default=None) or None
+
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",  # admin

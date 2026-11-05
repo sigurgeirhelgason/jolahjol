@@ -44,6 +44,7 @@ dev-stop:
 
 migrate:
     {{manage}} migrate
+    {{manage}} createcachetable
 
 makemigrations *args:
     {{manage}} makemigrations {{args}}
