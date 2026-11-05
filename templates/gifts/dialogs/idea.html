@@ -28,12 +28,12 @@
       </template>
       <input id="giver-input" x-ref="input" name="q" autocomplete="off" role="combobox" aria-expanded="false"
              aria-autocomplete="list" aria-controls="giver-options" x-bind:placeholder="placeholder"
-             data-placeholder="{% translate 'Tómt = frá okkur' %}"
+             data-placeholder="{% translate 't.d. Amma Jóa, Afi' %}"
              x-on:keydown="onKey" x-on:input="search" x-on:blur="commitTyped"
              data-search-url="{% url 'gifts:people_search' household.slug %}">
     </div>
     <ul class="picker-options" id="giver-options" role="listbox" x-ref="options" x-on:mousedown.prevent x-on:click="pick"></ul>
-    <span class="help">{% translate "Aðskildu nöfn með kommu ef gjöfin er frá fleiri en einum. Verðinu er skipt jafnt." %}</span>
+    <span class="help">{% translate "Skildu eftir tómt ef gjöfin er frá ykkur. Aðskildu nöfn með kommu; verðinu er skipt jafnt." %}</span>
   </div>
 
   <label class="switch" x-show="hasGivers" x-cloak>

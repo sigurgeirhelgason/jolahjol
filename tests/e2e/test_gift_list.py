@@ -86,7 +86,7 @@ def test_idea_dialog_givers_and_billing(home, page):
     givers = dialog.get_by_label("Frá hverjum?")
 
     # Komma aðgreinir gefendur; placeholder hverfur þegar gefandi er kominn
-    expect(givers).to_have_attribute("placeholder", "Tómt = frá okkur")
+    expect(givers).to_have_attribute("placeholder", "t.d. Amma Jóa, Afi")
     givers.press_sequentially("Amma Jóa, ")
     expect(dialog.locator(".picker-tag")).to_have_count(1)
     expect(givers).to_have_attribute("placeholder", "")

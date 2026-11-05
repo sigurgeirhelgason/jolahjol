@@ -259,7 +259,7 @@ def test_past_season_is_locked_until_unlocked():
     assert not past.is_locked(now)
 
 
-# ---------- Eftir búðum ----------
+# ---------- Verslanir ----------
 
 
 def test_shopping_by_store_and_location():

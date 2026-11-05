@@ -1,6 +1,6 @@
 {% extends "gifts/base_season.html" %}
 {% load i18n money gifts %}
-{% comment %}Eftir búðum: ókeyptar gjafir eftir búð eða staðsetningu. Samsvarar `shopHtml`.{% endcomment %}
+{% comment %}Verslanir: ókeyptar gjafir eftir búð eða staðsetningu. Samsvarar `shopHtml`.{% endcomment %}
 {% block page %}
 {% if not any_left %}
   <div class="empty"><span class="ms">celebration</span>{% translate "Allar gjafir eru keyptar! 🎉" %}</div>

@@ -1,4 +1,4 @@
-"""„Eftir búðum“: ókeyptar gjafir eftir búð, eða eftir staðsetningu búðanna. Samsvarar `shopHtml`."""
+"""„Verslanir“: ókeyptar gjafir eftir búð, eða eftir staðsetningu búðanna. Samsvarar `shopHtml`."""
 
 from dataclasses import dataclass, field
 

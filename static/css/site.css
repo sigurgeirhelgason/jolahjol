@@ -213,7 +213,7 @@ label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26
 .tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: translateY(0); }
 .tip .btn:disabled { pointer-events: none; }
 
-/* Áfangi 4: flipar sem tenglar, Eftir búðum og Rukkun */
+/* Áfangi 4: flipar sem tenglar, Verslanir og Rukkun */
 .seg a { padding: 4px 16px; border-radius: 6px; text-decoration: none; font: 600 12px/16px var(--display); color: var(--on-var); }
 .seg a:hover { color: var(--on); }
 .seg a.active { background: var(--lowest); color: var(--primary); font-weight: 700; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }

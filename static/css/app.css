@@ -282,7 +282,7 @@ dialog .past li.none { display: block; color: var(--outline); }
 .empty { padding: 40px 16px; text-align: center; color: var(--on-var); border: 2px dashed var(--gold); border-radius: 12px; background: var(--low); }
 .empty .ms { font-size: 28px; color: var(--tertiary); display: block; margin: 0 auto 6px; }
 
-/* Eftir búðum */
+/* Verslanir */
 .shop-item { display: grid; grid-template-columns: 64px 1fr 120px; align-items: center; padding: 12px 0; }
 .shop-item:hover { background: var(--low); }
 .shop-item .who { font: 600 16px/24px var(--display); display: flex; align-items: center; gap: 4px; }

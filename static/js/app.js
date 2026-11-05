@@ -357,7 +357,7 @@ document.addEventListener("htmx:configRequest", (event) => {
   if (document.body.dataset.page) event.detail.headers["X-Page"] = document.body.dataset.page;
 });
 
-// Breyting á annarri síðu en listanum (Eftir búðum, Fólk, Rukkun): síðan sótt aftur í heild,
+// Breyting á annarri síðu en listanum (Verslanir, Fólk, Rukkun): síðan sótt aftur í heild,
 // svo yfirlit og teljari á Rukkun-flipanum uppfærist líka. Skrunstaða helst.
 document.body.addEventListener("refreshPage", () => {
   const y = window.scrollY;

@@ -53,7 +53,7 @@ def test_billing_mark_paid_updates_page_and_tab_count(home, live_server, page):
 
 
 def test_shop_by_location_and_mark_bought(home, live_server, page):
-    page.locator("nav.views").get_by_role("link", name="Eftir búðum").click()
+    page.locator("nav.views").get_by_role("link", name="Verslanir").click()
     expect(page.get_by_role("heading", name="Elko")).to_be_visible()
     page.get_by_role("link", name="Staðsetningu").click()
     expect(page.locator(".loc-head", has_text="Kringlan")).to_be_visible()

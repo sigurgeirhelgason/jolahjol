@@ -1,4 +1,4 @@
-"""Áfangi 4: Eftir búðum, Fólk & Fjölskylda, Rukkun."""
+"""Áfangi 4: Verslanir, Fólk & Fjölskylda, Rukkun."""
 
 import pytest
 from django.urls import reverse
@@ -81,7 +81,7 @@ def test_page_shortcuts_redirect_to_this_year(client, home, season, route, targe
     assert client.get(url(route, home.slug)).url == url(target, home.slug, YEAR)
 
 
-# ---------- Eftir búðum ----------
+# ---------- Verslanir ----------
 
 
 def test_shop_groups_unbought_gifts_by_store_and_location(client, home, season):

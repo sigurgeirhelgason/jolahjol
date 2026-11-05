@@ -223,7 +223,7 @@ class GiftListView(SeasonPageMixin, TemplateView):
 
 
 class ShopView(SeasonPageMixin, TemplateView):
-    """Eftir búðum: ókeyptar gjafir eftir búð, eða eftir staðsetningu búðanna."""
+    """Verslanir: ókeyptar gjafir eftir búð, eða eftir staðsetningu búðanna."""
 
     template_name = "gifts/shop.html"
     page = "budir"
