@@ -137,6 +137,38 @@ docker-check-deploy: docker-build
 docker-logs:
     docker compose logs -f
 
+# ---------- Prod (Hetzner, sjá docs/PRODUCTION.md) ----------
+
+server := "root@204.168.218.98"
+prod := "cd ~/jolahjol && docker compose -f compose.prod.yml"
+
+# Pusha main og endurræsa á þjóninum með nýjustu útgáfu
+deploy:
+    git push origin main
+    ssh {{server}} "cd ~/jolahjol && git pull --ff-only && docker compose -f compose.prod.yml up --build -d && docker image prune -f"
+
+# Staða gámanna á þjóninum
+prod-ps:
+    ssh {{server}} "{{prod}} ps"
+
+# Logs á þjóninum, t.d. just prod-logs reminders
+prod-logs service="web":
+    ssh {{server}} "{{prod}} logs -f --tail 100 {{service}}"
+
+# manage.py á þjóninum, t.d. just prod-manage createsuperuser
+prod-manage *args:
+    ssh -t {{server}} "{{prod}} exec web python manage.py {{args}}"
+
+# Afrit af prod-gagnagrunninum í backups/ (pg_dump -Fc; endurheimt með pg_restore)
+prod-backup:
+    if not exist backups mkdir backups
+    ssh {{server}} "{{prod}} exec -T db pg_dump -U jolahjol -Fc jolahjol" > backups\jolahjol-{{datetime("%Y-%m-%d-%H%M")}}.dump
+
+# Flytja JSON-afrit úr gamla appinu inn í prod, t.d. just prod-import-legacy afrit.json netfang@example.com
+prod-import-legacy file owner household="okkar":
+    scp "{{file}}" {{server}}:/tmp/legacy.json
+    ssh {{server}} "{{prod}} cp /tmp/legacy.json web:/tmp/legacy.json && {{prod}} exec -T web python manage.py import_legacy /tmp/legacy.json --household {{household}} --create Heimilið --owner {{owner}}; rm /tmp/legacy.json"
+
 # ---------- Hreinsun ----------
 
 clean:

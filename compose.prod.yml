@@ -1,0 +1,69 @@
+# Prod á Hetzner-þjóninum (sami þjónn og Maintenance Tracker), sjá docs/PRODUCTION.md.
+#   docker compose -f compose.prod.yml up --build -d
+# Engin port eru opnuð: Cloudflare Tunnel (cloudflared) tengist út á við og skilar umferð á web:8000.
+name: jolahjol
+
+x-app: &app
+  build: .
+  image: jolahjol:prod
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://jolahjol:${POSTGRES_PASSWORD:?vantar í .env}@db:5432/jolahjol
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jolahjol
+      POSTGRES_USER: jolahjol
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?vantar í .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "jolahjol"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    <<: *app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # Afmælisáminningar: athugað á klukkutíma fresti eftir kl. 9 (íslenskur tími = UTC).
+  # Hver áminning er skráð (BirthdayReminder), svo enginn fær sama póst tvisvar.
+  reminders:
+    <<: *app
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          if [ "$$(date +%H)" -ge 9 ]; then python manage.py send_birthday_reminders; fi
+          sleep 3600
+        done
+    depends_on:
+      web:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?vantar í .env}
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

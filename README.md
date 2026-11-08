@@ -65,3 +65,8 @@ fyrir hlekkinn í póstinum).
 **Framendi:** sniðmát í `templates/`, `gifts/list.html` með `partialdef` fyrir htmx-svör. Allt JS
 er í `static/js/app.js` (Alpine CSP-útgáfa: engar inline-segðir). htmx, Alpine og leturgerðir eru
 hýst sjálf og CSP er ströng. Nýjar táknmyndir: bæta við `scripts/fetch_icons.py` og keyra `just icons`.
+
+## Prod
+
+Hetzner (sami þjónn og Maintenance Tracker) á bak við Cloudflare Tunnel; `just deploy` gefur út.
+Uppsetning og daglegar skipanir: [docs/PRODUCTION.md](docs/PRODUCTION.md).

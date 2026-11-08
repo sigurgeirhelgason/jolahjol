@@ -13,6 +13,8 @@ SECRET_KEY = config("SECRET_KEY", default="dev-only-insecure-key")
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+# Aðallénið; beiðnum á önnur leyfð lén (www., jólahjól.is) er vísað þangað. Tómt = engin tilvísun.
+CANONICAL_HOST = config("CANONICAL_HOST", default="")
 
 INSTALLED_APPS = [
     "unfold",
@@ -39,6 +41,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "apps.core.middleware.CanonicalHostMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -89,8 +92,9 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", 
 RATELIMIT_USE_CACHE = "default"
 # Á bak við Cloudflare + nginx er REMOTE_ADDR alltaf nginx; þá deila allir einni takmörkun.
 # Í prod: RATELIMIT_IP_META_KEY=HTTP_CF_CONNECTING_IP (raunveruleg IP-tala frá Cloudflare).
-# Áfangi 6: sambærilegt fyrir allauth (ALLAUTH_TRUSTED_CLIENT_IP_HEADER).
 RATELIMIT_IP_META_KEY = config("RATELIMIT_IP_META_KEY", default=None) or None
+# Sama fyrir takmarkanir allauth (innskráningarkóðar). Í prod: CF-Connecting-IP.
+ALLAUTH_TRUSTED_CLIENT_IP_HEADER = config("ALLAUTH_TRUSTED_CLIENT_IP_HEADER", default=None) or None
 
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = [
@@ -160,12 +164,20 @@ STORAGES = {
 ADMIN_URL = config("DJANGO_ADMIN_URL", default="admin/")
 
 EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+# SMTP (í prod Gmail með app-lykilorði; önnur þjónusta = aðeins nýjar umhverfisbreytur)
+EMAIL_HOST = config("EMAIL_HOST", default="localhost")
+EMAIL_PORT = config("EMAIL_PORT", default=25, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
+EMAIL_TIMEOUT = 10
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Jólahjól <noreply@localhost>")
 # Full slóð vefsins fyrir hlekki í pósti sem er sendur utan beiðna (t.d. afmælisáminningar)
 SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000").rstrip("/")
 
 # Öryggishausar (virkjaðir í prod með umhverfisbreytum)
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+SECURE_REDIRECT_EXEMPT = [r"^healthz$"]  # docker healthcheck kemur inn yfir HTTP
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
@@ -187,7 +199,7 @@ SECURE_CSP = {
     "object-src": [CSP.NONE],
 }
 
-# Á bak við Cloudflare og nginx: beiðnir koma inn yfir HTTP en eru HTTPS hjá notandanum
+# Á bak við Cloudflare: beiðnir koma inn yfir HTTP en eru HTTPS hjá notandanum
 if config("SECURE_PROXY_SSL_HEADER", default="", cast=str):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 

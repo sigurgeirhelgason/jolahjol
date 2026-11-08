@@ -6,10 +6,13 @@ until pg_isready -h "${POSTGRES_HOST:-db}" -p "${POSTGRES_PORT:-5432}" -U "${POS
     sleep 2
 done
 
+# Aðrar skipanir (t.d. áminningagámurinn í compose.prod.yml) keyra beint, án migrate
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
+
 python manage.py migrate --noinput
 python manage.py createcachetable
-python manage.py compilemessages --ignore=.venv
-python manage.py collectstatic --noinput
 
 exec gunicorn config.wsgi:application \
     --bind 0.0.0.0:8000 \
