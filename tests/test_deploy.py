@@ -39,3 +39,13 @@ def test_no_redirect_without_canonical_host(client, settings):
     settings.CANONICAL_HOST = ""
     settings.ALLOWED_HOSTS = HOSTS
     assert client.get("/healthz", HTTP_HOST="www.jolahjol.is").status_code == 200
+
+
+def test_robots_txt_keeps_households_out_but_not_wishlists(client, settings):
+    response = client.get("/robots.txt")
+    assert response.status_code == 200
+    assert response["Content-Type"] == "text/plain"
+    body = response.text
+    assert "Disallow: /h/" in body
+    assert "/o/" not in body
+    assert settings.ADMIN_URL not in body
