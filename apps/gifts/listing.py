@@ -4,6 +4,7 @@ Samsvarar `listHtml`, `giftRow`, `renderSummary`, `renderHeader` og `treeSvg` í
 appinu. Hér er aðeins framsetning; reglurnar sjálfar eru í `services/`.
 """
 
+import datetime
 from collections import defaultdict
 from dataclasses import dataclass, field
 from urllib.parse import urlencode
@@ -79,6 +80,16 @@ class Row:
     @property
     def person(self) -> Person:
         return self.gift.person
+
+    @property
+    def gift_stores(self) -> list[Store]:
+        """Búðir sem eiga ekki heima á neinni hugmynd (búð á gjöfinni sjálfri, eldri gögn).
+
+        Búð hugmyndar birtist í línu hugmyndarinnar; þessar birtast neðst.
+        """
+        if any(i.store_id for i in self.gift.ideas.all()):
+            return []
+        return self.stores
 
     @property
     def over_plan(self) -> int | None:
@@ -264,14 +275,54 @@ def section_for(season: Season, group: str, state: ListState) -> Section | None:
 # ---------- Hetjuhluti og yfirlit ----------
 
 
+# Íslensku jólasveinarnir í komuröð: sá fyrsti aðfaranótt 12. desember, sá síðasti aðfaranótt aðfangadags
+# (nafn, það sem hann er þekktur fyrir)
+YULE_LADS = [
+    ("Stekkjarstaur", _l("passið kindurnar!")),
+    ("Giljagaur", _l("verjið mjólkurfroðuna!")),
+    ("Stúfur", _l("hann er að leita að pönnunni")),
+    ("Þvörusleikir", _l("felið sleifarnar!")),
+    ("Pottaskefill", _l("skiljið eftir smá í pottinum")),
+    ("Askasleikir", _l("kíkið undir rúmið!")),
+    ("Hurðaskellir", _l("það verður lítið sofið")),
+    ("Skyrgámur", _l("felið skyrið!")),
+    ("Bjúgnakrækir", _l("felið bjúgun!")),
+    ("Gluggagægir", _l("dragið fyrir gluggana!")),
+    ("Gáttaþefur", _l("laufabrauðið ilmar")),
+    ("Ketkrókur", _l("passið hangikjötið!")),
+    ("Kertasníkir", _l("geymið kertin vel")),
+]
+FIRST_LAD_DAY = 12  # desember
+
+
+def yule_lad_text(today: datetime.date) -> str:
+    """Niðurtalning þar til jólasveinarnir koma til byggða, svo hver kemur næst.
+
+    Sveinn sem kemur „í nótt“ er sá sem er kominn að morgni næsta dags.
+    """
+    first = datetime.date(today.year, 12, FIRST_LAD_DAY)
+    christmas = datetime.date(today.year, 12, 24)
+    if today > christmas:
+        return _("Jólin eru liðin")
+    if today == christmas:
+        return _("Kertasníkir kom í nótt – gleðileg jól")
+    tomorrow = today + datetime.timedelta(days=1)
+    if tomorrow < first:
+        n = (first - today).days
+        return ngettext(
+            "%(name)s kemur til byggða eftir %(n)s dag",
+            "%(name)s kemur til byggða eftir %(n)s daga",
+            n,
+        ) % {"name": YULE_LADS[0][0], "n": n}
+    index = (tomorrow - first).days
+    name, quip = YULE_LADS[index]
+    return _("Í nótt kemur %(name)s (%(i)s. af 13) – %(quip)s") % {"name": name, "i": index + 1, "quip": quip}
+
+
 def hero_texts(season: Season, days: int) -> tuple[str, str, str]:
     """(merki, feitletrað, framhald) eftir því hve langt er til jóla."""
-    if days > 13:
-        pill = _("Jólasveinarnir eru á leiðinni")
-    elif days > 0:
-        pill = _("Jólasveinarnir eru komnir til byggða")
-    elif days == 0:
-        pill = _("Gleðileg jól")
+    if days >= 0:
+        pill = yule_lad_text(datetime.date(season.year, 12, 24) - datetime.timedelta(days=days))
     else:
         pill = _("Jólin eru liðin")
     if days > 1:

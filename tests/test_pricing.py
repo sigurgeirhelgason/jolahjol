@@ -162,3 +162,16 @@ def test_season_summary(season, amma):
     assert s.unallocated == 147000
     assert s.days_left == 51
     assert s.gifts_per_day == pytest.approx(1 / 51)
+
+
+def test_season_summary_without_budget_compares_to_plan(season):
+    season.budget = 0
+    season.save()
+    a = GiftFactory(season=season, plan=4000, bought=True)
+    IdeaFactory(gift=a, picked=True, price=3000)
+    GiftFactory(season=season, plan=6000)
+    s = summary.season_summary(season)
+    assert not s.has_budget
+    assert s.target == 10000
+    assert s.spent_pct == 30
+    assert s.left == 7000

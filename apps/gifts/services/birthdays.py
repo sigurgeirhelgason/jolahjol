@@ -97,7 +97,9 @@ class Month:
 
 @dataclass
 class Overview:
-    months: list[Month]  # allir 12 mánuðir gluggans í röð, líka tómir
+    # Allir 12 mánuðir gluggans í röð, líka tómir. Sami mánuður ári síðar bætist aftast ef þar er
+    # afmæli sem var fyrr í núverandi mánuði (t.d. 3. nóv þegar í dag er 5. nóv).
+    months: list[Month]
     missing_date: list[Person]  # merktir „Gef afmælisgjafir“ en fæðingardag vantar
     today: datetime.date
 
@@ -158,12 +160,14 @@ def overview(household: Household, today: datetime.date | None = None) -> Overvi
         e.gift = by_key.get((e.person.pk, e.date.year))
 
     months = []
-    for i in range(12):
+    for i in range(13):
         y, m = divmod(today.month - 1 + i, 12)
         months.append(Month(today.year + y, m + 1))
     slots = {(mo.year, mo.month): mo for mo in months}
     for e in sorted(entries, key=lambda e: (e.date, fold_key(e.person.name))):
         slots[(e.date.year, e.date.month)].entries.append(e)
+    if not months[-1].entries:
+        months.pop()
 
     missing = sorted((p for p in people if not p.birthday), key=lambda p: fold_key(p.name))
     return Overview(months=months, missing_date=missing, today=today)

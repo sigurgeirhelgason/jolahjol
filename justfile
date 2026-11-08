@@ -6,8 +6,8 @@ set windows-shell := ["cmd", "/c"]
 # Íslenskir stafir birtast rétt í terminal
 export PYTHONIOENCODING := "utf-8"
 
-# uv er sett upp með pip, svo það er keyrt í gegnum python
-uv := "python -m uv"
+# uv.exe er á PATH, svo þetta virkar líka þegar .venv er virkt
+uv := "uv"
 manage := uv + " run python manage.py"
 
 # Sjálfgefið: sýna allar skipanir
@@ -91,15 +91,15 @@ messages:
 
 # Öll próf nema e2e; aukarök fara til pytest, t.d. just test -k billing
 test *args:
-    {{uv}} run pytest {{args}}
+    {{uv}} run python -m pytest {{args}}
 
 # Playwright-próf í vafra; just e2e --headed til að horfa á
 e2e *args:
-    {{uv}} run pytest -m e2e {{args}}
+    {{uv}} run python -m pytest -m e2e {{args}}
 
 # Próf með nýjum test-gagnagrunni (eftir breytingar á migrations)
 test-fresh:
-    {{uv}} run pytest --create-db
+    {{uv}} run python -m pytest --create-db
 
 lint:
     {{uv}} run ruff check .
@@ -112,8 +112,8 @@ fmt:
 # Allt sem CI keyrir: lint, migrations í takt, próf og e2e
 check: lint
     {{manage}} makemigrations --check --dry-run
-    {{uv}} run pytest
-    {{uv}} run pytest -m e2e
+    {{uv}} run python -m pytest
+    {{uv}} run python -m pytest -m e2e
 
 # ---------- Gagnagrunnur ----------
 

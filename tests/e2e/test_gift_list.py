@@ -41,21 +41,21 @@ def add_gift(page, group, name, plan="", ideas=""):
         chip = row(page, name).get_by_label(f"Ný hugmynd handa {name}")
         chip.fill(idea)
         chip.press("Enter")
-        expect(row(page, name).locator(".chip", has_text=idea)).to_have_count(1)
+        expect(row(page, name).locator(".idea-line:not(.add-line)", has_text=idea)).to_have_count(1)
 
 
 def test_gift_list_flow(home, page):
     add_gift(page, "Börn", "Hugi", "15000", "legó, spil")
     hugi = row(page, "Hugi")
-    expect(hugi.locator(".chip")).to_have_count(2)
+    expect(hugi.locator(".idea-line:not(.add-line)")).to_have_count(2)
     expect(hugi.get_by_label("Áætlað verð handa Hugi")).to_have_value("15.000 kr.")
-    expect(page.locator("#summary .big-stat .num")).to_contain_text("0 / 1")
+    expect(page.locator("#summary .big-stat .num")).to_contain_text("0 af 1")
 
     # Hugmynd í línu með Enter; reiturinn tæmist
     chip_input = hugi.get_by_label("Ný hugmynd handa Hugi")
     chip_input.fill("bók")
     chip_input.press("Enter")
-    expect(row(page, "Hugi").locator(".chip")).to_have_count(3)
+    expect(row(page, "Hugi").locator(".idea-line:not(.add-line)")).to_have_count(3)
 
     # +upphæð bætir við áætlun
     plan = row(page, "Hugi").get_by_label("Áætlað verð handa Hugi")
@@ -75,8 +75,38 @@ def test_gift_list_flow(home, page):
     hugi = row(page, "Hugi")
     expect(hugi).to_have_class(re.compile(r"\bdone\b"))
     expect(hugi.locator(".price-wrap")).to_contain_text("3.490 kr.")
-    expect(page.locator("#summary .big-stat .num")).to_contain_text("1 / 1")
+    expect(page.locator("#summary .big-stat .num")).to_contain_text("1 af 1")
     expect(page.locator("#group-born-head")).to_contain_text("1 keypt")
+
+
+def test_pick_idea_in_list(home, page):
+    add_gift(page, "Börn", "Una", "5000", "úr, bók")
+    row(page, "Una").get_by_label("úr handa Una keypt").check()
+    dialog = page.locator("#modal")
+    expect(dialog.get_by_text("Hvað kostaði gjöfin?")).to_be_visible()
+    dialog.get_by_label("Verð (kr.)").fill("4990")
+    dialog.get_by_role("button", name="Skrá verð").click()
+    expect(dialog).to_be_hidden()
+    una = row(page, "Una")
+    expect(una).to_have_class(re.compile(r"\bdone\b"))
+    expect(una.locator(".idea-line.picked")).to_have_count(1)
+    expect(una.get_by_label("úr handa Una keypt")).to_be_checked()
+    expect(una.locator(".price-wrap")).to_contain_text("4.990 kr.")
+
+    # Hætt við: gjöfin er ekki lengur keypt
+    una.get_by_label("úr handa Una keypt").uncheck()
+    expect(row(page, "Una")).not_to_have_class(re.compile(r"\bdone\b"))
+
+
+def test_store_typed_in_idea_line(home, page):
+    add_gift(page, "Börn", "Una", "5000", "úr")
+    # Línan var að koma frá htmx: bíða þar til hún er tengd (settle), annars sendir reiturinn ekkert
+    expect(page.locator(".htmx-request, .htmx-settling, .htmx-swapping")).to_have_count(0)
+    store_input = row(page, "Una").get_by_label("Búð fyrir úr")
+    store_input.fill("Elko")
+    store_input.press("Enter")
+    expect(row(page, "Una").get_by_role("button", name="Elko")).to_be_visible()
+    expect(row(page, "Una").get_by_label("Búð fyrir úr")).to_have_count(0)
 
 
 def test_idea_dialog_givers_and_billing(home, page):
@@ -102,7 +132,7 @@ def test_idea_dialog_givers_and_billing(home, page):
     expect(dialog).to_be_hidden()
 
     asdis = row(page, "Ásdís")
-    expect(asdis.locator(".chip.picked")).to_contain_text("frá Amma Jóa og Afi")
+    expect(asdis.locator(".idea-line.picked")).to_contain_text("frá Amma Jóa og Afi")
     expect(page.locator("#summary .money-foot")).to_contain_text("Til innheimtu: 6.000 kr.")
     assert set(IdeaGiver.objects.values_list("person__name", "share")) == {("Amma Jóa", None), ("Afi", None)}
 

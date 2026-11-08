@@ -115,6 +115,43 @@ def test_marking_bought_from_shop_refreshes_the_page(client, home, season):
     assert response["HX-Reswap"] == "none"
 
 
+def test_shop_has_a_checkbox_per_idea(client, home, season):
+    gift = _gift(season, "Hugi")
+    a = IdeaFactory(gift=gift, text="legó")
+    b = IdeaFactory(gift=gift, text="púsl")
+    html = client.get(url("shop", home.slug, YEAR)).text
+    assert url("idea_bought", home.slug, a.pk) in html and url("idea_bought", home.slug, b.pk) in html
+    assert url("bought", home.slug, gift.pk) not in html
+
+
+def test_picking_idea_from_shop_keeps_the_others(client, home, season):
+    gift = _gift(season, "Hugi")
+    a = IdeaFactory(gift=gift, text="legó", price=5000)
+    IdeaFactory(gift=gift, text="púsl")
+    response = client.post(url("idea_bought", home.slug, a.pk), {"bought": "on"}, HTTP_X_PAGE="budir", **HX)
+    assert "refreshPage" in response["HX-Trigger"]
+    a.refresh_from_db()
+    gift.refresh_from_db()
+    assert a.picked and gift.bought
+    html = client.get(url("shop", home.slug, YEAR)).text
+    assert "púsl" in html and "legó" not in html
+
+
+def test_picking_idea_without_price_asks_for_it(client, home, season):
+    idea = IdeaFactory(gift=_gift(season, "Hugi"), text="legó")
+    response = client.post(
+        url("idea_bought", home.slug, idea.pk), {"bought": "on"}, HTTP_X_PAGE="budir", **HX
+    )
+    assert response["HX-Retarget"] == "#modal-body"
+    assert url("idea_price", home.slug, idea.pk) in response.text
+    idea.refresh_from_db()
+    assert not idea.picked
+
+    client.post(url("idea_price", home.slug, idea.pk), {"amount": "2500+990"}, HTTP_X_PAGE="budir", **HX)
+    idea.refresh_from_db()
+    assert idea.picked and idea.price == 3490 and idea.gift.bought
+
+
 # ---------- Fólk ----------
 
 

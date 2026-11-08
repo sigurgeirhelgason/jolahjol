@@ -276,18 +276,47 @@ def test_shopping_by_store_and_location():
     IdeaFactory(gift=GiftFactory(season=season, bought=True), store=epal)  # keypt: ekki með
 
     groups = shopping.by_store(season)
-    assert [(g.store.name if g.store else None, len(g.gifts)) for g in groups] == [
+    assert [(g.store.name if g.store else None, len(g.items)) for g in groups] == [
         ("Elko", 1),
         ("Epal", 1),
         (None, 1),
     ]
-    assert groups[-1].gifts == [b]
+    assert groups[-1].items[0].gift == b and groups[-1].items[0].idea is None
+    assert groups[-1].plan == 3000
 
     locations = shopping.by_location(season)
     assert [
         (g.location.name if g.location else None, [s.store.name if s.store else None for s in g.stores])
         for g in locations
     ] == [("Kringlan", ["Epal"]), ("Smáralind", ["Elko", "Epal"]), (None, [None])]
+
+
+def test_shopping_lists_each_open_idea():
+    household = HouseholdFactory()
+    season = SeasonFactory(household=household)
+    epal = StoreFactory(household=household, name="Epal")
+    gift = GiftFactory(season=season, plan=9000)
+    book = IdeaFactory(gift=gift, text="bók", store=epal, price=4000)
+    mug = IdeaFactory(gift=gift, text="bolli", store=epal)
+    IdeaFactory(gift=gift, text="spil", store=epal, picked=True)  # keypt: ekki með
+    gift.bought = True
+    gift.save()
+    # Gjöf merkt keypt á listanum án keyptrar hugmyndar: öll farin
+    manual = GiftFactory(season=season, bought=True)
+    IdeaFactory(gift=manual, store=epal)
+
+    [group] = shopping.by_store(season)
+    assert [i.idea for i in group.items] == [book, mug]
+    assert [i.amount for i in group.items] == [4000, None]
+    assert group.gift_count == 1
+
+
+def test_only_open_idea_carries_gift_plan():
+    season = SeasonFactory()
+    gift = GiftFactory(season=season, plan=7000)
+    IdeaFactory(gift=gift)
+    [group] = shopping.by_store(season)
+    assert group.items[0].amount == 7000
 
 
 # ---------- Aðgangur ----------

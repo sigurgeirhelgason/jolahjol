@@ -11,8 +11,9 @@
     </div>
     <div>
       <div class="big-stat">
-        <span class="num">{{ summary.done }} <small>/ {{ summary.count }}</small></span>
-        <span class="lbl">{% translate "gjafir kláraðar" %}</span>
+        {% comment %}Talið er í einstaklingum (ein gjöf á mann), ekki stökum hugmyndum{% endcomment %}
+        <span class="lbl">{% translate "Búið að kaupa fyrir" %}</span>
+        <span class="num">{{ summary.done }} <small>{% translate "af" %} {{ summary.count }}</small></span>
         <span class="pct">{% widthratio summary.done summary.count|default:1 100 %}% {% translate "tilbúið" %}</span>
       </div>
       <p class="dash-note">{{ dash_note }}</p>
@@ -23,16 +24,19 @@
         <form class="val" hx-post="{% url 'gifts:budget' household.slug season.year %}" hx-trigger="change" hx-target="#summary" hx-swap="outerHTML">
           <strong>{{ summary.spent|kr }}</strong> {% translate "eytt af" %}
           <input class="budget-input" name="budget" inputmode="numeric" aria-label="{% translate 'Peningaviðmið' %}"
-                 title="{% translate 'Smelltu til að breyta peningaviðmiði' %}" value="{{ summary.budget|kr }}"
-                 x-data="amountCell" data-raw="{{ summary.budget }}" x-on:focus="showRaw" x-on:keydown.enter.prevent="commit"{% if locked %} disabled{% endif %}>
-          {% if summary.budget %}<span>({{ summary.spent_pct }}%)</span>{% endif %}
+                 title="{% translate 'Smelltu til að breyta peningaviðmiði' %}"
+                 {% if summary.has_budget %}value="{{ summary.budget|kr }}" data-raw="{{ summary.budget }}"{% else %}value="" data-raw="" placeholder="{{ summary.total_plan|kr }}"{% endif %}
+                 x-data="amountCell" x-on:focus="showRaw" x-on:keydown.enter.prevent="commit"{% if locked %} disabled{% endif %}>
+          {% if summary.target %}<span>({{ summary.spent_pct }}%{% if not summary.has_budget %} {% translate "af áætlun" %}{% endif %})</span>{% endif %}
         </form>
       </div>
-      <div class="track"><progress class="bar{% if summary.spent > summary.budget %} over{% endif %}" max="100" value="{% if summary.spent_pct > 100 %}100{% else %}{{ summary.spent_pct }}{% endif %}" aria-label="{% translate 'Eytt af viðmiði' %}"></progress></div>
+      <div class="track"><progress class="bar{% if summary.left < 0 %} over{% endif %}" max="100" value="{% if summary.spent_pct > 100 %}100{% else %}{{ summary.spent_pct }}{% endif %}" aria-label="{% if summary.has_budget %}{% translate 'Eytt af viðmiði' %}{% else %}{% translate 'Eytt af áætlun' %}{% endif %}"></progress></div>
       <div class="money-foot">
-        {% if summary.left >= 0 %}<span>{% translate "Eftir af viðmiði:" %} <strong>{{ summary.left|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.left|abs_kr %}{{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
-        {% if summary.unallocated >= 0 %}<span>{% translate "Óráðstafað:" %} <strong>{{ summary.unallocated|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.unallocated|abs_kr %}Áætlun {{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
-        {% if summary.bought_plan %}<span class="t">{% translate "Áætlun keyptra:" %} {{ summary.bought_plan|kr }} ({{ summary.bought_diff|signed }})</span>{% endif %}
+        {% if summary.has_budget %}
+          {% if summary.left >= 0 %}<span>{% translate "Eftir af viðmiði:" %} <strong>{{ summary.left|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.left|abs_kr %}{{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
+          {% if summary.unallocated >= 0 %}<span>{% translate "Óráðstafað:" %} <strong>{{ summary.unallocated|kr }}</strong></span>{% else %}<span class="neg">{% blocktranslate with kr=summary.unallocated|abs_kr %}Áætlun {{ kr }} yfir viðmiði{% endblocktranslate %}</span>{% endif %}
+        {% endif %}
+        {% if summary.has_budget and summary.bought_plan %}<span class="t">{% translate "Áætlun keyptra:" %} {{ summary.bought_plan|kr }} ({{ summary.bought_diff|signed }})</span>{% endif %}
         {% if summary.owed %}<span class="t">{% translate "Til innheimtu:" %} {{ summary.owed|kr }}</span>{% endif %}
       </div>
     </div>
@@ -64,7 +68,7 @@
     </div>
     {% endlocalize %}
     <div class="tree-cap">
-      <div><span class="ms">park</span>{% blocktranslate with done=summary.done count=summary.count %}Jólatréð fyllist: {{ done }} / {{ count }} gjafir{% endblocktranslate %} ({% widthratio summary.done summary.count|default:1 100 %}%)</div>
+      <div><span class="ms">park</span>{% blocktranslate with done=summary.done count=summary.count %}Jólatréð fyllist: búið að kaupa fyrir {{ done }} af {{ count }}{% endblocktranslate %} ({% widthratio summary.done summary.count|default:1 100 %}%)</div>
       <p>{% translate "Skreyttu og lýstu upp tréð með því að klára pakkana 🎄✨" %}</p>
     </div>
   </div>

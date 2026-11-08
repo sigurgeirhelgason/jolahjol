@@ -45,7 +45,7 @@ main .container { display: flex; flex-direction: column; gap: 32px; }
 .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 32px; }
 .hero > div:not(.glow) { position: relative; z-index: 1; }
 .pill {
-  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; width: fit-content;
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; width: fit-content; max-width: 100%;
   font: 700 11px/14px var(--display); letter-spacing: .05em;
 }
 .pill.green { background: var(--secondary-c); color: var(--on-secondary-c); }
@@ -100,8 +100,13 @@ main .container { display: flex; flex-direction: column; gap: 32px; }
 }
 .budget-input:focus { border-bottom-color: var(--primary-c); }
 .track { height: 12px; background: var(--highest); border-radius: 99px; overflow: hidden; }
-.track > div { height: 100%; background: var(--secondary); border-radius: 99px; transition: width .3s; }
-.track > div.over { background: var(--primary-c); }
+.track > progress { display: block; width: 100%; height: 100%; border: 0; background: transparent; appearance: none; -webkit-appearance: none; color: var(--secondary); }
+.track > progress::-webkit-progress-bar { background: transparent; }
+.track > progress::-webkit-progress-value { background: var(--secondary); border-radius: 99px; transition: width .3s; }
+.track > progress::-moz-progress-bar { background: var(--secondary); border-radius: 99px; }
+.track > progress.over { color: var(--primary-c); }
+.track > progress.over::-webkit-progress-value { background: var(--primary-c); }
+.track > progress.over::-moz-progress-bar { background: var(--primary-c); }
 .money-foot { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; font-size: 12px; line-height: 18px; color: var(--on-var); }
 .money-foot strong { color: var(--secondary); font-weight: 500; }
 .money-foot .t { color: var(--tertiary); font-weight: 500; }
@@ -238,6 +243,28 @@ dialog .past li.none { display: block; color: var(--outline); }
 .chip.picked .chip-t { padding-left: 12px; }
 .chip.picked .chip-t::before { content: "🎁 "; }
 .chip.picked .chip-x { color: rgba(255, 255, 255, .8); }
+/* Hugmyndir á listanum: ein í línu, hver með sinn gátreit og sína búð (undir Búð-dálkinum) */
+.row.gift > .ideas { grid-column: span 2; display: grid; grid-template-columns: subgrid; padding: 0; }
+.idea-line { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-width: 0; min-height: 28px; border-bottom: 1px solid var(--low); }
+.idea-line > div { min-width: 0; padding: 0 8px; }
+.idea-line.add-line { border-bottom: none; padding-top: 4px; }
+.idea-main { display: flex; align-items: center; gap: 8px; font: 600 13px/18px var(--display); }
+.idea-main .chip-t { white-space: nowrap; }
+.idea-line .store .stores { padding: 2px 6px; }
+.store-input {
+  width: 100%; max-width: 140px; border: 1px solid transparent; border-radius: 6px; background: transparent;
+  padding: 2px 6px; font: inherit; font-size: 13px; color: var(--on); outline: none; transition: border-color .15s, background .15s;
+}
+.store-input::placeholder { color: var(--outline); opacity: .7; }
+.store-input:hover { background: var(--lowest); }
+.store-input:focus { background: var(--lowest); border-color: var(--primary-c); }
+.idea-line input[type="checkbox"] { flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--secondary); cursor: pointer; }
+.idea-line .chip-t { flex: 0 1 auto; min-width: 0; padding: 0; text-align: left; }
+.idea-line .chip-t:hover:not(:disabled) { color: var(--primary); }
+.idea-line .chip-x { padding: 0 4px; margin-left: auto; }
+.idea-line:hover .chip-x, .idea-line .chip-x:focus { opacity: 1; }
+.idea-line.picked .chip-t { color: var(--secondary); }
+.idea-line.picked .chip-t::before { content: "🎁 "; }
 .chip-input {
   width: 92px; border: none; border-radius: 99px; background: var(--highest); color: var(--primary);
   padding: 4px 10px; font: 700 11px/16px var(--display); outline: none; transition: width .15s, background .15s;
@@ -283,10 +310,14 @@ dialog .past li.none { display: block; color: var(--outline); }
 .empty .ms { font-size: 28px; color: var(--tertiary); display: block; margin: 0 auto 6px; }
 
 /* Verslanir */
-.shop-item { display: grid; grid-template-columns: 64px 1fr 120px; align-items: center; padding: 12px 0; }
+.shop-person { border-top: 1px solid var(--highest); padding-top: 10px; }
+.shop-person .who { font: 600 16px/24px var(--display); display: flex; align-items: center; gap: 4px; padding: 0 16px 4px; }
+.shop-item { display: grid; grid-template-columns: 64px 1fr 120px; align-items: center; padding: 8px 0; border-top: 1px solid var(--low); }
 .shop-item:hover { background: var(--low); }
-.shop-item .who { font: 600 16px/24px var(--display); display: flex; align-items: center; gap: 4px; }
-.shop-item .what { font-size: 12px; line-height: 18px; color: var(--on-var); }
+.shop-item .what { font-size: 14px; line-height: 20px; color: var(--on); display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; }
+.shop-item .what .from, .shop-item .what .none { color: var(--on-var); font-size: 12px; }
+.idea-btn { border: none; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.idea-btn:hover { color: var(--primary); }
 .shop-item .num { text-align: right; padding-right: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
 /* Rukkun */
@@ -410,17 +441,19 @@ form.gift-form { display: flex; flex-direction: column; gap: 16px; }
     grid-template-areas:
       "chk name name act"
       ".   idea idea idea"
-      ".   store store store"
       ".   plan price .";
     row-gap: 6px; padding: 12px 0;
   }
   .gift > :nth-child(1) { grid-area: chk; align-self: start; padding-top: 4px; }
   .gift > :nth-child(2) { grid-area: name; }
   .gift > :nth-child(3) { grid-area: idea; }
-  .gift > :nth-child(4) { grid-area: store; }
-  .gift > :nth-child(5) { grid-area: plan; }
-  .gift > :nth-child(6) { grid-area: price; }
-  .gift > :nth-child(7) { grid-area: act; align-self: start; }
+  .gift > :nth-child(4) { grid-area: plan; }
+  .gift > :nth-child(5) { grid-area: price; }
+  .gift > :nth-child(6) { grid-area: act; align-self: start; }
+  .row.gift > .ideas { grid-area: idea; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .idea-line { display: flex; justify-content: space-between; gap: 8px; }
+  .idea-line > .idea-main { flex: 1 1 auto; padding: 0; }
+  .idea-line > .store { flex: none; max-width: 45%; padding: 0; }
   .actions { opacity: 1; }
   .cell.num { text-align: left; }
   .chip-x { opacity: 1; }

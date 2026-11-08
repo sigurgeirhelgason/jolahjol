@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
@@ -405,6 +407,25 @@ def test_pace_and_hero_texts():
     season = Season(year=2026)
     assert listing.hero_texts(season, 1)[1] == "Jólin koma á morgun!"
     assert listing.hero_texts(season, -5)[1] == "Jólin 2026"
+    assert listing.hero_texts(season, 46)[0] == "Stekkjarstaur kemur til byggða eftir 34 daga"
+    assert listing.hero_texts(season, 1)[0] == "Í nótt kemur Kertasníkir (13. af 13) – geymið kertin vel"
+
+
+@pytest.mark.parametrize(
+    ("day", "text"),
+    [
+        ((11, 8), "Stekkjarstaur kemur til byggða eftir 34 daga"),
+        ((12, 10), "Stekkjarstaur kemur til byggða eftir 2 daga"),
+        ((12, 11), "Í nótt kemur Stekkjarstaur (1. af 13) – passið kindurnar!"),
+        ((12, 12), "Í nótt kemur Giljagaur (2. af 13) – verjið mjólkurfroðuna!"),
+        ((12, 22), "Í nótt kemur Ketkrókur (12. af 13) – passið hangikjötið!"),
+        ((12, 23), "Í nótt kemur Kertasníkir (13. af 13) – geymið kertin vel"),
+        ((12, 24), "Kertasníkir kom í nótt – gleðileg jól"),
+        ((12, 27), "Jólin eru liðin"),
+    ],
+)
+def test_yule_lad_countdown(day, text):
+    assert listing.yule_lad_text(datetime.date(2026, *day)) == text
 
 
 def test_tree_fill():
@@ -661,3 +682,25 @@ def test_new_row_with_existing_person_keeps_details_and_group(client, home, seas
     assert (mamma.group, str(mamma.birthday), mamma.give_birthday) == ("fjolskylda", "1960-01-02", True)
     assert Gift.objects.get(season=season, person=mamma).plan == 8000
     assert response["HX-Retarget"] == "#sections"  # fór í Fjölskyldu, ekki Börn
+
+
+def test_store_typed_in_idea_line(client, home, season):
+    gift = _gift(season)
+    idea = IdeaFactory(gift=gift, text="legó")
+    StoreFactory(household=home, name="Elkó")
+    html = client.get(url("season", home.slug, season.year)).text
+    assert url("idea_store", home.slug, idea.pk) in html
+    assert '<option value="Elkó">' in html  # tillögur
+
+    response = client.post(url("idea_store", home.slug, idea.pk), {"store": "elko"}, **HX)
+    idea.refresh_from_db()
+    assert idea.store.name == "Elkó"  # sama búð, fyrsti rithátturinn heldur sér
+    assert f'id="gift-{gift.pk}"' in response.text and ">Elkó</button>" in response.text
+    assert url("idea_store", home.slug, idea.pk) not in response.text
+
+
+def test_empty_store_in_idea_line_changes_nothing(client, home, season):
+    idea = IdeaFactory(gift=_gift(season), text="legó")
+    client.post(url("idea_store", home.slug, idea.pk), {"store": "  "}, **HX)
+    idea.refresh_from_db()
+    assert idea.store is None

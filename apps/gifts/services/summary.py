@@ -43,9 +43,18 @@ class SeasonSummary:
         return self.done / self.count if self.count else 0.0
 
     @property
+    def has_budget(self) -> bool:
+        return self.budget > 0
+
+    @property
+    def target(self) -> int:
+        """Það sem eyðsla er borin saman við: viðmiðið ef það er sett, annars samtals áætlun."""
+        return self.budget if self.has_budget else self.total_plan
+
+    @property
     def left(self) -> int:
-        """Eftir af viðmiði (neikvætt = yfir)."""
-        return self.budget - self.spent
+        """Eftir af viðmiði, eða af áætlun ef ekkert viðmið (neikvætt = yfir)."""
+        return self.target - self.spent
 
     @property
     def bought_diff(self) -> int:
@@ -58,7 +67,7 @@ class SeasonSummary:
 
     @property
     def spent_pct(self) -> int:
-        return round(self.spent / self.budget * 100) if self.budget else 0
+        return round(self.spent / self.target * 100) if self.target else 0
 
     @property
     def gifts_per_day(self) -> float | None:

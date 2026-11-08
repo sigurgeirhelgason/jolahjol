@@ -60,7 +60,9 @@ class BirthdaysView(GiftsMixin, TemplateView):
         ctx.update(
             page_name="afmaeli",
             ov=ov,
-            pills=[(m, MONTHS[m.month - 1]) for m in ov.months],
+            pills=[
+                (m, MONTHS[m.month - 1] + (f" {m.year}" if i == 12 else "")) for i, m in enumerate(ov.months)
+            ],
             sections=[
                 (m, f"{MONTH_NAMES[m.month - 1]} {m.year}", entries) for m, entries in shown if entries
             ],

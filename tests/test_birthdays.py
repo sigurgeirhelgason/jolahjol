@@ -81,6 +81,19 @@ def test_overview_covers_next_12_months_with_age_round_and_christmas(home):
     assert ov.next_up == hugi
 
 
+def test_birthday_earlier_this_month_goes_to_same_month_next_year(client, home):
+    """Afmæli 3. nóv þegar í dag er 12. nóv er í nóv næsta ár, 13. mánuði gluggans."""
+    person(home, "Lilja", datetime.date(2010, 11, 3))
+    ov = birthdays.overview(home, TODAY)
+    assert len(ov.months) == 13
+    assert ov.months[-1].key == "2027-11"
+    assert [e.person.name for e in ov.months[-1].entries] == ["Lilja"]
+    assert ov.entries[0].days == 356
+
+    resp = client.get(url("birthdays", home.slug))
+    assert resp.status_code == 200
+
+
 def test_birthday_gift_is_found_in_the_year_of_the_birthday(home):
     pabbi = person(home, "Pabbi", datetime.date(1960, 1, 12))
     gift = birthdays.ensure_gift(pabbi, 2027)

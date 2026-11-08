@@ -58,13 +58,14 @@ def test_shop_by_location_and_mark_bought(home, live_server, page):
     page.get_by_role("link", name="Staðsetningu").click()
     expect(page.locator(".loc-head", has_text="Kringlan")).to_be_visible()
 
-    page.get_by_label("Keypt handa Una").check()
+    page.get_by_label("úr handa Una keypt").check()
     dialog = page.locator("#modal")
     expect(dialog.get_by_text("Hvað kostaði gjöfin?")).to_be_visible()
     dialog.get_by_label("Verð (kr.)").fill("4990")
     dialog.get_by_role("button", name="Skrá verð").click()
     expect(page.get_by_text("Allar gjafir eru keyptar!")).to_be_visible()
     assert Gift.objects.get(person__name="Una").bought
+    assert Idea.objects.get(text="úr").price == 4990
 
 
 def test_people_change_group_and_edit_person(home, live_server, page):

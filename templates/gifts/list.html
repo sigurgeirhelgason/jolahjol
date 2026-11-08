@@ -5,6 +5,7 @@
   `oob` bætir við hx-swap-oob þegar hlutinn uppfærist samhliða öðrum.
 {% endcomment %}
 {% block page %}
+<datalist id="row-store-list">{% for name in row_store_names %}<option value="{{ name }}">{% endfor %}</datalist>
 <form class="card toolbar" id="list-state" role="search"
       hx-get="{% url 'gifts:season' household.slug season.year %}" hx-target="#sections" hx-swap="outerHTML"
       hx-trigger="change, input from:#search delay:250ms, search from:#search" hx-push-url="true" hx-sync="this:replace">

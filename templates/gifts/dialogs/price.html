@@ -3,13 +3,13 @@
   <h3 id="modal-title"><span class="ms">redeem</span>{% translate "Hvað kostaði gjöfin?" %}</h3>
   <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
 </div>
-<form class="gift-form" novalidate hx-post="{% url 'gifts:price' household.slug gift.pk %}" hx-target="#modal-body" hx-include="#list-state">
+<form class="gift-form" novalidate hx-post="{% if idea %}{% url 'gifts:idea_price' household.slug idea.pk %}{% else %}{% url 'gifts:price' household.slug gift.pk %}{% endif %}" hx-target="#modal-body" hx-include="#list-state">
   <p class="price-sub">{% blocktranslate with what=what|default:_("Gjöfin") name=gift.person.name %}<strong>{{ what }}</strong> handa {{ name }}{% endblocktranslate %}</p>
   <div class="field{% if form.amount.errors %} has-error{% endif %}">
     <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
     {{ form.amount }}
     {{ form.amount.errors }}
-    <span class="help">{% if gift.manual_price %}{% blocktranslate with kr=gift.manual_price|kr %}Bætist við núverandi raunverð ({{ kr }}). Hægt að leggja saman, t.d. 2500+990{% endblocktranslate %}{% else %}{% translate "Skráist sem raunverð og gjöfin merkist keypt" %}{% endif %}</span>
+    <span class="help">{% if idea %}{% translate "Skráist sem verð hugmyndarinnar og hún merkist keypt" %}{% elif gift.manual_price %}{% blocktranslate with kr=gift.manual_price|kr %}Bætist við núverandi raunverð ({{ kr }}). Hægt að leggja saman, t.d. 2500+990{% endblocktranslate %}{% else %}{% translate "Skráist sem raunverð og gjöfin merkist keypt" %}{% endif %}</span>
   </div>
   <div class="dlg-actions">
     <button type="submit" name="skip" value="1" class="btn ghost" formnovalidate>{% translate "Sleppa verði" %}</button>

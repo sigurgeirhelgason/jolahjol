@@ -119,6 +119,10 @@ class GiftsMixin(HouseholdMixin):
             "dash_note": listing.dash_note(gl.summary),
             "filters": listing.FILTERS,
             "sorts": listing.SORTS,
+            # Fall: aðeins sótt þegar öll síðan er teiknuð (tillögur í búðarreit hugmyndar)
+            "row_store_names": lambda: sorted(
+                Store.objects.filter(household=self.household).values_list("name", flat=True), key=is_sort_key
+            ),
         }
 
     # ---------- Svör ----------
@@ -236,10 +240,10 @@ class ShopView(SeasonPageMixin, TemplateView):
         gifts = season_gifts(season)
         ctx["by_location"] = by_location
         if by_location:
-            ctx["location_groups"] = shopping.by_location(season, gifts)
+            ctx["location_groups"] = groups = shopping.by_location(season, gifts)
         else:
-            ctx["store_groups"] = shopping.by_store(season, gifts)
-        ctx["any_left"] = any(not g.bought for g in gifts)
+            ctx["store_groups"] = groups = shopping.by_store(season, gifts)
+        ctx["any_left"] = bool(groups)
         return ctx
 
 
@@ -472,6 +476,72 @@ class IdeaRemoveView(GiftsMixin, View):
         if self.page_name() != "listi":
             return self.changed(gift.season)
         return self.row_response(gift)
+
+
+class IdeaBoughtView(GiftsMixin, View):
+    """Gátreitur hugmyndar (listinn og Verslanir). Án verðs spyr glugginn hvað hún kostaði."""
+
+    def post(self, request, slug, pk):
+        idea = self.get_idea(pk)
+        gift = idea.gift
+        self.ensure_editable(gift.season)
+        if not request.POST.get("bought"):
+            gift_services.unpick_idea(idea)
+        elif idea.price is None:
+            response = self.dialog("gifts/dialogs/price.html", self.price_context(idea))
+            if self.page_name() == "listi":
+                # Ekki vistað fyrr en verð er skráð eða sleppt: línan (óhökuð) fylgir með
+                response.content += self.row_html(gift, oob=True).encode()
+            response["HX-Retarget"] = "#modal-body"
+            response["HX-Reswap"] = "innerHTML"
+            return response
+        else:
+            gift_services.pick_idea(idea)
+        return self.after_change(gift)
+
+    def after_change(self, gift):
+        if self.page_name() != "listi":
+            return self.changed(gift.season)
+        response = self.row_response(gift)
+        response["HX-Retarget"] = f"#gift-{gift.pk}"
+        response["HX-Reswap"] = "outerHTML"
+        trigger_client_event(response, "closeModal", after="settle")
+        return response
+
+    @staticmethod
+    def price_context(idea, form=None):
+        return {"gift": idea.gift, "idea": idea, "form": form or PriceForm(), "what": idea.text}
+
+
+class IdeaStoreView(GiftsMixin, View):
+    """Búð skráð beint í línu hugmyndar á listanum, án þess að opna hugmyndargluggann."""
+
+    def post(self, request, slug, pk):
+        idea = self.get_idea(pk)
+        gift = idea.gift
+        self.ensure_editable(gift.season)
+        store = stores_services.get_or_create_store(self.household, request.POST.get("store", ""))
+        if store:
+            idea.store = store
+            idea.save(update_fields=["store"])
+        return self.row_response(gift)
+
+
+class IdeaPriceView(IdeaBoughtView):
+    """Verðglugginn fyrir hugmynd: skrá verð hennar (eða sleppa því); hún merkist keypt."""
+
+    def post(self, request, slug, pk):
+        idea = self.get_idea(pk)
+        self.ensure_editable(idea.gift.season)
+        if request.POST.get("skip"):
+            gift_services.pick_idea(idea)
+        else:
+            form = PriceForm(request.POST)
+            if not form.is_valid():
+                ctx = IdeaBoughtView.price_context(idea, form)
+                return self.dialog("gifts/dialogs/price.html", ctx, status=422)
+            gift_services.pick_idea(idea, form.cleaned_data["amount"])
+        return self.after_change(idea.gift)
 
 
 class GiftDeleteView(GiftsMixin, View):
