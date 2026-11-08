@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Lén | jolahjol.is (aðallén) og jólahjól.is (`xn--jlahjl-bxae.is`), keypt hjá ISNIC |
-| DNS + HTTPS | Cloudflare (bæði lénin), Cloudflare Tunnel inn á þjóninn |
+| DNS + HTTPS | Cloudflare (bæði lénin, nafnaþjónar aspen/thaddeus), tunnel `jolahjol` inn á þjóninn |
 | Þjónn | Hetzner CX23, sá sami og Maintenance Tracker (`root@204.168.218.98`), mappa `~/jolahjol` |
-| Póstur | Gmail SMTP (app-lykilorð), hámark 500 á dag |
-| Villur | Sentry, verkefnið `jolahjol` |
+| Póstur | Gmail SMTP, sama aðgangur og app-lykilorð og digri.is (kvótinn ~500/dag er sameiginlegur) |
+| Villur | Sentry, verkefnið `jolahjol` (DSN ekki enn komið) |
 | Afrit | Hetzner-snapshots daglega + `just prod-backup` |
 
 ## Uppbygging
@@ -18,7 +18,10 @@ Notandi → Cloudflare (HTTPS) → Tunnel → cloudflared-gámur → web:8000 (g
 `compose.prod.yml` keyrir fjóra gáma: `db` (Postgres 17), `web` (migrate og síðan gunicorn),
 `reminders` (afmælisáminningar á klukkutíma fresti eftir kl. 9) og `cloudflared`. Engin port eru
 opnuð á þjóninum, svo Jólahjól rekst ekki á nginx Maintenance Trackers á porti 80.
-`www.` og jólahjól.is fá 301 á `https://jolahjol.is` (`CanonicalHostMiddleware`).
+`www.jolahjol.is` fær 301 á `https://jolahjol.is` í Django (`CanonicalHostMiddleware`).
+jólahjól.is (og www.) fer aldrei í tunnelið: Redirect Rule í Cloudflare-svæði þess vísar öllu á
+`https://jolahjol.is` (static 301), en tvær proxied CNAME-færslur þurfa að vera til svo Cloudflare
+taki við beiðnunum.
 
 ## Daglegar skipanir (af eigin vél)
 
@@ -50,9 +53,11 @@ just prod-backup                 # pg_dump í backups/ (endurheimt: pg_restore)
 1. Cloudflare → **Zero Trust → Networks → Tunnels → Create a tunnel → Cloudflared**, nafn `jolahjol`.
 2. Afritaðu tokenið (langi strengurinn á eftir `--token` í uppsetningarskipuninni) í
    `CLOUDFLARE_TUNNEL_TOKEN`. Ekki keyra uppsetningarskipunina sjálfa; gámurinn sér um það.
-3. Bættu við fjórum **public hostnames**, öllum með þjónustu **HTTP** → `web:8000`:
-   `jolahjol.is`, `www.jolahjol.is`, `jólahjól.is`, `www.jólahjól.is`.
-   Cloudflare býr sjálft til DNS-færslurnar.
+3. **Routes → Add route → Published application**, Service URL `http://web:8000` (með `http://`,
+   annars reynir Cloudflare HTTPS): `jolahjol.is` og `www.jolahjol.is`. DNS-færslurnar verða til
+   sjálfkrafa, en aðeins ef lénið er orðið „Active“ þegar route er búið til.
+4. **jólahjól.is**: DNS → tvær CNAME (`@` og `www`) → `<tunnel-id>.cfargotunnel.com`, proxied.
+   Rules → Redirect Rule → All incoming requests → static `https://jolahjol.is`, 301.
 
 ### 3. GitHub og þjónninn
 
@@ -102,7 +107,7 @@ docker compose -f compose.prod.yml logs cloudflared | tail   # „Registered tun
 Svo af eigin vél:
 
 ```bash
-just prod-manage createsuperuser
+just prod-manage createsuperuser   # eða, ef aðgangurinn er til: gera að staff í shell + changepassword
 just prod-import-legacy jolahjol-afrit.json netfang@example.com   # gögnin úr gamla appinu
 ```
 
