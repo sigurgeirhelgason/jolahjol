@@ -1,7 +1,8 @@
 # Justfile fyrir Jólahjól
 # Settu upp just: https://github.com/casey/just#installation
 
-set windows-shell := ["cmd", "/c"]
+# PowerShell, ekki cmd: cmd sendir gæsalappir áfram sem \" svo ssh-skipanirnar (prod-*) brotna
+set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Íslenskir stafir birtast rétt í terminal
 export PYTHONIOENCODING := "utf-8"
@@ -159,10 +160,13 @@ prod-logs service="web":
 prod-manage *args:
     ssh -t {{server}} "{{prod}} exec web python manage.py {{args}}"
 
-# Afrit af prod-gagnagrunninum í backups/ (pg_dump -Fc; endurheimt með pg_restore)
+# Afrit af prod-gagnagrunninum í backups/ (pg_dump -Fc; endurheimt með pg_restore).
+# Það verður til á þjóninum og er sótt með scp, því > í PowerShell 5.1 skemmir tvíundargögn.
 prod-backup:
-    if not exist backups mkdir backups
-    ssh {{server}} "{{prod}} exec -T db pg_dump -U jolahjol -Fc jolahjol" > backups\jolahjol-{{datetime("%Y-%m-%d-%H%M")}}.dump
+    ssh {{server}} "{{prod}} exec -T db pg_dump -U jolahjol -Fc jolahjol > /tmp/jolahjol.dump"
+    New-Item -ItemType Directory -Force backups | Out-Null
+    scp {{server}}:/tmp/jolahjol.dump backups/jolahjol-{{datetime("%Y-%m-%d-%H%M")}}.dump
+    ssh {{server}} "rm /tmp/jolahjol.dump"
 
 # Flytja JSON-afrit úr gamla appinu inn í prod, t.d. just prod-import-legacy afrit.json netfang@example.com
 prod-import-legacy file owner household="okkar":
