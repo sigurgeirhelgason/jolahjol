@@ -1,9 +1,11 @@
 import re
 
+from django.urls import reverse
 from playwright.sync_api import expect
 
 from apps.gifts.models import Season
 from apps.households.models import Household, Membership
+from tests.e2e.conftest import last_code
 
 
 def test_signup_onboarding_and_invite(live_server, page, login, browser):
@@ -87,3 +89,27 @@ def test_deleting_household_requires_typing_its_name(live_server, page, login):
     confirm.click()
     expect(page.get_by_text("var eytt")).to_be_visible()
     assert not Household.objects.exists()
+
+
+def test_choose_password_on_first_login_then_log_in_with_it(live_server, page):
+    page.goto(live_server.url + reverse("account_request_login_code"))
+    page.get_by_label("Netfang").fill("lykill@example.com")
+    page.get_by_role("button", name="Senda mér kóða").click()
+    page.get_by_label("Kóði").fill(last_code())
+    page.get_by_role("button", name="Skrá inn").click()
+
+    expect(page.get_by_role("heading", name="Viltu velja lykilorð?")).to_be_visible()
+    page.get_by_label("Lykilorð").fill("jolasveinn-123")
+    page.get_by_role("button", name="Vista lykilorð").click()
+    expect(page.get_by_text("Lykilorðið er komið")).to_be_visible()
+    page.get_by_label("Nafn heimilis").fill("Okkar")
+    page.get_by_role("button", name="Stofna heimili").click()
+    page.get_by_role("button", name="Okkar").click()
+    page.get_by_role("button", name="Skrá út").click()
+
+    page.goto(live_server.url + reverse("account_request_login_code"))
+    page.get_by_role("link", name="Skrá inn með lykilorði").click()
+    page.get_by_label("Netfang").fill("lykill@example.com")
+    page.get_by_label("Lykilorð").fill("jolasveinn-123")
+    page.get_by_role("button", name="Skrá inn").click()
+    expect(page).to_have_url(re.compile(r"/h/okkar/\d{4}/$"))

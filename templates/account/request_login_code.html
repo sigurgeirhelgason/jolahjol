@@ -1,9 +1,9 @@
 {% extends "layouts/entrance.html" %}
-{% load i18n socialaccount %}
+{% load i18n %}
 {% block title %}{% translate "Innskráning" %} · Jólahjól{% endblock %}
 {% block content %}
   <h1>{% translate "Skráðu þig inn" %}</h1>
-  <p>{% translate "Sláðu inn netfangið þitt og við sendum þér kóða. Engin lykilorð. Ef þetta er í fyrsta sinn verður aðgangurinn til um leið." %}</p>
+  <p>{% translate "Sláðu inn netfangið þitt og við sendum þér kóða. Ef þetta er í fyrsta sinn verður aðgangurinn til um leið." %}</p>
   <form method="post" action="{% url 'account_request_login_code' %}" novalidate>
     {% csrf_token %}
     {{ form.non_field_errors }}
@@ -11,12 +11,8 @@
     {{ redirect_field }}
     <button type="submit" class="btn primary block"><span class="ms">mail</span>{% translate "Senda mér kóða" %}</button>
   </form>
-  {% if google_login %}
-    <div class="divider">{% translate "eða" %}</div>
-    <form method="post" action="{% provider_login_url 'google' %}">
-      {% csrf_token %}
-      {{ redirect_field }}
-      <button type="submit" class="btn google-btn block">{% translate "Halda áfram með Google" %}</button>
-    </form>
-  {% endif %}
+  {% include "account/snippets/google.html" %}
+  <div class="entrance-foot">
+    <a href="{% url 'account_login' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}">{% translate "Skrá inn með lykilorði" %}</a>
+  </div>
 {% endblock %}

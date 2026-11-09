@@ -104,10 +104,16 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_URL = "account_request_login_code"
 LOGIN_REDIRECT_URL = "home"
 
-# Innskráning: netfang → kóði í tölvupósti. Engin lykilorð fyrir venjulega notendur.
-# Nýskráning og innskráning eru eitt skref (sjá apps.accounts.forms.EmailCodeForm).
+# Innskráning: netfang → kóði í tölvupósti. Nýskráning og innskráning eru eitt skref
+# (sjá apps.accounts.forms.EmailCodeForm). Eftir fyrstu innskráningu má velja lykilorð og
+# skrá sig svo inn með því á /accounts/login/; kóðinn virkar alltaf áfram (og kemur í stað endurstillingar).
 ACCOUNT_ADAPTER = "apps.accounts.adapter.AccountAdapter"
-ACCOUNT_FORMS = {"request_login_code": "apps.accounts.forms.EmailCodeForm"}
+ACCOUNT_FORMS = {
+    "request_login_code": "apps.accounts.forms.EmailCodeForm",
+    "login": "apps.accounts.forms.PasswordLoginForm",
+    "set_password": "apps.accounts.forms.SetPasswordForm",
+    "change_password": "apps.accounts.forms.ChangePasswordForm",
+}
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*"]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None

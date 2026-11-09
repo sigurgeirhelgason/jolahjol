@@ -38,7 +38,7 @@ Til að gera notanda að eiganda: `just manage import_legacy … --owner netfang
 | App | Hlutverk |
 |---|---|
 | `core` | texta- og upphæðarföll (`normalize`, `fold_key`, `evaluate_amount`, `kr`-filter) |
-| `accounts` | notandi auðkenndur með netfangi; innskráning með kóða (allauth), `prune_users` |
+| `accounts` | notandi auðkenndur með netfangi; innskráning með kóða eða valfrjálsu lykilorði (allauth), `prune_users` |
 | `households` | heimili, aðild, boð; `HouseholdMixin` sækir heimilið úr `/h/<slug>/` og skilar 404 annars |
 | `gifts` | líkön og `services/` (reglur), `listing.py` (framsetning listans), views og gluggar |
 | `wishlists` | opnir óskalistahlekkir |

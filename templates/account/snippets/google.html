@@ -1,0 +1,9 @@
+{% load i18n socialaccount %}
+{% if google_login %}
+  <div class="divider">{% translate "eða" %}</div>
+  <form method="post" action="{% provider_login_url 'google' %}">
+    {% csrf_token %}
+    {{ redirect_field }}
+    <button type="submit" class="btn google-btn block">{% translate "Halda áfram með Google" %}</button>
+  </form>
+{% endif %}

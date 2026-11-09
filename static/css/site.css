@@ -37,7 +37,7 @@ form.inline { display: inline; margin: 0; }
 .entrance-card p { margin: 0; color: var(--on-var); }
 .entrance-card form { display: flex; flex-direction: column; gap: 16px; }
 .entrance-foot { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 13px; }
-.entrance-foot button { border: none; background: none; padding: 0; color: var(--secondary); text-decoration: underline; font: inherit; }
+.entrance-foot a, .entrance-foot button { border: none; background: none; padding: 0; color: var(--secondary); text-decoration: underline; font: inherit; }
 .divider { display: flex; align-items: center; gap: 12px; color: var(--outline); font-size: 12px; }
 .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--highest); }
 .code-input { font: 700 28px/36px var(--display) !important; letter-spacing: .3em; text-align: center; }
@@ -84,6 +84,7 @@ form.inline { display: inline; margin: 0; }
 .settings h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 600 18px/26px var(--display); }
 .settings h2 .ms { color: var(--secondary); font-size: 22px; }
 .settings p { margin: 0; color: var(--on-var); }
+.settings .card > .btn { align-self: flex-start; }
 .settings .row-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .settings .row-form .field { flex: 1; min-width: 200px; }
 .back { display: inline-flex; align-items: center; gap: 4px; font: 600 13px/18px var(--display); text-decoration: none; }

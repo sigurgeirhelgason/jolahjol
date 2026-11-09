@@ -50,6 +50,10 @@ def login(live_server):
         page.get_by_role("button", name="Senda mér kóða").click()
         page.get_by_label("Kóði").fill(last_code())
         page.get_by_role("button", name="Skrá inn").click()
+        # Fyrsta innskráning býður upp á lykilorð; prófin sleppa því nema annað sé tekið fram
+        page.wait_for_url(lambda url: "/login/code/confirm/" not in url)
+        if "/accounts/password/set/" in page.url:
+            page.get_by_role("link", name="Sleppa").click()
 
     return _login
 

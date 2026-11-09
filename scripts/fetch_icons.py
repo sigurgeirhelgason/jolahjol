@@ -12,6 +12,7 @@ from pathlib import Path
 
 ICONS = [
     "add_circle",
+    "key",
     "local_florist",
     "extension",
     "theater_comedy",

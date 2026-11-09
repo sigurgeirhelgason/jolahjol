@@ -1,4 +1,5 @@
-from allauth.account.forms import RequestLoginCodeForm
+from allauth.account import forms as allauth_forms
+from allauth.account.forms import LoginForm, RequestLoginCodeForm
 from allauth.account.models import EmailAddress
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
@@ -36,3 +37,47 @@ class EmailCodeForm(RequestLoginCodeForm):
                     user=self._user, email=self._user.email, primary=True, verified=False
                 )
         return email
+
+
+class PasswordLoginForm(LoginForm):
+    """Innskráning með netfangi og lykilorði, fyrir þá sem hafa valið sér lykilorð."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["login"].label = _("Netfang")
+        self.fields["login"].widget.attrs.update(
+            {"placeholder": _("netfang@dæmi.is"), "autocomplete": "email", "autofocus": True}
+        )
+        password = self.fields["password"]
+        password.label = _("Lykilorð")
+        password.help_text = ""  # allauth vísar á endurstillingu; hér kemur kóðinn í staðinn
+        password.widget.attrs["placeholder"] = ""
+
+    def _setup_password_field(self) -> None:
+        # allauth fjarlægir reitinn þegar nýskráning er án lykilorðs, sem á við hér
+        pass
+
+
+class _NewPasswordMixin:
+    """Einn reitur fyrir nýtt lykilorð, ekki tveir: gleymist það er kóðinn alltaf til taks."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        del self.fields["password2"]
+        password = self.fields["password1"]
+        password.label = _("Lykilorð")
+        password.widget.attrs.update({"placeholder": "", "autofocus": True})
+        password.help_text = _("Minnst 8 stafir, ekki bara tölustafir og ekki algengt lykilorð.")
+
+
+class SetPasswordForm(_NewPasswordMixin, allauth_forms.SetPasswordForm):
+    pass
+
+
+class ChangePasswordForm(_NewPasswordMixin, allauth_forms.SetPasswordForm):
+    """Breyta lykilorði án þess að slá inn það gamla: innskráning með kóða er jafngild, og gleymt
+    lykilorð á ekki að læsa notandann frá því að velja nýtt."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].label = _("Nýtt lykilorð")
