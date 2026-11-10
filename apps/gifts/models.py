@@ -206,9 +206,14 @@ class Idea(models.Model):
     price = models.PositiveIntegerField(_("verð"), null=True, blank=True)
     picked = models.BooleanField(_("keypt"), default=False)
     for_other = models.BooleanField(_("keypt fyrir annan"), default=False)
+    # Viðtakandinn skráði hana sjálfur: hann sér aðeins sínar eigin óskir (services/privacy.py)
+    wish = models.BooleanField(_("ósk viðtakanda"), default=False)
     givers = models.ManyToManyField(Person, through="IdeaGiver", related_name="given_ideas", blank=True)
     position = models.PositiveIntegerField(default=0)
-    # Frátekning af opnum óskalista
+    # „Frátekið“: einhver ætlar að kaupa þetta (af opnum óskalista eða merkt af heimilinu, t.d.
+    # þegar Amma segir í síma „ég kaupi það“). Ekki keypt fyrr en „Keypt“ er hakað.
+    reserved = models.BooleanField(_("frátekið"), default=False)
+    # Frátekning af opnum óskalista: hver og hvenær (heimilið getur merkt frátekið án þessa)
     reserved_by = models.ForeignKey(
         Person, on_delete=models.SET_NULL, null=True, blank=True, related_name="reservations"
     )

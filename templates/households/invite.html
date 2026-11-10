@@ -12,8 +12,18 @@
       {% if invite.created_by %}{% blocktranslate with who=invite.created_by %}{{ who }} bauð þér að deila gjafalistanum.{% endblocktranslate %}{% endif %}
       {% translate "Þú sérð og breytir sama lista og aðrir í heimilinu." %}
     </p>
-    <form method="post">
+    <p>
+      {% if invite.person %}{% blocktranslate with name=invite.person.name %}Á listanum heitir þú <strong>{{ name }}</strong>.{% endblocktranslate %}{% endif %}
+      {% translate "Þú sérð ekki hvað aðrir ætla að gefa þér, en getur skráð hugmyndir fyrir þig." %}
+    </p>
+    <form method="post" novalidate>
       {% csrf_token %}
+      <div class="field{% if name_error %} has-error{% endif %}">
+        <label for="invite-name">{% translate "Hvað heitir þú?" %}</label>
+        <input id="invite-name" name="name" value="{{ name|default:'' }}" maxlength="100" autocomplete="name" required>
+        {% if name_error %}<ul class="errorlist"><li>{{ name_error }}</li></ul>{% endif %}
+        <span class="help">{% if invite.person %}{% translate "Þetta nafn sérð þú. Hinir sjá þig áfram eins og þú ert á listanum." %}{% else %}{% translate "Þú ferð á listann undir þessu nafni, í Fjölskyldu." %}{% endif %}</span>
+      </div>
       <button type="submit" class="btn primary block"><span class="ms">group_add</span>{% translate "Þiggja boð" %}</button>
     </form>
   {% endif %}

@@ -7,17 +7,26 @@
       x-data="ideaForm" data-givers="{{ givers_json }}" data-store-locations="{{ store_locations }}">
   <p class="price-sub">{% blocktranslate with name=gift.person.name %}Handa <strong>{{ name }}</strong>{% endblocktranslate %}{% if idea.picked %} <span class="count-pill ok">{% translate "KEYPT" %}</span>{% endif %}</p>
   {{ form.non_field_errors }}
-  {% if idea.reserved_by %}
+  {% if idea.reserved and idea.reserved_by %}
     <div class="flash-item reserved-note">
       <span class="ms">bookmark</span>
       <span>{% blocktranslate with name=idea.reserved_by.name when=idea.reserved_at|date:"j. N" %}Frátekið af {{ name }} á óskalista ({{ when }}){% endblocktranslate %}</span>
-      <button type="button" class="btn small ghost" hx-post="{% url 'gifts:reservation_remove' household.slug idea.pk %}">{% translate "Fjarlægja frátekningu" %}</button>
     </div>
   {% endif %}
+  {% if locked %}
+    {# Ósk viðtakandans: aðeins hann breytir efninu; hér er það bara sýnt #}
+    <div class="wish-locked">
+      <strong>{{ idea.text }}</strong>
+      {% if idea.note %}<p>{{ idea.note|linebreaksbr }}</p>{% endif %}
+      {% if idea.store or idea.link %}<p class="muted">{% if idea.store %}{{ idea.store.name }}{% endif %}{% if idea.store and idea.link %} · {% endif %}{% if idea.link %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer">{% translate "Hlekkur" %}</a>{% endif %}</p>{% endif %}
+      <span class="help"><span class="ms">star</span>{% blocktranslate with name=gift.person.name %}{{ name }} skráði þessa hugmynd. Aðeins {{ name }} getur breytt texta, lýsingu, búð og hlekk.{% endblocktranslate %}</span>
+    </div>
+  {% else %}
   <c-field :field="form.text" />
+  {% endif %}
 
   <div class="field">
-    <label for="giver-input">{% translate "Frá hverjum?" %}</label>
+    <label for="giver-input">{% translate "Hver gefur gjöfina?" %}</label>
     <div class="picker" x-on:click="focusInput">
       <template x-for="(tag, index) in tags" x-bind:key="tag.name">
         <span class="picker-tag">
@@ -48,6 +57,12 @@
     <span><strong>{% translate "Greitt" %}</strong><small>{% translate "Búið að fá endurgreitt" %}</small></span>
   </label>
 
+  {% if locked %}
+  <input type="hidden" x-ref="link" value="{{ idea.link }}">
+  <div class="grid2">
+    <c-field :field="form.price" />
+  </div>
+  {% else %}
   <c-field :field="form.note" />
   <div class="grid2">
     <div class="field{% if form.store.errors %} has-error{% endif %}">
@@ -75,6 +90,12 @@
     </div>
     {{ form.link.errors }}
   </div>
+  {% endif %}
+  <label class="switch reserved-switch">
+    <input type="checkbox" name="reserved" value="on"{% if form.reserved.value %} checked{% endif %}>
+    <span class="slider" aria-hidden="true"></span>
+    <span><strong>{% translate "Frátekið" %}</strong><small>{% translate "Einhver ætlar að kaupa þetta (t.d. tekið frá á óskalista). Ekki á innkaupalista fyrr en þú afhakar." %}</small></span>
+  </label>
   <label class="switch">
     <input type="checkbox" name="picked" value="on"{% if form.picked.value %} checked{% endif %}>
     <span class="slider" aria-hidden="true"></span>

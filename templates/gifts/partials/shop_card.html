@@ -38,7 +38,7 @@
           </div>
           <div class="what">
             {% if item.idea %}
-              <button type="button" class="idea-btn" hx-get="{% url 'gifts:idea' household.slug item.idea.pk %}" hx-target="#modal-body">{{ item.idea.text }}</button>{% with names=item.idea|giver_names %}{% if names %}<span class="from"> – {% translate "frá" %} {{ names }}</span>{% endif %}{% endwith %}
+              <button type="button" class="idea-btn" hx-get="{% url 'gifts:idea' household.slug item.idea.pk %}" hx-target="#modal-body">{{ item.idea.text }}</button>{% with gives=item.idea|gives_text %}{% if gives %}<span class="from"> – {{ gives }}</span>{% endif %}{% endwith %}
             {% else %}
               <span class="none">{% translate "Engin hugmynd enn" %}</span>
             {% endif %}

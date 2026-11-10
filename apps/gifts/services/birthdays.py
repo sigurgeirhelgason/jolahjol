@@ -21,6 +21,7 @@ from apps.households.models import Household
 
 from ..models import BirthdayReminder, Gift, Occasion, Person, Season
 from .pricing import actual_price
+from .privacy import EVERYONE, Viewer
 from .queries import with_details
 from .stores import stores_of
 
@@ -48,6 +49,9 @@ class Entry:
     age: int
     days: int
     gift: Gift | None
+    # Afmælisgjöf þess sem skoðar: aðeins óskir hans sjálfs birtast (services/privacy.py)
+    secret: bool = False
+    name: str = ""  # nafnið sem sá sem skoðar sér
 
     @property
     def round_birthday(self) -> bool:
@@ -65,15 +69,23 @@ class Entry:
 
     @property
     def bought(self) -> bool:
-        return bool(self.gift and self.gift.bought)
+        return bool(self.gift and self.gift.bought and not self.secret)
 
     @property
     def price(self) -> int | None:
-        return actual_price(self.gift) if self.gift else None
+        return actual_price(self.gift) if self.gift and not self.secret else None
+
+    @property
+    def plan(self) -> int:
+        return (self.gift.plan or 0) if self.gift and not self.secret else 0
 
     @property
     def stores(self):
-        return stores_of(self.gift) if self.gift else []
+        return stores_of(self.gift) if self.gift and not self.secret else []
+
+    @property
+    def wishes(self):
+        return [i for i in self.gift.ideas.all() if i.wish] if self.gift else []
 
 
 @dataclass
@@ -92,7 +104,7 @@ class Month:
 
     @property
     def plan(self) -> int:
-        return sum((e.gift.plan or 0) for e in self.entries if e.gift)
+        return sum(e.plan for e in self.entries)
 
 
 @dataclass
@@ -121,7 +133,7 @@ class Overview:
 
     @property
     def plan(self) -> int:
-        return sum((e.gift.plan or 0) for e in self.entries if e.gift)
+        return sum(e.plan for e in self.entries)
 
     @property
     def spent(self) -> int:
@@ -139,7 +151,7 @@ class Overview:
         return [e for e in self.entries if e.days <= 30]
 
 
-def overview(household: Household, today: datetime.date | None = None) -> Overview:
+def overview(household: Household, today: datetime.date | None = None, viewer: Viewer = EVERYONE) -> Overview:
     today = today or timezone.localdate()
     people = list(Person.objects.filter(household=household, give_birthday=True))
     dated = [p for p in people if p.birthday]
@@ -158,6 +170,8 @@ def overview(household: Household, today: datetime.date | None = None) -> Overvi
     by_key = {(g.person_id, g.season.year): g for g in gifts}
     for e in entries:
         e.gift = by_key.get((e.person.pk, e.date.year))
+        e.secret = viewer.is_me(e.person)
+        e.name = viewer.display_name(e.person)
 
     months = []
     for i in range(13):
@@ -208,10 +222,15 @@ def send_reminders(today: datetime.date | None = None) -> int:
     """Sendir afmælisáminningar til meðlima allra heimila sem vilja þær. Skilar fjölda pósta."""
     count = 0
     for household in Household.objects.filter(birthday_reminders=True):
-        recipients = [m.user.email for m in household.memberships.select_related("user")]
-        if not recipients:
+        members = list(household.memberships.select_related("user"))
+        if not members:
             continue
         for entry in due_reminders(household, today):
+            # Afmælisbarnið fær ekki áminningu um eigið afmæli (pósturinn sýnir hugmyndir og stöðu)
+            recipients = [m.user.email for m in members if m.person_id != entry.person.pk]
+            if not recipients:
+                BirthdayReminder.objects.create(person=entry.person, date=entry.date)
+                continue
             ctx = {
                 "entry": entry,
                 "household": household,

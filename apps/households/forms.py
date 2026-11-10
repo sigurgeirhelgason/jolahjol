@@ -15,9 +15,8 @@ class HouseholdForm(forms.Form):
 class OnboardingForm(HouseholdForm):
     your_name = forms.CharField(
         label=_("Hvað heitir þú?"),
-        max_length=150,
-        required=False,
-        help_text=_("Sést hjá öðrum í heimilinu"),
+        max_length=100,
+        help_text=_("Þú ferð á listann undir þessu nafni, í Fjölskyldu"),
         widget=forms.TextInput(attrs={"autocomplete": "name"}),
     )
 

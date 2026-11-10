@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate with name=invite.household.name %}🎄 Boð í „{{ name }}“ á Jólahjóli{% endblocktranslate %}{% endautoescape %}

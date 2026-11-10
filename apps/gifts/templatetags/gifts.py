@@ -21,17 +21,28 @@ def giver_names(idea) -> str:
 
 
 @register.filter
+def gives_text(idea) -> str:
+    """„Ragnhildur gefur gjöfina“ / „Amma Jóa og Afi gefa gjöfina“ (tómt ef frá okkur)."""
+    from apps.gifts.services.gifts import gives_phrase
+
+    return gives_phrase([link.person.name for link in idea.giver_links.all()])
+
+
+@register.filter
 def idea_title(idea) -> str:
     """Tooltip á hugmynd: texti · frá … · keypt fyrir annan · lýsing · búð."""
     links = list(idea.giver_links.all())
     parts = [idea.text]
     if links:
-        parts.append(_("frá %(names)s") % {"names": _names(link.person for link in links)})
+        parts.append(gives_text(idea))
     if idea.for_other:
         paid = links and all(link.paid for link in links)
         parts.append(_("keypt fyrir annan, greitt") if paid else _("keypt fyrir annan, ógreitt"))
-    if idea.reserved_by and not idea.picked:
-        parts.append(_("frátekið af %(name)s") % {"name": idea.reserved_by.name})
+    if idea.reserved and not idea.picked:
+        if idea.reserved_by:
+            parts.append(_("frátekið af %(name)s") % {"name": idea.reserved_by.name})
+        else:
+            parts.append(_("frátekið"))
     if idea.price:
         parts.append(format_kr(idea.price))
     if idea.note:
@@ -72,7 +83,7 @@ def get(mapping, key):
 
 @register.filter
 def gift_summary(gift) -> str:
-    """Valdar hugmyndir (annars allar) með gefendum: „púsl (frá Ömmu Jóu), bók“."""
+    """Valdar hugmyndir (annars allar) með gefendum: „púsl (Amma Jóa gefur), bók“."""
     from apps.gifts.services.gifts import gift_text
 
     return gift_text(gift)

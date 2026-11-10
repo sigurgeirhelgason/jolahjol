@@ -10,6 +10,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = User
 
     email = factory.Sequence(lambda n: f"notandi{n}@example.com")
+    name = factory.Sequence(lambda n: f"Notandi {n}")
 
 
 class HouseholdFactory(factory.django.DjangoModelFactory):

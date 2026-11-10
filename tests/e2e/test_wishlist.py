@@ -50,13 +50,18 @@ def test_share_reserve_and_household_sees_it(home, live_server, page, browser):
         "Amma Jóa"
     )
 
-    # Heimilið sér frátekninguna og getur fjarlægt hana
+    # Heimilið sér frátekninguna (appelsínugul, án gátreits) og getur afhakað hana
     page.reload()
-    chip = page.locator(".chip-t", has_text="legó")
-    expect(chip.locator(".reserved-icon")).to_be_visible()
-    chip.click()
+    line = page.locator(".idea-line", has=page.locator(".chip-t", has_text="legó"))
+    expect(line).to_have_class(re.compile(r"\breserved\b"))
+    expect(line.locator("input[type=checkbox]")).to_have_count(0)
+    line.locator(".chip-t").click()
     expect(dialog.get_by_text(re.compile("Frátekið af Amma Jóa"))).to_be_visible()
-    dialog.get_by_role("button", name="Fjarlægja frátekningu").click()
+    reserved = dialog.get_by_role("checkbox", name=re.compile("^Frátekið"))
+    expect(reserved).to_be_checked()
+    dialog.locator("label.reserved-switch").click()
+    dialog.get_by_role("button", name=re.compile("Vista")).click()
     expect(dialog).to_be_hidden()
-    expect(page.locator(".chip-t", has_text="legó").locator(".reserved-icon")).to_have_count(0)
-    assert Idea.objects.get(text="legó").reserved_by is None
+    line = page.locator(".idea-line", has=page.locator(".chip-t", has_text="legó"))
+    expect(line).not_to_have_class(re.compile(r"\breserved\b"))
+    assert not Idea.objects.get(text="legó").reserved

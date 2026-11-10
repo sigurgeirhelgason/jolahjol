@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from apps.core.text import normalize
 from apps.gifts.models import Gift, Group, Idea, IdeaGiver, Person, Season
+from apps.gifts.services.privacy import is_linked
 from apps.households.models import Household
 
 from .models import WishlistShare
@@ -51,19 +52,26 @@ def revoke(person: Person) -> None:
 
 
 def visible_ideas(share: WishlistShare) -> tuple[Season | None, list[Idea]]:
-    """Hugmyndir einstaklingsins á yfirstandandi ári, í röð listans."""
+    """Hugmyndir einstaklingsins á yfirstandandi ári, í röð listans.
+
+    Sé einstaklingurinn notandi í heimilinu birtast aðeins óskirnar sem hann skráði sjálfur:
+    hann gæti opnað hlekkinn sjálfur (services/privacy.py).
+    """
     season = current_season(share.person.household)
     if season is None:
         return None, []
     gift = Gift.objects.alive().christmas().filter(season=season, person=share.person).first()
     if gift is None:
         return season, []
-    return season, list(gift.ideas.select_related("store").order_by("position", "id"))
+    ideas = gift.ideas.select_related("store").order_by("position", "id")
+    if is_linked(share.person):
+        ideas = ideas.filter(wish=True)
+    return season, list(ideas)
 
 
 def is_taken(idea: Idea) -> bool:
     """Frátekið eða keypt: opna síðan sýnir bara „Frátekið“, ekki hver eða hvers vegna."""
-    return idea.picked or idea.reserved_by_id is not None
+    return idea.picked or idea.reserved
 
 
 @dataclass(frozen=True)
@@ -89,10 +97,11 @@ def reserve(share: WishlistShare, idea_id: int, name: str) -> Reservation:
     if person is None:
         person = Person.objects.create(household=household, name=name, group=Group.ANNAD)
     link, added = IdeaGiver.objects.get_or_create(idea=idea, person=person)
+    idea.reserved = True
     idea.reserved_by = person
     idea.reserved_at = timezone.now()
     idea.reservation_secret = secrets.token_urlsafe(24)
-    idea.save(update_fields=["reserved_by", "reserved_at", "reservation_secret"])
+    idea.save(update_fields=["reserved", "reserved_by", "reserved_at", "reservation_secret"])
     return Reservation(idea.pk, idea.reservation_secret, added)
 
 
@@ -109,10 +118,11 @@ def cancel(share: WishlistShare, reservation: Reservation) -> None:
 
 def clear_reservation(idea: Idea) -> None:
     """Heimilið fjarlægir frátekningu (gefandinn helst á hugmyndinni)."""
+    idea.reserved = False
     idea.reserved_by = None
     idea.reserved_at = None
     idea.reservation_secret = ""
-    idea.save(update_fields=["reserved_by", "reserved_at", "reservation_secret"])
+    idea.save(update_fields=["reserved", "reserved_by", "reserved_at", "reservation_secret"])
 
 
 def _idea_for_share(share: WishlistShare, idea_id: int, *, lock=False) -> Idea:

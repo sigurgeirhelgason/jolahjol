@@ -26,7 +26,11 @@ HX = {"HTTP_HX_REQUEST": "true"}
 
 @pytest.fixture
 def member():
-    return MembershipFactory(role=Membership.Role.OWNER)
+    member = MembershipFactory(role=Membership.Role.OWNER)
+    # Tengdur einstaklingi (sem fær enga gjöf), svo borðinn „Hver ert þú á listanum?“ birtist ekki
+    member.person = PersonFactory(household=member.household, name="Ég")
+    member.save()
+    return member
 
 
 @pytest.fixture
@@ -132,7 +136,7 @@ def test_picking_idea_from_shop_keeps_the_others(client, home, season):
     assert "refreshPage" in response["HX-Trigger"]
     a.refresh_from_db()
     gift.refresh_from_db()
-    assert a.picked and gift.bought
+    assert a.picked and not gift.bought
     html = client.get(url("shop", home.slug, YEAR)).text
     assert "púsl" in html and "legó" not in html
 
@@ -149,7 +153,7 @@ def test_picking_idea_without_price_asks_for_it(client, home, season):
 
     client.post(url("idea_price", home.slug, idea.pk), {"amount": "2500+990"}, HTTP_X_PAGE="budir", **HX)
     idea.refresh_from_db()
-    assert idea.picked and idea.price == 3490 and idea.gift.bought
+    assert idea.picked and idea.price == 3490 and not idea.gift.bought
 
 
 # ---------- Fólk ----------

@@ -24,7 +24,22 @@
         <li>
           <span class="who">
             <strong>{{ m.user }}{% if m.user == request.user %} <span class="muted">({% translate "þú" %})</span>{% endif %}</strong>
-            <small>{{ m.user.email }} · {{ m.get_role_display }}</small>
+            <small>{{ m.user.email }} · {{ m.get_role_display }}{% if m.person %}{% if not is_owner or m.user == request.user %} · {% blocktranslate with name=m.person.name %}á listanum sem {{ name }}{% endblocktranslate %}{% endif %}{% endif %}</small>
+            {% if is_owner and not m.person or is_owner and m.user != request.user %}
+              <form method="post" action="{% url 'households:member_person' household.slug m.pk %}" class="member-person" x-data="autoSubmit" x-on:change="submit">
+                {% csrf_token %}
+                <label>
+                  <span>{% translate "Á listanum sem" %}</span>
+                  <select name="person" aria-label="{% blocktranslate with name=m.user %}Hver {{ name }} er á listanum{% endblocktranslate %}">
+                    <option value="">{% translate "Ekki á listanum" %}</option>
+                    {% for p in people %}
+                      {% if p == m.person or p in free_people %}<option value="{{ p.pk }}"{% if p == m.person %} selected{% endif %}>{{ p.name }}</option>{% endif %}
+                    {% endfor %}
+                  </select>
+                </label>
+                <noscript><button type="submit" class="btn small soft">{% translate "Vista" %}</button></noscript>
+              </form>
+            {% endif %}
           </span>
           {% if is_owner and m.user != request.user %}
             <span class="acts">
@@ -51,7 +66,11 @@
         </li>
       {% endfor %}
     </ul>
-    {% if not is_owner %}<p>{% translate "Aðeins eigendur geta boðið fleirum og fjarlægt meðlimi." %}</p>{% endif %}
+    {% if is_owner %}
+      <p class="muted">{% translate "„Á listanum sem“ segir hver notandinn er á gjafalistanum. Hann sér ekki hvað aðrir ætla að gefa honum, aðeins hugmyndirnar sem hann skráir sjálfur. Enginn breytir sinni eigin tengingu." %}</p>
+    {% else %}
+      <p>{% translate "Aðeins eigendur geta boðið fleirum og fjarlægt meðlimi." %}</p>
+    {% endif %}
   </section>
 
   {% if is_owner %}
@@ -62,6 +81,8 @@
       <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">
         <input x-ref="source" readonly aria-label="{% translate 'Boðshlekkur' %}"
                value="{{ request.scheme }}://{{ request.get_host }}{% url 'households:invite_accept' invite.token %}">
+        {% if invite.email %}<span class="tag neutral" title="{% translate 'Boðið var sent á þetta netfang' %}">{{ invite.email }}</span>{% endif %}
+        {% if invite.person %}<span class="tag neutral" title="{% translate 'Sá sem þiggur boðið verður þessi einstaklingur á listanum' %}">{% blocktranslate with name=invite.person.name %}fyrir {{ name }}{% endblocktranslate %}</span>{% endif %}
         <button type="button" class="btn small soft" x-on:click="copy"><span class="ms">content_copy</span><span x-text="label">{% translate "Afrita" %}</span></button>
         <form method="post" action="{% url 'households:invite_revoke' household.slug invite.pk %}" class="inline">
           {% csrf_token %}
@@ -69,10 +90,33 @@
         </form>
       </div>
     {% endfor %}
-    <form method="post" action="{% url 'households:invite_create' household.slug %}">
-      {% csrf_token %}
-      <button type="submit" class="btn primary"><span class="ms">link</span>{% translate "Búa til boðshlekk" %}</button>
-    </form>
+    <div x-data="popup">
+      <button type="button" class="btn primary" x-on:click="open"><span class="ms">mail</span>{% translate "Senda nýtt boð" %}</button>
+      <dialog class="confirm-dlg invite-dlg" x-ref="dialog" aria-labelledby="invite-title">
+        <form method="post" action="{% url 'households:invite_create' household.slug %}" class="invite-form">
+          {% csrf_token %}
+          <div class="confirm-icon"><span class="ms">mail</span></div>
+          <h3 id="invite-title">{% translate "Senda nýtt boð" %}</h3>
+          <p>{% translate "Boðið fer í pósti. Hlekkinn má líka afrita úr lista virkra boða." %}</p>
+          <div class="field">
+            <label for="invite-email">{% translate "Netfang" %}</label>
+            <input type="email" name="email" id="invite-email" required autocomplete="off" placeholder="{% translate 'nafn@dæmi.is' %}" x-ref="first">
+          </div>
+          <div class="field">
+            <label for="invite-person">{% translate "Hver er þetta á listanum?" %}</label>
+            <select name="person" id="invite-person">
+              <option value="">{% translate "Er ekki á listanum (skrifar nafnið sitt)" %}</option>
+              {% for p in free_people %}<option value="{{ p.pk }}">{{ p.name }}</option>{% endfor %}
+            </select>
+            <span class="help">{% translate "Sá sem þiggur boðið verður þessi einstaklingur og sér ekki hvað aðrir ætla að gefa honum." %}</span>
+          </div>
+          <div class="dlg-actions">
+            <button type="button" class="btn ghost" x-on:click="close">{% translate "Hætta við" %}</button>
+            <button type="submit" class="btn primary"><span class="ms">mail</span>{% translate "Senda boð" %}</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
   </section>
   {% endif %}
 

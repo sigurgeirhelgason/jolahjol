@@ -312,7 +312,7 @@ def test_idea_dialog_saves_givers_and_splits_billing_equally(client, home, seaso
     gift = _gift(season, "Hugi")
     idea = IdeaFactory(gift=gift, text="púsl")
     response = client.get(url("idea", home.slug, idea.pk), **HX)
-    assert "Frá hverjum?" in response.text
+    assert "Hver gefur gjöfina?" in response.text
     client.post(
         url("idea", home.slug, idea.pk),
         {
@@ -331,7 +331,7 @@ def test_idea_dialog_saves_givers_and_splits_billing_equally(client, home, seaso
     assert links == {"Amma Jóa": None, "Afi": None}  # „okkur“ er ekki gefandi
     assert idea.for_other and idea.picked and idea.price == 6000
     gift.refresh_from_db()
-    assert gift.bought and gift.actual_price is None  # allt rukkað, ekkert á okkur
+    assert not gift.bought and gift.actual_price is None  # allt rukkað, ekkert á okkur
     payers = {p.person.name: p.unpaid for p in season_billing(season)}
     assert payers == {"Amma Jóa": 3000, "Afi": 3000}  # alltaf jöfn skipting
     assert sorted(loc.name for loc in idea.store.locations.all()) == ["Kringlan", "Smáralind"]

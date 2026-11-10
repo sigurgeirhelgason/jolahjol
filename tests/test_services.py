@@ -142,19 +142,20 @@ def test_merge_people_combines_gifts_and_giver_links():
 # ---------- Gjafir ----------
 
 
-def test_pick_and_unpick_idea_drives_bought():
+def test_picking_ideas_never_changes_done():
+    """„Tilbúið“ er aðeins sett af notandanum; keyptar hugmyndir hreyfa ekki við því."""
     gift = GiftFactory()
     a, b = IdeaFactory(gift=gift), IdeaFactory(gift=gift)
     gifts.pick_idea(a, 2500)
     gift.refresh_from_db()
-    assert gift.bought and a.price == 2500
+    assert not gift.bought and a.price == 2500
+    assert gift.actual_price == 2500  # keypt hugmynd telst í raunverði þótt gjöfin sé ekki tilbúin
+    gifts.mark_bought(gift)
     gifts.pick_idea(b)
     gifts.unpick_idea(a)
-    gift.refresh_from_db()
-    assert gift.bought
     gifts.remove_idea(b)
     gift.refresh_from_db()
-    assert not gift.bought
+    assert gift.bought
 
 
 def test_mark_bought_adds_amounts():
@@ -218,8 +219,8 @@ def test_gift_text():
     household = HouseholdFactory()
     gift = GiftFactory(season=SeasonFactory(household=household))
     IdeaFactory(gift=gift, text="bók")
-    giver(IdeaFactory(gift=gift, text="púsl"), PersonFactory(household=household, name="Ömmu Jóu"))
-    assert gifts.gift_text(gift) == "bók, púsl (frá Ömmu Jóu)"
+    giver(IdeaFactory(gift=gift, text="púsl"), PersonFactory(household=household, name="Amma Jóa"))
+    assert gifts.gift_text(gift) == "bók, púsl (Amma Jóa gefur)"
     gifts.pick_idea(gift.ideas.get(text="bók"))
     assert gifts.gift_text(gift) == "bók"
 

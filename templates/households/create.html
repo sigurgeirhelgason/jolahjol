@@ -12,7 +12,7 @@
   <form method="post" novalidate>
     {% csrf_token %}
     <c-field :field="form.name" />
-    {% if first %}<c-field :field="form.your_name" />{% else %}<input type="hidden" name="your_name" value="{{ form.your_name.value|default:'' }}">{% endif %}
+    <c-field :field="form.your_name" />
     <button type="submit" class="btn primary block"><span class="ms">add</span>{% translate "Stofna heimili" %}</button>
   </form>
 {% endblock %}

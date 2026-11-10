@@ -53,6 +53,25 @@
 </div>
 {% endif %}
 
+{% if claim %}
+<div class="banners">
+  <form class="card banner claim" method="post" action="{% url 'households:claim_person' household.slug %}">
+    {% csrf_token %}
+    <span class="msg"><span class="ms">person</span>{% translate "Hver ert þú á listanum? Þá sérðu ekki hvað aðrir ætla að gefa þér." %}</span>
+    <span class="claim-fields">
+      <label class="visually-hidden" for="claim-person">{% translate "Veldu þig" %}</label>
+      <select name="person" id="claim-person">
+        <option value="">{% translate "Ég er ekki á listanum, nýtt nafn:" %}</option>
+        {% for p in claim.people %}<option value="{{ p.pk }}"{% if p.pk == claim.guess %} selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>
+      <label class="visually-hidden" for="claim-name">{% translate "Nafnið þitt" %}</label>
+      <input id="claim-name" name="name" value="{{ request.user.name }}" placeholder="{% translate 'Nafnið þitt' %}" maxlength="100" autocomplete="name">
+      <button type="submit" class="btn primary"><span class="ms">check</span>{% translate "Þetta er ég" %}</button>
+    </span>
+  </form>
+</div>
+{% endif %}
+
 {% include "gifts/partials/summary.html" %}
 
 {% if page_name != "listi" %}<form id="list-state" hidden></form>{# gluggar taka með stöðu listans (hx-include) #}{% endif %}

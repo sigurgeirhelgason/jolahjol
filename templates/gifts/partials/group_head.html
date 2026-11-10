@@ -1,5 +1,11 @@
 {% load i18n money gifts %}
 <div class="g-head" id="{{ section.dom_id }}-head"{% if oob %} hx-swap-oob="true"{% endif %}>
+  {% if section.mine %}
+  <div class="g-title">
+    <span class="emoji">{{ section.icon }}</span><h2>{{ section.label }}</h2>
+  </div>
+  <div class="g-meta"><span>{% translate "Hugmyndirnar þínar. Það sem aðrir ætla að gefa þér er leyndarmál." %}</span></div>
+  {% else %}
   <div class="g-title">
     <span class="emoji">{{ section.icon }}</span><h2>{{ section.label }}</h2>
     {% if section.done %}<span class="count-pill ok">{% blocktranslate with n=section.done %}{{ n }} keypt{% endblocktranslate %}</span>{% else %}<span class="count-pill">{% blocktranslate count n=section.count %}{{ n }} aðili{% plural %}{{ n }} aðilar{% endblocktranslate %}</span>{% endif %}
@@ -9,4 +15,5 @@
     <span>{% translate "Áætlað:" %} <strong>{{ section.plan|kr }}</strong></span><span>•</span>
     <span>{% translate "Eytt:" %} <strong{% if section.spent %} class="spent"{% endif %}>{{ section.spent|kr }}</strong></span>
   </div>
+  {% endif %}
 </div>

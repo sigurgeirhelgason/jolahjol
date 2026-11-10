@@ -192,6 +192,8 @@ main .container { display: flex; flex-direction: column; gap: 32px; }
 .gift.done:hover { background: rgba(190, 234, 209, .3); }
 
 .check { display: flex; justify-content: center; }
+.wish-icon { color: var(--tertiary, #704b23); }
+.secret-note { grid-column: 1 / -1; margin: 4px 8px 0; font-size: 12px; line-height: 16px; color: var(--outline); }
 .check input { width: 20px; height: 20px; accent-color: var(--secondary); cursor: pointer; margin: 0; }
 
 .cell {
@@ -263,8 +265,19 @@ dialog .past li.none { display: block; color: var(--outline); }
 .idea-line .chip-t:hover:not(:disabled) { color: var(--primary); }
 .idea-line .chip-x { padding: 0 4px; margin-left: auto; }
 .idea-line:hover .chip-x, .idea-line .chip-x:focus { opacity: 1; }
-.idea-line.picked .chip-t { color: var(--secondary); }
+/* Keypt hugmynd verður að gjöf: rauð „pilla“ eins og á afmæliskortunum (.chip.picked) */
+.idea-line.picked .chip-t {
+  padding: 3px 12px; border-radius: 14px; background: var(--primary); color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+  white-space: normal; /* brotnar frekar í línur en að styttast, svo verð og tákn sjáist */
+}
+.idea-line.picked .chip-t:hover:not(:disabled) { color: #fff; filter: brightness(1.15); }
+.idea-line.picked .chip-t .ms { color: inherit; }
+.idea-line.picked .chip-t .from, .idea-line.picked .chip-t .p { opacity: .85; }
 .idea-line.picked .chip-t::before { content: "🎁 "; }
+.thead .th-picked {
+  display: inline-block; margin-left: 2px; padding: 1px 8px; border-radius: 99px; background: var(--primary); color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+}
 .chip-input {
   width: 92px; border: none; border-radius: 99px; background: var(--highest); color: var(--primary);
   padding: 4px 10px; font: 700 11px/16px var(--display); outline: none; transition: width .15s, background .15s;
@@ -333,6 +346,7 @@ dialog .past li.none { display: block; color: var(--outline); }
 .bill-item .num.none { color: var(--outline); font-style: italic; font-weight: 400; }
 .nav-count { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 99px; background: var(--primary-c); color: #fff; font: 700 11px/18px var(--display); text-align: center; }
 .chip-t .ms { font-size: 14px; margin-left: 2px; }
+.chip-t .tail { white-space: nowrap; } /* verð og tákn brotna ekki frá hvort öðru */
 
 /* Fólk */
 .note { margin: 0; color: var(--on-var); display: flex; align-items: center; gap: 6px; }
@@ -453,6 +467,7 @@ form.gift-form { display: flex; flex-direction: column; gap: 16px; }
   .row.gift > .ideas { grid-area: idea; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
   .idea-line { display: flex; justify-content: space-between; gap: 8px; }
   .idea-line > .idea-main { flex: 1 1 auto; padding: 0; }
+  .chip-t .tail { white-space: normal; } /* mjór dálkur: betra að brjóta en að klippa verðið */
   .idea-line > .store { flex: none; max-width: 45%; padding: 0; }
   .actions { opacity: 1; }
   .cell.num { text-align: left; }
@@ -463,3 +478,30 @@ form.gift-form { display: flex; flex-direction: column; gap: 16px; }
   .grid2 { grid-template-columns: 1fr; }
   dialog { padding: 20px; }
 }
+
+/* „Hver ert þú á listanum?“ */
+.banner.claim { flex-wrap: wrap; }
+.claim-fields { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.claim-fields select, .claim-fields input { border: none; background: var(--low); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; min-width: 0; }
+
+/* Hugmynd sem viðtakandinn skráði: aðrir sjá efnið en breyta því ekki */
+.wish-locked { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 8px; background: var(--low); }
+.wish-locked strong { font: 600 15px/22px var(--display); }
+.wish-locked p { margin: 0; }
+.wish-locked .help { display: flex; align-items: center; gap: 4px; }
+.wish-locked .help .ms { font-size: 16px; color: var(--tertiary); }
+
+/* Frátekið: einhver annar ætlar að kaupa þetta. Dökkgræn pilla, enginn gátreitur (sjá rofann í glugganum) */
+.idea-line.reserved .chip-t {
+  padding: 3px 12px; border-radius: 14px; background: var(--reserved, #314d3e); color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+  white-space: normal;
+}
+.idea-line.reserved .chip-t:hover:not(:disabled) { color: #fff; filter: brightness(1.1); }
+.idea-line.reserved .chip-t .ms { color: inherit; }
+.idea-line.reserved .chip-t .from, .idea-line.reserved .chip-t .p { opacity: .9; }
+.idea-line.reserved .chip-t::before { content: "🔖 "; }
+.check-spacer { flex: none; width: 16px; height: 16px; }
+.chip.reserved { background: var(--reserved, #314d3e); color: #fff; }
+.chip.reserved .chip-t::before { content: "🔖 "; }
+.chip.reserved .chip-x { color: rgba(255, 255, 255, .8); }
+.reserved-switch:has(input:checked) { background: rgba(49, 77, 62, .12); }

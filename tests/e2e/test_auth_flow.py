@@ -22,7 +22,10 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
     # Valmynd heimilis (Alpine) → stillingar → boðshlekkur
     page.get_by_role("button", name="Heimilið á Þórsgötu").click()
     page.get_by_role("link", name="Stillingar").click()
-    page.get_by_role("button", name="Búa til boðshlekk").click()
+    page.get_by_role("button", name="Senda nýtt boð").click()
+    page.get_by_label("Netfang").fill("maki@example.com")
+    page.get_by_role("button", name="Senda boð").click()
+    expect(page.get_by_text("Boð var sent á maki@example.com")).to_be_visible()
     invite_url = page.get_by_label("Boðshlekkur").input_value()
     expect(page.locator(".invite-link button").first).to_have_text(re.compile(r"Afrita$"))
 
@@ -31,6 +34,7 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
     other.goto(invite_url)
     expect(other.get_by_label("Netfang")).to_be_visible()  # boðið krefst innskráningar
     login(other, "maki@example.com", navigate=False)
+    other.get_by_label("Hvað heitir þú?").fill("Maki")
     other.get_by_role("button", name="Þiggja boð").click()
     expect(other.get_by_text("Gaman að fá þig")).to_be_visible()
     assert Membership.objects.filter(user__email="maki@example.com", role="member").exists()
@@ -43,6 +47,7 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
 def test_user_menu_logs_out(live_server, page, login):
     login(page, "a@example.com")
     page.get_by_label("Nafn heimilis").fill("Okkar")
+    page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
     page.get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()
@@ -52,6 +57,7 @@ def test_user_menu_logs_out(live_server, page, login):
 def test_deleting_season_asks_in_styled_dialog(live_server, page, login):
     login(page, "eigandi@example.com")
     page.get_by_label("Nafn heimilis").fill("Okkar")
+    page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
     page.get_by_role("button", name="Okkar").click()
     page.get_by_role("link", name="Stillingar").click()
@@ -73,6 +79,7 @@ def test_deleting_season_asks_in_styled_dialog(live_server, page, login):
 def test_deleting_household_requires_typing_its_name(live_server, page, login):
     login(page, "eigandi@example.com")
     page.get_by_label("Nafn heimilis").fill("Heimilið okkar")
+    page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
     page.get_by_role("button", name="Heimilið okkar").click()
     page.get_by_role("link", name="Stillingar").click()
@@ -103,6 +110,7 @@ def test_choose_password_on_first_login_then_log_in_with_it(live_server, page):
     page.get_by_role("button", name="Vista lykilorð").click()
     expect(page.get_by_text("Lykilorðið er komið")).to_be_visible()
     page.get_by_label("Nafn heimilis").fill("Okkar")
+    page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
     page.get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()

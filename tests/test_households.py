@@ -159,7 +159,7 @@ def test_onboarding_creates_household_and_saves_name(client):
 
 def test_invite_flow_through_views(client, home, owner):
     client.force_login(owner.user)
-    client.post(reverse("households:invite_create", args=[home.slug]))
+    client.post(reverse("households:invite_create", args=[home.slug]), {"email": "gestur@example.com"})
     invite = home.invites.get()
     page = client.get(reverse("households:settings", args=[home.slug]))
     assert invite.token in page.text

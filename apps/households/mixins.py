@@ -20,7 +20,7 @@ class HouseholdMixin(LoginRequiredMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         self.membership = (
-            Membership.objects.select_related("household")
+            Membership.objects.select_related("household", "user")
             .filter(user=request.user, household__slug=kwargs["slug"])
             .first()
         )

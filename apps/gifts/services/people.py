@@ -43,12 +43,24 @@ def find_conflict(person: Person, new_name: str) -> Person | None:
     )
 
 
+def both_members(source: Person, target: Person) -> bool:
+    """Eru báðir tengdir notanda? Þá má ekki sameina: annar notandinn yrði ótengdur og sæi
+    allt sem aðrir ætla að gefa honum (apps/gifts/services/privacy.py)."""
+    return source.memberships.exists() and target.memberships.exists()
+
+
+MERGE_MEMBERS_ERROR = "Báðir eru notendur í heimilinu og því ekki hægt að sameina þá. Veldu annað nafn."
+
+
 @transaction.atomic
 def merge(source: Person, target: Person) -> Person:
     """Færir allt frá `source` yfir á `target` og eyðir `source`.
 
-    Eigi bæði gjöf sama ár sameinast hugmyndirnar í gjöf `target`.
+    Eigi bæði gjöf sama ár sameinast hugmyndirnar í gjöf `target`. Kastar ValueError ef báðir
+    eru tengdir notanda.
     """
+    if both_members(source, target):
+        raise ValueError(MERGE_MEMBERS_ERROR)
     for gift in Gift.objects.filter(person=source).select_related("season"):
         existing = (
             Gift.objects.alive().filter(person=target, season=gift.season, occasion=gift.occasion).first()
@@ -70,6 +82,11 @@ def merge(source: Person, target: Person) -> Person:
             link.person = target
             link.save(update_fields=["person"])
     Idea.objects.filter(reserved_by=source).update(reserved_by=target)
+    # Notandi tengdur `source` verður tengdur `target`, nema einhver annar sé það þegar
+    from apps.households.models import Membership
+
+    if not Membership.objects.filter(person=target).exists():
+        Membership.objects.filter(person=source).update(person=target)
     source.delete()
     return target
 
@@ -104,7 +121,8 @@ def givers_from_names(household: Household, names: list[str]) -> list[Person]:
 
 
 def is_shared(person: Person, except_gift: Gift | None = None) -> bool:
-    """Er einstaklingurinn notaður annars staðar en í `except_gift` (önnur ár, gefandi, frátekning)?"""
+    """Er einstaklingurinn notaður annars staðar en í `except_gift` (önnur ár, gefandi, frátekning,
+    tengdur notanda)?"""
     gifts = Gift.objects.filter(person=person)
     if except_gift is not None:
         gifts = gifts.exclude(pk=except_gift.pk)
@@ -112,6 +130,7 @@ def is_shared(person: Person, except_gift: Gift | None = None) -> bool:
         gifts.exists()
         or IdeaGiver.objects.filter(person=person).exists()
         or Idea.objects.filter(reserved_by=person).exists()
+        or person.memberships.exists()
     )
 
 

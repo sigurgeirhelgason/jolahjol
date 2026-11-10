@@ -27,15 +27,25 @@ from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefre
 from apps.core.money import evaluate_amount
 from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
+from apps.households.views import person_invite_context
 from apps.wishlists import services as wishlist_services
 
 from . import listing
-from .forms import BudgetForm, GiftForm, IdeaForm, NewRowForm, NewSeasonForm, PersonEditForm, PriceForm
+from .forms import (
+    BudgetForm,
+    GiftForm,
+    IdeaForm,
+    NewRowForm,
+    NewSeasonForm,
+    PersonEditForm,
+    PriceForm,
+    WishForm,
+)
 from .listing import ListState
 from .models import Gift, Group, Idea, IdeaGiver, Person, Season, Store
 from .services import gifts as gift_services
 from .services import people as people_services
-from .services import shopping
+from .services import privacy, shopping
 from .services import stores as stores_services
 from .services.billing import bill_text, mark_all_paid, season_billing
 from .services.gifts import needs_price
@@ -62,21 +72,39 @@ def _partial(request, name: str, ctx: dict) -> str:
 
 
 class GiftsMixin(HouseholdMixin):
-    """Heimili úr slóð (HouseholdMixin) + jólaár, gjöf eða hugmynd innan þess."""
+    """Heimili úr slóð (HouseholdMixin) + jólaár, gjöf eða hugmynd innan þess.
+
+    Gjöf handa þeim sem skoðar (services/privacy.py) er ekki til í hans augum (404), nema þar
+    sem hann má bæta við eða breyta eigin óskum.
+    """
+
+    @property
+    def viewer(self) -> privacy.Viewer:
+        return privacy.Viewer.of(self.membership)
 
     def get_season(self, year: int) -> Season:
         return get_object_or_404(Season, household=self.household, year=year)
 
-    def get_gift(self, pk: int) -> Gift:
+    def get_gift(self, pk: int, *, allow_secret=False) -> Gift:
         qs = Gift.objects.alive().select_related("season", "person")
-        return get_object_or_404(qs, pk=pk, season__household=self.household)
+        gift = get_object_or_404(qs, pk=pk, season__household=self.household)
+        if not allow_secret and self.viewer.is_secret(gift):
+            raise Http404
+        return gift
 
-    def get_idea(self, pk: int) -> Idea:
+    def get_idea(self, pk: int, *, wish_ok=False) -> Idea:
+        """Hugmynd; í leyndri gjöf aðeins óskir viðtakandans sjálfs og aðeins ef `wish_ok`."""
         qs = Idea.objects.select_related("gift__season", "gift__person")
         idea = get_object_or_404(qs, pk=pk, gift__season__household=self.household)
         if idea.gift.deleted_at:
             raise Http404
+        if self.viewer.is_secret(idea.gift) and not (wish_ok and idea.wish):
+            raise Http404
         return idea
+
+    def is_others_wish(self, idea: Idea) -> bool:
+        """Hugmynd sem viðtakandinn skráði sjálfur, skoðuð af öðrum: aðeins hann breytir efni hennar."""
+        return idea.wish and not self.viewer.is_recipient(idea.gift)
 
     def ensure_editable(self, season: Season) -> None:
         """Liðin jól eru læst; viðmótið sýnir ekki breytingarhnappa en þjónninn ver líka."""
@@ -105,7 +133,7 @@ class GiftsMixin(HouseholdMixin):
     # ---------- Context ----------
 
     def base_context(self, season: Season, gift_list=None) -> dict:
-        gl = gift_list or listing.build_list(season, self.list_state())
+        gl = gift_list or listing.build_list(season, self.list_state(), viewer=self.viewer)
         return {
             "household": self.household,
             "season": season,
@@ -145,8 +173,7 @@ class GiftsMixin(HouseholdMixin):
 
     def row_html(self, gift: Gift, oob=False) -> str:
         ctx = self.base_context(gift.season)
-        section = ctx["gl"].section(gift.person.group)
-        row = next((r for r in section.rows if r.gift.pk == gift.pk), None) if section else None
+        _section, row = ctx["gl"].find(gift)
         return _partial(self.request, "gift_row", {**ctx, "row": row, "oob": oob}) if row else ""
 
     def row_response(self, gift: Gift, extra: str = "") -> HttpResponse:
@@ -156,8 +183,7 @@ class GiftsMixin(HouseholdMixin):
         """
         season = gift.season
         ctx = self.base_context(season)
-        section = ctx["gl"].section(gift.person.group)
-        row = next((r for r in section.rows if r.gift.pk == gift.pk), None) if section else None
+        section, row = ctx["gl"].find(gift)
         html = _partial(self.request, "gift_row", {**ctx, "row": row}) if row else ""
         ctx["oob"] = True
         if section:
@@ -203,7 +229,21 @@ class SeasonPageMixin(GiftsMixin):
             for s in self.household.seasons.order_by("-year")
         ]
         ctx["page_name"] = self.page
+        ctx["claim"] = self.claim_context()
         return ctx
+
+    def claim_context(self) -> dict | None:
+        """Borðinn „Hver ert þú á listanum?“ fyrir notanda sem er ekki tengdur einstaklingi."""
+        if self.membership.person_id is not None:
+            return None
+        taken = self.household.memberships.exclude(person=None).values("person_id")
+        people = sorted(
+            Person.objects.recipients().filter(household=self.household).exclude(pk__in=taken),
+            key=lambda p: is_sort_key(p.name),
+        )
+        name = fold_key(self.request.user.name)
+        guess = next((p.pk for p in people if name and fold_key(p.name) == name), None)
+        return {"people": people, "guess": guess}
 
 
 class GiftListView(SeasonPageMixin, TemplateView):
@@ -237,7 +277,7 @@ class ShopView(SeasonPageMixin, TemplateView):
         season = self.get_season(kwargs["year"])
         ctx.update(self.season_context(season))
         by_location = self.request.GET.get("eftir") == "stadsetningu"
-        gifts = season_gifts(season)
+        gifts = self.viewer.visible(season_gifts(season))
         ctx["by_location"] = by_location
         if by_location:
             ctx["location_groups"] = groups = shopping.by_location(season, gifts)
@@ -258,7 +298,7 @@ class PeopleView(SeasonPageMixin, TemplateView):
         season = self.get_season(kwargs["year"])
         ctx.update(self.season_context(season))
         everyone = people_services.for_people_page(self.household)
-        hist = listing.histories_bought(self.household, [p.pk for p in everyone])
+        hist = listing.histories_bought(self.household, [p.pk for p in everyone], self.viewer)
         groups = []
         for value, label in Group.choices:
             members = sorted((p for p in everyone if p.group == value), key=lambda p: is_sort_key(p.name))
@@ -279,7 +319,7 @@ class BillingView(SeasonPageMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         season = self.get_season(kwargs["year"])
         ctx.update(self.season_context(season))
-        payers = season_billing(season, season_gifts(season))
+        payers = season_billing(season, self.viewer.visible(season_gifts(season)))
         ctx["payers"] = [(p, bill_text(p, season.year)) for p in payers]
         due = [p for p in payers if p.unpaid_lines]
         ctx["due_count"] = len(due)
@@ -297,6 +337,8 @@ class GiverPaidView(GiftsMixin, View):
             idea__gift__season__household=self.household,
             idea__gift__deleted_at__isnull=True,
         )
+        if self.viewer.is_secret(link.idea.gift):
+            raise Http404
         link.paid = bool(request.POST.get("paid"))
         link.save(update_fields=["paid"])
         return self.changed(link.idea.gift.season)
@@ -308,7 +350,8 @@ class PayerAllPaidView(GiftsMixin, View):
     def post(self, request, slug, year, pk):
         season = self.get_season(year)
         person = get_object_or_404(Person, pk=pk, household=self.household)
-        mark_all_paid(season, person)
+        secret = self.viewer.secret(season.gifts.alive().select_related("season", "person"))
+        mark_all_paid(season, person, exclude=secret)
         return self.changed(season)
 
 
@@ -458,10 +501,13 @@ class GiftPlanView(GiftsMixin, View):
 
 
 class IdeaAddView(GiftsMixin, View):
+    """Ný hugmynd í línu. Skrái viðtakandinn sjálfur er hún ósk hans (sést þótt gjöfin sé falin)."""
+
     def post(self, request, slug, pk):
-        gift = self.get_gift(pk)
+        gift = self.get_gift(pk, allow_secret=True)
         self.ensure_editable(gift.season)
-        gift_services.add_ideas(gift, request.POST.get("text", "")[:1000])
+        wish = self.viewer.is_recipient(gift)
+        gift_services.add_ideas(gift, request.POST.get("text", "")[:1000], wish=wish)
         if self.page_name() != "listi":
             return self.changed(gift.season)
         return self.row_response(gift)
@@ -469,10 +515,15 @@ class IdeaAddView(GiftsMixin, View):
 
 class IdeaRemoveView(GiftsMixin, View):
     def post(self, request, slug, pk):
-        idea = self.get_idea(pk)
+        idea = self.get_idea(pk, wish_ok=True)
         gift = idea.gift
         self.ensure_editable(gift.season)
-        gift_services.remove_idea(idea)
+        if self.is_others_wish(idea):
+            raise PermissionDenied
+        if self.viewer.is_secret(gift):
+            gift_services.remove_wish(idea)
+        else:
+            gift_services.remove_idea(idea)
         if self.page_name() != "listi":
             return self.changed(gift.season)
         return self.row_response(gift)
@@ -514,12 +565,17 @@ class IdeaBoughtView(GiftsMixin, View):
 
 
 class IdeaStoreView(GiftsMixin, View):
-    """Búð skráð beint í línu hugmyndar á listanum, án þess að opna hugmyndargluggann."""
+    """Búð skráð beint í línu hugmyndar á listanum, án þess að opna hugmyndargluggann.
+
+    Viðtakandinn má líka skrá búð á eigin hugmyndir (í flokknum „Ég“).
+    """
 
     def post(self, request, slug, pk):
-        idea = self.get_idea(pk)
+        idea = self.get_idea(pk, wish_ok=True)
         gift = idea.gift
         self.ensure_editable(gift.season)
+        if self.is_others_wish(idea):
+            raise PermissionDenied
         store = stores_services.get_or_create_store(self.household, request.POST.get("store", ""))
         if store:
             idea.store = store
@@ -561,6 +617,8 @@ class GiftRestoreView(GiftsMixin, View):
         gift = get_object_or_404(
             Gift.objects.select_related("season", "person"), pk=pk, season__household=self.household
         )
+        if self.viewer.is_secret(gift):
+            raise Http404
         self.ensure_editable(gift.season)
         try:
             gift_services.restore(gift)
@@ -610,7 +668,7 @@ class GiftDialogView(GiftsMixin, View):
             "name": gift.person.name,
             "group": gift.person.group,
             "plan": gift.plan if gift.plan is not None else "",
-            "ideas": ", ".join(i.text for i in gift.ideas.all()),
+            "ideas": ", ".join(i.text for i in gift.ideas.all() if not i.wish),  # óskir: sjá sync_ideas
             "store": store.name if store else "",
             "link": gift.link,
         }
@@ -628,7 +686,9 @@ class GiftDialogView(GiftsMixin, View):
         form = GiftForm(request.POST)
         if form.is_valid():
             try:
-                gift_services.save_gift(self.season, self.gift, form.to_data())
+                gift_services.save_gift(
+                    self.season, self.gift, form.to_data(), wish_for=self.viewer.person_id
+                )
             except ValueError as exc:
                 form.add_error("name", str(exc))
             else:
@@ -699,8 +759,13 @@ class PersonDialogView(GiftsMixin, View):
             "form": form,
             "conflict": conflict,
             # Fyrri gjafir: aðeins það sem var keypt (merkt „Tilbúið“), ekki hugmyndir sem urðu ekki að gjöf
-            "history": [entry for entry in history(person) if entry.gift.bought],
+            "history": [
+                entry
+                for entry in history(person)
+                if entry.gift.bought and not self.viewer.is_secret(entry.gift)
+            ],
             "share": wishlist_services.active_share(person),
+            **person_invite_context(self.household, person, self.is_owner),
             "year": params.get("ar", ""),  # árið sem listinn sýnir, svo hann uppfærist eftir vistun
         }
         return self.dialog(self.template, ctx, status=status)
@@ -723,6 +788,9 @@ class PersonDialogView(GiftsMixin, View):
             return self.render(person, form, status=422)
         d = form.cleaned_data
         conflict = people_services.find_conflict(person, d["name"])
+        if conflict and people_services.both_members(person, conflict):
+            form.add_error("name", people_services.MERGE_MEMBERS_ERROR)
+            return self.render(person, form, status=422)
         if conflict and not d["merge"]:
             # Spurt fyrst, eins og `renamePerson`: „X“ er þegar til. Sameina?
             return self.render(person, form, conflict=conflict, status=422)
@@ -800,7 +868,11 @@ class ReservationRemoveView(GiftsMixin, View):
 
 
 class IdeaDialogView(GiftsMixin, View):
+    """Hugmyndaglugginn. Í gjöf handa þeim sem skoðar er þetta óskaglugginn: aðeins texti, lýsing
+    og hlekkur, ekkert um stöðu, verð eða gefendur."""
+
     template = "gifts/dialogs/idea.html"
+    wish_template = "gifts/dialogs/wish.html"
 
     def render(self, idea, form, givers, status=200):
         ctx = {
@@ -808,13 +880,20 @@ class IdeaDialogView(GiftsMixin, View):
             "gift": idea.gift,
             "form": form,
             "givers_json": json.dumps(givers, ensure_ascii=False),
+            "locked": self.is_others_wish(idea),  # texti, lýsing, búð og hlekkur eru viðtakandans
             **_form_lists(self.household),
         }
         return self.dialog(self.template, ctx, status=status)
 
+    def render_wish(self, idea, form, status=200):
+        return self.dialog(self.wish_template, {"idea": idea, "gift": idea.gift, "form": form}, status=status)
+
     def get(self, request, slug, pk):
-        idea = self.get_idea(pk)
+        idea = self.get_idea(pk, wish_ok=True)
         self.ensure_editable(idea.gift.season)
+        if self.viewer.is_secret(idea.gift):
+            initial = {"text": idea.text, "note": idea.note, "link": idea.link}
+            return self.render_wish(idea, WishForm(initial=initial))
         links = list(idea.giver_links.select_related("person"))
         initial = {
             "text": idea.text,
@@ -826,17 +905,30 @@ class IdeaDialogView(GiftsMixin, View):
             "price": idea.price if idea.price is not None else "",
             "link": idea.link,
             "picked": idea.picked,
+            "reserved": idea.reserved,
         }
         givers = [link.person.name for link in links]
         return self.render(idea, IdeaForm(initial=initial), givers)
 
     def post(self, request, slug, pk):
-        idea = self.get_idea(pk)
+        idea = self.get_idea(pk, wish_ok=True)
         self.ensure_editable(idea.gift.season)
-        form = IdeaForm(request.POST)
+        if self.viewer.is_secret(idea.gift):
+            form = WishForm(request.POST)
+            if not form.is_valid():
+                return self.render_wish(idea, form, status=422)
+            gift_services.save_wish(idea, **form.cleaned_data)
+            return self.changed(idea.gift.season)
+        data = request.POST
+        locked = self.is_others_wish(idea)
+        if locked:
+            # Efnið kemur ekki úr forminu (reitirnir eru ekki sýndir), svo núverandi texti fylgir með
+            data = data.copy()
+            data["text"] = idea.text
+        form = IdeaForm(data)
         if form.is_valid():
             with transaction.atomic():
-                gift_services.save_idea(idea, form.to_data())
+                gift_services.save_idea(idea, form.to_data(), keep_content=locked)
             return self.changed(idea.gift.season)
         givers = request.POST.getlist("givers")
         return self.render(idea, form, givers, status=422)

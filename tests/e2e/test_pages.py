@@ -64,7 +64,7 @@ def test_shop_by_location_and_mark_bought(home, live_server, page):
     dialog.get_by_label("Verð (kr.)").fill("4990")
     dialog.get_by_role("button", name="Skrá verð").click()
     expect(page.get_by_text("Allar gjafir eru keyptar!")).to_be_visible()
-    assert Gift.objects.get(person__name="Una").bought
+    assert not Gift.objects.get(person__name="Una").bought  # „Tilbúið“ merkir notandinn sjálfur
     assert Idea.objects.get(text="úr").price == 4990
 
 

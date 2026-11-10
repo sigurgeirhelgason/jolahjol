@@ -216,9 +216,39 @@ def test_household_sees_and_removes_reservation(client, member, share):
     client.force_login(member.user)
     slug = member.household.slug
     row = client.get(reverse("gifts:season", args=[slug, YEAR])).text
-    assert "frátekið af Amma Jóa" in row and "bookmark" in row
+    assert "frátekið af Amma Jóa" in row and "idea-line reserved" in row  # appelsínugul, án gátreits
     dialog = client.get(reverse("gifts:idea", args=[slug, idea("legó").pk]), **HX).text
     assert "Frátekið af Amma Jóa" in dialog
     client.post(reverse("gifts:reservation_remove", args=[slug, idea("legó").pk]), **HX)
-    assert idea("legó").reserved_by is None
+    assert idea("legó").reserved_by is None and not idea("legó").reserved
     assert WishlistShare.objects.count() == 1
+
+
+def test_household_marks_reserved_by_hand(client, member, share):
+    """Amma segir í síma „ég kaupi það“: heimilið hakar „Frátekið“; af óskalista verður það tekið."""
+    client.force_login(member.user)
+    slug = member.household.slug
+    lego = idea("legó")
+    data = {
+        "text": "legó",
+        "price": "",
+        "link": "",
+        "note": "",
+        "store": "",
+        "locations": "",
+        "reserved": "on",
+    }
+    client.post(reverse("gifts:idea", args=[slug, lego.pk]), data, **HX)
+    lego.refresh_from_db()
+    assert lego.reserved and lego.reserved_by is None and not lego.picked
+    assert "Frátekið" in Client().get(reverse("wishlists:public", args=[share.token])).text
+    assert "legó" not in client.get(reverse("gifts:shop", args=[slug, YEAR])).text  # ekki á innkaupalista
+    # Keypt: verður rautt
+    client.post(reverse("gifts:idea", args=[slug, lego.pk]), {**data, "picked": "on"}, **HX)
+    lego.refresh_from_db()
+    assert lego.picked and "idea-line picked" in client.get(reverse("gifts:season", args=[slug, YEAR])).text
+    # Afhakað: frátekningin fellur niður
+    data.pop("reserved")
+    client.post(reverse("gifts:idea", args=[slug, lego.pk]), data, **HX)
+    lego.refresh_from_db()
+    assert not lego.reserved

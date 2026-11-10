@@ -35,11 +35,8 @@ def _matches(entry, state: str, q: str) -> bool:
     if state == "eftir" and entry.bought or state == "keypt" and not entry.bought:
         return False
     if q:
-        values = (
-            [entry.person.name, *(i.text for i in entry.gift.ideas.all())]
-            if entry.gift
-            else [entry.person.name]
-        )
+        ideas = entry.wishes if entry.secret else (entry.gift.ideas.all() if entry.gift else [])
+        values = [entry.person.name, *(i.text for i in ideas)]
         return any(fold_key(q) in fold_key(v) for v in values)
     return True
 
@@ -49,7 +46,7 @@ class BirthdaysView(GiftsMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ov = birthdays.overview(self.household)
+        ov = birthdays.overview(self.household, viewer=self.viewer)
         state = self.request.GET.get("syna", "allt")
         state = state if state in FILTERS else "allt"
         q = (self.request.GET.get("leit") or "").strip()[:100]
@@ -143,7 +140,7 @@ class BankAddView(GiftsMixin, View):
             }
             return self.dialog(self.template, ctx, status=422)
         gift = birthdays.ensure_gift(entry.person, entry.date.year)
-        add_ideas(gift, str(idea_bank.IDEAS[index][1]))
+        add_ideas(gift, str(idea_bank.IDEAS[index][1]), wish=self.viewer.is_recipient(gift))
         return self.changed(gift.season)
 
 

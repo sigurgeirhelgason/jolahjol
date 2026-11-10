@@ -38,14 +38,13 @@ def split_shares(idea: Idea) -> Shares:
 def actual_price(gift: Gift) -> int | None:
     """Raunverð gjafar, eða None ef það er óþekkt eða allt er rukkað annan.
 
-    Ef keyptar hugmyndir eru með verð ræður summa okkar hlutar í þeim; annars
-    upphæðin sem var slegin inn þegar gjöfin var merkt keypt.
+    Ef keyptar hugmyndir eru með verð ræður summa okkar hlutar í þeim, hvort sem gjöfin er
+    merkt „Tilbúið“ eða ekki (peningurinn er farinn); annars upphæðin sem var slegin inn þegar
+    gjöfin var merkt tilbúin.
     """
-    if not gift.bought:
-        return None
     priced = [i for i in gift.ideas.all() if i.picked and i.price]
     if not priced:
-        return gift.manual_price
+        return gift.manual_price if gift.bought else None
     shares = [split_shares(i) for i in priced]
     ours = sum(s.ours for s in shares)
     has_own = any(not s.givers for s in shares) or ours > 0

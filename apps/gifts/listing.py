@@ -19,6 +19,7 @@ from apps.core.text import fold_key, is_sort_key
 from .models import GROUP_ICONS, Gift, Group, Person, Season, Store
 from .services.gifts import gift_text
 from .services.pricing import actual_price, giver_breakdown
+from .services.privacy import EVERYONE, Viewer
 from .services.queries import season_gifts, with_details
 from .services.stores import stores_of
 from .services.summary import SeasonSummary, season_summary
@@ -76,10 +77,18 @@ class Row:
     history: list[tuple[int, str]]
     price: int | None
     breakdown: list[tuple[Person | None, int]] | None
+    # Gjöf handa þeim sem skoðar: aðeins nafn og óskir hans sjálfs birtast (services/privacy.py)
+    secret: bool = False
+    # Nafnið sem sá sem skoðar sér (hans eigið nafn á hans eigin línu)
+    name: str = ""
 
     @property
     def person(self) -> Person:
         return self.gift.person
+
+    @property
+    def wishes(self):
+        return [i for i in self.gift.ideas.all() if i.wish]
 
     @property
     def gift_stores(self) -> list[Store]:
@@ -111,17 +120,21 @@ class Row:
         return "\n".join(f"{y}: {t}" for y, t in self.history)
 
 
-def _row(gift: Gift, histories: dict[int, list]) -> Row:
+def _row(gift: Gift, histories: dict[int, list], viewer: Viewer = EVERYONE) -> Row:
+    name = viewer.display_name(gift.person)
+    if viewer.is_secret(gift):
+        return Row(gift, [], [], None, None, secret=True, name=name)
     return Row(
         gift=gift,
         stores=stores_of(gift),
         history=histories.get(gift.person_id, []),
         price=actual_price(gift),
         breakdown=giver_breakdown(gift),
+        name=name,
     )
 
 
-def histories(season: Season, person_ids) -> dict[int, list[tuple[int, str]]]:
+def histories(season: Season, person_ids, viewer: Viewer = EVERYONE) -> dict[int, list[tuple[int, str]]]:
     """Fyrri gjafir hvers einstaklings (nýjasta fyrst), sóttar í einu lagi fyrir allan listann."""
     gifts = with_details(
         Gift.objects.alive()
@@ -131,13 +144,13 @@ def histories(season: Season, person_ids) -> dict[int, list[tuple[int, str]]]:
         )
     ).order_by("-season__year")
     out: dict[int, list] = defaultdict(list)
-    for gift in gifts:
+    for gift in viewer.visible(gifts):
         text = gift_text(gift) or ", ".join(s.name for s in stores_of(gift)) or "—"
         out[gift.person_id].append((gift.season.year, text))
     return out
 
 
-def histories_bought(household, person_ids) -> dict[int, list[tuple[int, str]]]:
+def histories_bought(household, person_ids, viewer: Viewer = EVERYONE) -> dict[int, list[tuple[int, str]]]:
     """Keyptar gjafir hvers einstaklings öll ár (nýjasta fyrst), fyrir „Fólk“."""
     gifts = with_details(
         Gift.objects.alive()
@@ -145,18 +158,24 @@ def histories_bought(household, person_ids) -> dict[int, list[tuple[int, str]]]:
         .filter(season__household=household, person_id__in=person_ids, bought=True)
     ).order_by("-season__year")
     out: dict[int, list] = defaultdict(list)
-    for gift in gifts:
+    for gift in viewer.visible(gifts):
         out[gift.person_id].append((gift.season.year, gift_text(gift) or "—"))
     return out
 
 
-def build_row(gift: Gift) -> Row:
+def build_row(gift: Gift, viewer: Viewer = EVERYONE) -> Row:
     gift = with_details(Gift.objects.filter(pk=gift.pk)).get()
-    return _row(gift, histories(gift.season, [gift.person_id]))
+    return _row(gift, histories(gift.season, [gift.person_id], viewer), viewer)
 
 
 def matches(row: Row, state: ListState) -> bool:
     gift = row.gift
+    if row.secret:
+        # Staðan er leynd: línan birtist aðeins á öllum listanum, og leit nær bara í nafn og óskir
+        if state.filter != "allt" or state.store != ALL_STORES:
+            return False
+        q = fold_key(state.q)
+        return not q or any(q in fold_key(v) for v in [row.name, *(i.text for i in row.wishes)])
     if state.filter == "eftir" and gift.bought or state.filter == "keypt" and not gift.bought:
         return False
     if state.store == NO_STORE and row.stores:
@@ -175,14 +194,18 @@ def matches(row: Row, state: ListState) -> bool:
     return True
 
 
+# Leynd lína raðast eins og hún væri án áætlunar og ókeypt, svo röðin segi ekkert um hana
 _SORT_KEYS = {
-    "nafn": lambda r: is_sort_key(r.person.name),
-    "aaetlun": lambda r: -(r.gift.plan or 0),
-    "stada": lambda r: r.gift.bought,
+    "nafn": lambda r: is_sort_key(r.name or r.person.name),
+    "aaetlun": lambda r: -(0 if r.secret else r.gift.plan or 0),
+    "stada": lambda r: not r.secret and r.gift.bought,
 }
 
 
 # ---------- Flokkar ----------
+
+# Flokkurinn „Ég“ efst: lína þess sem skoðar (hjá öðrum er hún í sínum venjulega flokki)
+MINE = "eg"
 
 
 @dataclass
@@ -199,6 +222,10 @@ class Section:
     @property
     def dom_id(self) -> str:
         return f"group-{self.group}"
+
+    @property
+    def mine(self) -> bool:
+        return self.group == MINE
 
 
 def _section(group: str, label: str, rows: list[Row], shown: list[Row]) -> Section:
@@ -228,12 +255,24 @@ class GiftList:
     def section(self, group: str) -> Section | None:
         return next((s for s in self.sections if s.group == group), None)
 
+    def find(self, gift: Gift) -> tuple[Section | None, Row | None]:
+        """Flokkurinn og línan sem gjöfin birtist í (línan None ef hún passar ekki við síuna)."""
+        for s in self.sections:
+            for r in s.rows:
+                if r.gift.pk == gift.pk:
+                    return s, r
+        return self.section(gift.person.group), None
 
-def build_list(season: Season, state: ListState, *, locked: bool | None = None) -> GiftList:
-    gifts = season_gifts(season)
+
+def build_list(
+    season: Season, state: ListState, *, locked: bool | None = None, viewer: Viewer = EVERYONE
+) -> GiftList:
+    all_gifts = season_gifts(season)
+    gifts = viewer.visible(all_gifts)
     locked = season.is_locked() if locked is None else locked
-    hist = histories(season, {g.person_id for g in gifts})
-    rows = [_row(g, hist) for g in gifts]
+    hist = histories(season, {g.person_id for g in all_gifts}, viewer)
+    every_row = [_row(g, hist, viewer) for g in all_gifts]
+    rows = [r for r in every_row if not r.secret]
 
     stores: dict[str, str] = {}
     for r in rows:
@@ -243,6 +282,9 @@ def build_list(season: Season, state: ListState, *, locked: bool | None = None) 
         state = ListState(state.filter, state.q, ALL_STORES, state.sort)
 
     sections = []
+    mine = [r for r in every_row if r.secret and matches(r, state)]
+    if mine:
+        sections.append(Section(MINE, _("Ég"), "🙋", mine, 0, 0, 0, 0))
     for value, label in Group.choices:
         in_group = [r for r in rows if r.gift.person.group == value]
         shown = [r for r in in_group if matches(r, state)]
@@ -267,9 +309,9 @@ def build_list(season: Season, state: ListState, *, locked: bool | None = None) 
     )
 
 
-def section_for(season: Season, group: str, state: ListState) -> Section | None:
+def section_for(season: Season, group: str, state: ListState, viewer: Viewer = EVERYONE) -> Section | None:
     """Einn flokkur (fyrir OOB-uppfærslu á haus flokksins eftir breytingu í línu)."""
-    return build_list(season, state).section(group)
+    return build_list(season, state, viewer=viewer).section(group)
 
 
 # ---------- Hetjuhluti og yfirlit ----------

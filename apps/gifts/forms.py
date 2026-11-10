@@ -180,6 +180,7 @@ class IdeaForm(forms.Form):
     price = AmountField(label=_("Verð (kr.)"), widget=forms.TextInput(attrs={"placeholder": "—"}))
     link = _link()
     picked = forms.BooleanField(required=False)
+    reserved = forms.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -206,7 +207,21 @@ class IdeaForm(forms.Form):
             price=d["price"],
             link=d["link"],
             picked=d["picked"],
+            reserved=d["reserved"],
         )
+
+
+class WishForm(forms.Form):
+    """Viðtakandinn breytir eigin ósk: engin staða, verð né gefendur."""
+
+    text = _text(_("Hugmynd"), max_length=200)
+    note = forms.CharField(
+        label=_("Nánari lýsing"),
+        required=False,
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": _("t.d. stærð, litur, hvaða útgáfa…")}),
+    )
+    link = _link()
 
 
 class PriceForm(forms.Form):

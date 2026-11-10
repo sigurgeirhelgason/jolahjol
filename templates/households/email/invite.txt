@@ -1,0 +1,12 @@
+{% load i18n %}{% autoescape off %}{% translate "Hæ!" %}
+
+{% if invite.created_by %}{% blocktranslate with who=invite.created_by name=invite.household.name %}{{ who }} bauð þér að vera með í gjafalistanum „{{ name }}“ á Jólahjóli.{% endblocktranslate %}{% else %}{% blocktranslate with name=invite.household.name %}Þér er boðið að vera með í gjafalistanum „{{ name }}“ á Jólahjóli.{% endblocktranslate %}{% endif %}
+{% if invite.person %}{% blocktranslate with name=invite.person.name %}Á listanum heitir þú {{ name }}.{% endblocktranslate %} {% endif %}{% translate "Þú sérð ekki hvað aðrir ætla að gefa þér, en getur skráð hugmyndir fyrir þig." %}
+
+{% translate "Þiggja boðið:" %} {{ url }}
+
+{% blocktranslate count n=days %}Hlekkurinn gildir fyrir einn og rennur út eftir {{ n }} dag.{% plural %}Hlekkurinn gildir fyrir einn og rennur út eftir {{ n }} daga.{% endblocktranslate %}
+
+{% translate "Kveðja," %}
+Jólahjól 🎄
+{% endautoescape %}

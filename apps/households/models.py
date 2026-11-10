@@ -41,12 +41,27 @@ class Membership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="memberships")
     household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name="memberships")
     role = models.CharField(_("hlutverk"), max_length=10, choices=Role.choices, default=Role.MEMBER)
+    # Einstaklingurinn á listanum sem notandinn er. Gjafir handa honum merktar „Fela“ sjást ekki
+    # hjá notandanum (sjá apps/gifts/services/privacy.py). Aðeins eigandi breytir tengingunni.
+    person = models.ForeignKey(
+        "gifts.Person",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="memberships",
+        verbose_name=_("á listanum sem"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = _("aðild")
         verbose_name_plural = _("aðildir")
-        constraints = [models.UniqueConstraint(fields=["user", "household"], name="unique_membership")]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "household"], name="unique_membership"),
+            models.UniqueConstraint(
+                fields=["person"], condition=models.Q(person__isnull=False), name="unique_member_person"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.user} – {self.household}"
@@ -75,6 +90,12 @@ class Invite(models.Model):
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
     )
+    # Hver á listanum fær boðið; sá sem þiggur það tengist þessum einstaklingi
+    person = models.ForeignKey(
+        "gifts.Person", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    # Boðið var sent á þetta netfang (hlekkinn má líka afrita úr lista virkra boða)
+    email = models.EmailField(_("netfang"), blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(default=_invite_expiry)
     accepted_by = models.ForeignKey(

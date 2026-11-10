@@ -6,7 +6,7 @@
     <span class="avatar{% if e.urgent %} urgent{% elif e.bought %} ok{% endif %}" aria-hidden="true">{{ e.person.name|first|upper }}</span>
     <div class="bday-who">
       <h3>
-        <button type="button" class="name-btn" hx-get="{% url 'gifts:person' household.slug e.person.pk %}?ar={{ year }}" hx-target="#modal-body">{{ e.person.name }}</button>
+        <button type="button" class="name-btn" hx-get="{% url 'gifts:person' household.slug e.person.pk %}?ar={{ year }}" hx-target="#modal-body">{{ e.name|default:e.person.name }}</button>
         <span class="muted">· {% blocktranslate with age=e.age %}verður {{ age }} ára{% endblocktranslate %}{% if e.round_birthday %} ({% translate "Stórafmæli" %} 🎉){% endif %}</span>
       </h3>
       <p class="muted">{{ e.date|date:"j. F Y" }}{% if e.near_christmas %} · {% translate "Jólakrakki" %} 🌟{% endif %}</p>
@@ -24,12 +24,21 @@
   <div class="bday-ideas">
     <span class="bday-label">{% translate "Hugmyndir:" %}</span>
     <div class="ideas">
-      {% if gift %}
-        {% for idea in gift.ideas.all %}
-          <span class="chip{% if idea.picked %} picked{% endif %}">
-            <button type="button" class="chip-t" title="{{ idea|idea_title }}" hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}</button>
+      {% if e.secret %}
+        {# Afmæli þess sem skoðar: aðeins óskirnar hans sjálfs (services/privacy.py) #}
+        {% for idea in e.wishes %}
+          <span class="chip">
+            <button type="button" class="chip-t" title="{{ idea.text }}" hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}</button>
             <button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
                     hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-swap="none">×</button>
+          </span>
+        {% endfor %}
+      {% elif gift %}
+        {% for idea in gift.ideas.all %}
+          <span class="chip{% if idea.picked %} picked{% elif idea.reserved %} reserved{% endif %}">
+            <button type="button" class="chip-t" title="{{ idea|idea_title }}" hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}</button>
+            {% if not idea.wish %}<button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
+                    hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-swap="none">×</button>{% endif %}
           </span>
         {% endfor %}
       {% endif %}
@@ -40,6 +49,15 @@
     </div>
   </div>
 
+  {% if e.secret %}
+  <div class="bday-gift">
+    <span class="ms" aria-hidden="true">lock</span>
+    <div class="bday-gift-text">
+      <strong>{% translate "Leyndarmál 🤫" %}</strong>
+      <span class="muted">{% translate "Þú sérð bara hugmyndirnar sem þú skráir. Það sem aðrir ætla að gefa þér er leyndarmál." %}</span>
+    </div>
+  </div>
+  {% else %}
   <div class="bday-gift">
     <input type="checkbox" name="bought" value="on"{% if e.bought %} checked{% endif %}
            aria-label="{% blocktranslate with name=e.person.name %}Afmælisgjöf keypt handa {{ name }}{% endblocktranslate %}"
@@ -60,5 +78,6 @@
     </label>
     <span class="status-pill{% if e.bought %} ok{% endif %}">{% if e.bought %}{% translate "Keypt" %}{% else %}{% translate "Ókeypt" %}{% endif %}</span>
   </div>
+  {% endif %}
 </article>
 {% endwith %}

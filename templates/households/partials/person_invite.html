@@ -1,0 +1,39 @@
+{% load i18n %}
+{% comment %}
+  Einstaklingsglugginn: „Bjóða í heimilið“. Sá sem þiggur boðið verður þessi einstaklingur á
+  listanum og sér ekki hvað aðrir ætla að gefa honum. Aðeins eigendur búa til boð.
+{% endcomment %}
+<div class="past wish-share" id="person-invite">
+  <h4><span class="ms">person_add</span> {% translate "Í heimilinu" %}</h4>
+  {% if member %}
+    <p class="help">{% blocktranslate with user=member.user %}<strong>{{ user }}</strong> er notandi í heimilinu og sér ekki hvað aðrir ætla að gefa honum eða henni.{% endblocktranslate %}</p>
+  {% elif invite %}
+    <p class="help">
+      {% if error %}<span class="error" role="alert">{{ error }}</span>{% elif invite.email %}{% blocktranslate with email=invite.email %}Boð var sent á <strong>{{ email }}</strong>.{% endblocktranslate %}{% endif %}
+      {% translate "Einnig má afrita hlekkinn og senda hann á annan hátt. Hann gildir fyrir einn og rennur út eftir 7 daga." %}
+    </p>
+    <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">
+      <input x-ref="source" readonly aria-label="{% translate 'Boðshlekkur' %}"
+             value="{{ request.scheme }}://{{ request.get_host }}{% url 'households:invite_accept' invite.token %}">
+      <button type="button" class="btn small soft" x-on:click="copy"><span class="ms">content_copy</span><span x-text="label">{% translate "Afrita" %}</span></button>
+    </div>
+    <div class="wish-share-actions">
+      <button type="button" class="btn small danger" hx-post="{% url 'households:person_invite_revoke' household.slug person.pk %}" hx-target="#person-invite" hx-swap="outerHTML">
+        <span class="ms">link_off</span>{% translate "Afturkalla boð" %}
+      </button>
+    </div>
+  {% elif is_owner %}
+    <p class="help">{% blocktranslate with name=person.name %}Á {{ name }} að vera með í heimilinu? Viðkomandi getur þá skráð hugmyndir fyrir sig en sér ekki hvað aðrir ætla að gefa.{% endblocktranslate %}</p>
+    <div class="invite-link">
+      <input type="email" name="invite_email" id="invite-email-{{ person.pk }}" value="{{ email|default:'' }}" autocomplete="off"
+             placeholder="{% translate 'Netfang' %}" aria-label="{% translate 'Netfang' %}">
+      <button type="button" class="btn small soft" hx-post="{% url 'households:person_invite' household.slug person.pk %}"
+              hx-include="#invite-email-{{ person.pk }}" hx-target="#person-invite" hx-swap="outerHTML">
+        <span class="ms">mail</span>{% translate "Senda boð" %}
+      </button>
+    </div>
+    {% if error %}<p class="help error" role="alert">{{ error }}</p>{% endif %}
+  {% else %}
+    <p class="help">{% translate "Aðeins eigendur geta boðið fleirum í heimilið." %}</p>
+  {% endif %}
+</div>

@@ -88,14 +88,19 @@ def test_pick_idea_in_list(home, page):
     dialog.get_by_role("button", name="Skrá verð").click()
     expect(dialog).to_be_hidden()
     una = row(page, "Una")
-    expect(una).to_have_class(re.compile(r"\bdone\b"))
     expect(una.locator(".idea-line.picked")).to_have_count(1)
     expect(una.get_by_label("úr handa Una keypt")).to_be_checked()
     expect(una.locator(".price-wrap")).to_contain_text("4.990 kr.")
+    # Keypt hugmynd gerir gjöfina ekki „Tilbúið“: það gerir notandinn sjálfur
+    expect(una).not_to_have_class(re.compile(r"\bdone\b"))
+    una.get_by_label("Keypt handa Una").check()
+    expect(row(page, "Una")).to_have_class(re.compile(r"\bdone\b"))
+    expect(page.locator("#modal")).to_be_hidden()  # verðið er þekkt, ekki spurt
 
-    # Hætt við: gjöfin er ekki lengur keypt
-    una.get_by_label("úr handa Una keypt").uncheck()
-    expect(row(page, "Una")).not_to_have_class(re.compile(r"\bdone\b"))
+    # Hætt við hugmyndina: gjöfin er áfram tilbúin
+    row(page, "Una").get_by_label("úr handa Una keypt").uncheck()
+    expect(row(page, "Una").locator(".idea-line.picked")).to_have_count(0)
+    expect(row(page, "Una")).to_have_class(re.compile(r"\bdone\b"))
 
 
 def test_store_typed_in_idea_line(home, page):
@@ -113,7 +118,7 @@ def test_idea_dialog_givers_and_billing(home, page):
     add_gift(page, "Fjölskylda", "Ásdís", "8000", "púsl")
     page.get_by_role("button", name=re.compile("^púsl")).click()
     dialog = page.locator("#modal")
-    givers = dialog.get_by_label("Frá hverjum?")
+    givers = dialog.get_by_label("Hver gefur gjöfina?")
 
     # Komma aðgreinir gefendur; placeholder hverfur þegar gefandi er kominn
     expect(givers).to_have_attribute("placeholder", "t.d. Amma Jóa, Afi")
@@ -132,7 +137,7 @@ def test_idea_dialog_givers_and_billing(home, page):
     expect(dialog).to_be_hidden()
 
     asdis = row(page, "Ásdís")
-    expect(asdis.locator(".idea-line.picked")).to_contain_text("frá Amma Jóa og Afi")
+    expect(asdis.locator(".idea-line.picked")).to_contain_text("Amma Jóa og Afi gefa gjöfina")
     expect(page.locator("#summary .money-foot")).to_contain_text("Til innheimtu: 6.000 kr.")
     assert set(IdeaGiver.objects.values_list("person__name", "share")) == {("Amma Jóa", None), ("Afi", None)}
 

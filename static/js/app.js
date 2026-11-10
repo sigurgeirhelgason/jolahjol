@@ -96,6 +96,20 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 
+  // Sprettigluggi á venjulegri síðu: <div x-data="popup"><button x-on:click="open"> … <dialog x-ref="dialog">
+  Alpine.data("popup", () => ({
+    open() {
+      this.$refs.dialog.showModal();
+      if (this.$refs.first) this.$refs.first.focus();
+    },
+    close() { this.$refs.dialog.close(); },
+  }));
+
+  // Form sem er sent um leið og valið breytist: <form x-data="autoSubmit" x-on:change="submit">
+  Alpine.data("autoSubmit", () => ({
+    submit() { this.$el.requestSubmit(); },
+  }));
+
   // Eyða heimili: gluggi þar sem nafn heimilisins er skrifað; hnappurinn virkur aðeins ef það passar
   // (sama samanburður og DeleteHouseholdForm: há- og lágstafir og bil í endum skipta ekki máli)
   Alpine.data("typeToConfirm", () => ({
@@ -252,6 +266,8 @@ document.addEventListener("alpine:init", () => {
       this.link = this.$refs.link.value;
     },
 
+    destroy() { clearTimeout(this.timer); },
+
     get hasGivers() { return this.tags.length > 0; },
     get showPaid() { return this.forOther && this.hasGivers; },
     // Placeholder hverfur þegar gefandi er kominn, því reiturinn er þá ekki „tómur“
@@ -286,6 +302,7 @@ document.addEventListener("alpine:init", () => {
       clearTimeout(this.timer);
       const seq = ++this.seq;
       this.timer = setTimeout(async () => {
+        if (!this.$refs.input) return; // glugganum var lokað á meðan beðið var
         const q = this.$refs.input.value.trim();
         if (!q) { this.$refs.options.innerHTML = ""; return; }
         const url = `${this.$refs.input.dataset.searchUrl}?q=${encodeURIComponent(q)}`;

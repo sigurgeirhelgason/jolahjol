@@ -73,7 +73,8 @@ def shop_items(gift: Gift) -> list[tuple[Store | None, ShopItem]]:
         return [(store, ShopItem(gift)) for store in list(gift.stores.all()) or [None]]
     if gift.bought and not any(i.picked for i in ideas):
         return []
-    open_ideas = [i for i in ideas if not i.picked]
+    # Frátekið: einhver annar ætlar að kaupa það, svo það er ekki á innkaupalista heimilisins
+    open_ideas = [i for i in ideas if not i.picked and not i.reserved]
     fallback = [] if any(i.store for i in ideas) else list(gift.stores.all())
     only = len(open_ideas) == 1 and not gift.bought
     out = []

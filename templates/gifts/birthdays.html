@@ -56,7 +56,7 @@
             {% else %}{% blocktranslate count n=e.days with name=e.person.name date=e.date|date:"j. b" %}Næst á dagskrá: {{ name }} á afmæli á morgun ({{ date }}){% plural %}Næst á dagskrá: {{ name }} á afmæli eftir {{ n }} daga ({{ date }}){% endblocktranslate %}{% endif %}
           </p>
           <p class="muted">
-            {% if e.bought %}{% translate "Gjöfin er keypt." %}{% elif e.gift and e.gift.ideas.all %}{% blocktranslate with what=e.gift|gift_summary %}Ókeypt: {{ what }}{% endblocktranslate %}{% else %}{% translate "Engin hugmynd skráð enn." %}{% endif %}
+            {% if e.secret %}{% translate "Leyndarmál 🤫" %}{% elif e.bought %}{% translate "Gjöfin er keypt." %}{% elif e.gift and e.gift.ideas.all %}{% blocktranslate with what=e.gift|gift_summary %}Ókeypt: {{ what }}{% endblocktranslate %}{% else %}{% translate "Engin hugmynd skráð enn." %}{% endif %}
           </p>
         </div>
         <a class="bday-next-link" href="#person-{{ e.person.pk }}">{% translate "Skoða" %}<span class="ms">chevron_right</span></a>

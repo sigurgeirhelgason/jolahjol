@@ -81,12 +81,19 @@ def owed_total(payers: list[Payer]) -> int:
     return sum(p.unpaid for p in payers)
 
 
-def mark_all_paid(season: Season, person: Person) -> int:
-    """Merkir allt keypt sem `person` skuldar á árinu sem greitt. Skilar fjölda lína."""
-    return IdeaGiver.objects.filter(
-        person=person,
-        idea__for_other=True,
-        idea__picked=True,
-        idea__gift__season=season,
-        idea__gift__deleted_at__isnull=True,
-    ).update(paid=True)
+def mark_all_paid(season: Season, person: Person, exclude=()) -> int:
+    """Merkir allt keypt sem `person` skuldar á árinu sem greitt. Skilar fjölda lína.
+
+    `exclude`: gjafir sem sá sem merkir sér ekki (falnar fyrir honum) haldast óbreyttar.
+    """
+    return (
+        IdeaGiver.objects.filter(
+            person=person,
+            idea__for_other=True,
+            idea__picked=True,
+            idea__gift__season=season,
+            idea__gift__deleted_at__isnull=True,
+        )
+        .exclude(idea__gift__in=[g.pk for g in exclude])
+        .update(paid=True)
+    )

@@ -51,10 +51,15 @@
   {% for section in gl.sections %}
     <div class="card" id="{{ section.dom_id }}">
       {% include "gifts/partials/group_head.html" %}
-      {% if section.rows or not locked %}
+      {% if section.mine %}
         <div class="row thead" aria-hidden="true">
-          <div class="c">{% translate "Tilbúið" %}</div><div>{% translate "Nafn & saga" %}</div><div>{% translate "Hugmyndir & valin gjöf" %}</div>
-          <div>{% translate "Búð" %}</div><div class="r">{% translate "Áætlað" %}</div><div class="r">{% translate "Raunverð" %}</div><div class="c">{% translate "Aðgerðir" %}</div>
+          <div class="c"></div><div>{% translate "Nafn" %}</div><div>{% translate "Hugmyndir" %}</div>
+          <div>{% translate "Búð" %}</div><div></div><div></div><div></div>
+        </div>
+      {% elif section.rows or not locked %}
+        <div class="row thead" aria-hidden="true">
+          <div class="c">{% translate "Tilbúið" %}</div><div>{% translate "Nafn" %}</div><div>{% translate "Hugmyndir" %} &amp; <span class="th-picked">🎁 {% translate "Gjafir" %}</span></div>
+          <div>{% translate "Verslun" %}</div><div class="r">{% translate "Áætlað" %}</div><div class="r">{% translate "Raunverð" %}</div><div class="c">{% translate "Aðgerðir" %}</div>
         </div>
       {% endif %}
       <div id="{{ section.dom_id }}-rows">
@@ -62,7 +67,7 @@
           {% include "gifts/partials/gift_row.html" %}
         {% endfor %}
       </div>
-      {% if not locked %}
+      {% if not locked and not section.mine %}
         <div class="add-person">
           <button type="button" hx-get="{% url 'gifts:new_row' household.slug season.year %}?flokkur={{ section.group }}"
                   hx-target="#{{ section.dom_id }}-rows" hx-swap="beforeend">
