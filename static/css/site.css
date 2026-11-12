@@ -1,10 +1,10 @@
 /* Það sem bættist við í Django-útgáfunni: innskráning, heimili, skilaboð, valmyndir. */
 
 /* Glow-hringir (voru inline-stílar; CSP leyfir þá ekki) */
-.glow.g-hero-1 { right: -48px; top: -48px; width: 256px; height: 256px; background: rgba(126, 0, 11, .05); }
+.glow.g-hero-1 { right: -48px; top: -48px; width: 256px; height: 256px; background: rgba(107, 2, 23, .05); }
 .glow.g-hero-2 { left: -40px; bottom: -40px; width: 192px; height: 192px; background: rgba(63, 102, 83, .05); }
 .glow.g-dash-1 { right: -40px; bottom: -40px; width: 288px; height: 288px; background: rgba(63, 102, 83, .1); }
-.glow.g-dash-2 { left: -32px; top: -32px; width: 224px; height: 224px; background: rgba(126, 0, 11, .05); }
+.glow.g-dash-2 { left: -32px; top: -32px; width: 224px; height: 224px; background: rgba(107, 2, 23, .05); }
 
 a { color: var(--secondary); }
 a:hover { color: var(--primary); }
@@ -32,7 +32,7 @@ form.inline { display: inline; margin: 0; }
 .entrance { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; }
 .entrance-card { width: min(440px, 100%); padding: 40px 36px; display: flex; flex-direction: column; gap: 20px; }
 .entrance-card > :not(.glow) { position: relative; z-index: 1; }
-.entrance-card .brand-name { font-size: 24px; line-height: 32px; }
+.entrance-card .brand-name { align-self: flex-start; font-size: 22px; line-height: 30px; }
 .entrance-card h1 { margin: 0; font: 700 28px/36px var(--display); letter-spacing: -.01em; }
 .entrance-card p { margin: 0; color: var(--on-var); }
 .entrance-card form { display: flex; flex-direction: column; gap: 16px; }
@@ -138,7 +138,7 @@ nav.views a.active { background: var(--high); color: var(--on); font-weight: 700
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 40px; padding: 5px 8px;
   background: var(--low); border: 1.5px solid transparent; border-radius: 8px; cursor: text;
 }
-.picker:focus-within { background: var(--lowest); border-color: var(--primary-c); box-shadow: 0 0 0 3px rgba(164, 22, 26, .15); }
+.picker:focus-within { background: var(--lowest); border-color: var(--primary-c); box-shadow: 0 0 0 3px rgba(139, 30, 43, .15); }
 .field .picker input { flex: 1; min-width: 120px; border: none; background: none; padding: 2px 4px; box-shadow: none; }
 .picker-tag {
   display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 10px; border-radius: 99px;
@@ -166,7 +166,7 @@ nav.views a.active { background: var(--high); color: var(--on); font-weight: 700
 
 @media (max-width: 760px) {
   .topbar .container { gap: 8px; }
-  .topbar .brand-name { font-size: 18px; white-space: nowrap; }
+  .topbar .brand-name { font-size: 16px; padding: 5px 12px; white-space: nowrap; }
   .topbar-right { gap: 2px; min-width: 0; }
   .topbar .btn.primary { padding: 8px 10px; }
   .menu > button { padding: 6px; }
@@ -187,7 +187,7 @@ label.loc-pick input { position: absolute; opacity: 0; pointer-events: none; }
 label.loc-pick .on-icon, label.loc-pick:has(input:checked) .off-icon { display: none; }
 label.loc-pick:has(input:checked) .on-icon { display: inline-block; }
 label.loc-pick:has(input:checked) { background: var(--secondary); border-color: var(--secondary); color: #fff; }
-label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26, .2); }
+label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(139, 30, 43, .2); }
 .store-btn { font-size: 14px; }
 
 /* Staðfestingargluggi (eyða ári, fjarlægja meðlim …) */
@@ -201,7 +201,7 @@ label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26
 .confirm-dlg p { margin: 0; color: var(--on-var); }
 .confirm-dlg p:empty { display: none; }
 .confirm-dlg .dlg-actions { justify-content: center; padding-top: 24px; }
-.btn.danger-solid { background: var(--primary-c); color: #fff; box-shadow: 0 2px 8px -2px rgba(164, 22, 26, .3); }
+.btn.danger-solid { background: var(--primary-c); color: #fff; box-shadow: 0 2px 8px -2px rgba(139, 30, 43, .3); }
 .btn.danger-solid:hover { background: var(--primary); }
 
 .confirm-dlg .confirm-warning { color: var(--primary); }
@@ -232,23 +232,6 @@ label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26
 @media (max-width: 1100px) { .mobile-views { padding: 4px; width: auto; max-width: calc(100% - 32px); } }
 
 /* ---------- Óskalisti (opin síða) ---------- */
-.wishlist { padding: 32px 0 48px; }
-.wishlist .container { display: flex; flex-direction: column; gap: 24px; max-width: 760px; }
-.wish-items { display: flex; flex-direction: column; gap: 12px; }
-.wish-item { padding: 20px 24px; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.wish-item.taken { opacity: .7; }
-.wish-item h2 { margin: 0; font: 600 18px/26px var(--display); }
-.wish-item.taken h2 { text-decoration: line-through; color: var(--outline); }
-.wish-main { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px; }
-.wish-note { margin: 0; color: var(--on-var); }
-.wish-meta { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 13px; color: var(--on-var); }
-.wish-meta span, .wish-meta a { display: inline-flex; align-items: center; gap: 4px; }
-.wish-meta .ms { font-size: 16px; color: var(--secondary); }
-.wish-action { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.wish-form { display: flex; gap: 8px; flex-wrap: wrap; }
-.wish-form input { border: 1.5px solid transparent; background: var(--low); border-radius: 8px; padding: 8px 12px; width: 160px; outline: none; }
-.wish-form input:focus { background: var(--lowest); border-color: var(--primary-c); }
-.wish-foot { text-align: center; color: var(--outline); font: 600 12px/16px var(--display); margin: 0; }
 /* Í einstaklingsglugga og listanum */
 .wish-share h4 { display: flex; align-items: center; gap: 6px; }
 .wish-share .ms { color: var(--secondary); }
@@ -256,7 +239,6 @@ label.loc-pick:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(164, 22, 26
 .reserved-note { box-shadow: none; background: rgba(240, 189, 139, .25); flex-wrap: wrap; }
 .reserved-note .ms { color: var(--tertiary); }
 .chip .reserved-icon { font-size: 14px; margin-left: 2px; color: var(--tertiary); }
-@media (max-width: 760px) { .wish-form input { width: 100%; } .wish-form { width: 100%; } .wish-form .btn { width: 100%; justify-content: center; } }
 
 /* ---------- Afmælisgjafir (reff/design2) ---------- */
 .btn.amber { background: #704b23; color: #fff; box-shadow: 0 2px 8px -2px rgba(112, 75, 35, .35); }
@@ -287,7 +269,7 @@ progress.bday-bar.amber::-moz-progress-bar { background: var(--gold); }
 .bday-next-icon { width: 40px; height: 40px; border-radius: 50%; background: #ffdcbd; color: #2c1600; display: grid; place-items: center; flex-shrink: 0; }
 .bday-next-link { margin-left: auto; display: inline-flex; align-items: center; font: 600 12px/16px var(--display); color: #704b23; text-decoration: none; white-space: nowrap; }
 .bday-next-link:hover { text-decoration: underline; }
-.bday-box { background: rgba(247, 243, 237, .7); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
+.bday-box { background: rgba(252, 241, 239, .7); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
 .bday-box svg { width: 176px; height: 192px; }
 .bday-box-cap { margin: 0; font: 600 16px/24px var(--display); }
 .bday-box p.muted { margin: 0; font-size: 12px; max-width: 240px; }
@@ -359,3 +341,80 @@ progress.bday-bar.amber::-moz-progress-bar { background: var(--gold); }
   .bday-card-head { flex-wrap: wrap; }
   .bday-next { flex-wrap: wrap; }
 }
+
+.follow-dlg .follow-form { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; text-align: left; }
+.follow-dlg .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.follow-dlg .field select, .follow-dlg .field input { width: 100%; min-width: 0; }
+.follow-dlg .dlg-actions { padding-top: 8px; }
+.follow-dlg .follow-note { margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--cont); color: var(--on-var); font-size: 13px; line-height: 19px; text-align: left; }
+
+/* ---------- Opni óskalistinn (/o/<token>/), eftir Stitch: „Jólahjól – Óskalisti Siggu (Desktop)“ ---------- */
+.wishlist { padding: 0 0 48px; }
+.wishlist > .container { display: flex; flex-direction: column; gap: 24px; max-width: 1040px; padding-top: 32px; }
+.wish-promo {
+  position: relative; overflow: hidden; color: #fff;
+  /* Eins og Stitch: djúpur vínrauður grunnur, dekkri bjarmi uppi til vinstri og gylltur til hægri */
+  background:
+    radial-gradient(circle at 6% 0%, rgba(107, 2, 23, .55), transparent 32%),
+    radial-gradient(circle at 92% 50%, rgba(236, 193, 90, .16), transparent 38%),
+    #8b1e2b;
+}
+.wish-promo .container { position: relative; max-width: 1040px; padding-top: 40px; padding-bottom: 40px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.wish-promo-brand { padding: 4px 10px; border-radius: 99px; background: rgba(255, 248, 246, .1); font: 600 12px/16px var(--display); letter-spacing: .03em; color: #ffdf99; }
+.wish-promo h2 { margin: 0; font: 700 44px/52px var(--display); letter-spacing: -.02em; }
+.wish-promo p { margin: 0; max-width: 560px; font-size: 17px; line-height: 27px; color: #ffdad9; }
+.wish-promo .btn { margin-top: 8px; background: #fff8f6; color: #6b0217; box-shadow: 0 4px 12px rgba(0, 0, 0, .15); padding: 12px 24px; font-size: 16px; }
+.wish-promo .btn:hover { background: var(--high); }
+.wish-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.wish-head h1 { margin: 0; font: 700 44px/52px var(--display); letter-spacing: -.02em; color: var(--primary); overflow-wrap: anywhere; }
+.wish-how { align-self: stretch; display: flex; align-items: center; gap: 14px; margin-top: 8px; padding: 16px 20px; border-radius: 16px; background: var(--low); }
+.wish-how p { margin: 0; font-size: 15px; line-height: 23px; }
+.wish-how-icon { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--secondary-c); color: var(--on-secondary-c); }
+.wish-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.wish-items .empty { grid-column: 1 / -1; }
+.wish-item { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+.wish-item.mine { box-shadow: 0 0 0 2px rgba(63, 102, 83, .3), var(--shadow); }
+.wish-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.wish-title { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.wish-title .tag { margin-bottom: 4px; }
+.wish-item h2 { margin: 0; font: 600 20px/28px var(--display); overflow-wrap: anywhere; }
+.wish-meta { font: 600 12px/16px var(--display); letter-spacing: .02em; color: var(--on-var); }
+.wish-link { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 4px 10px; border-radius: 6px; background: var(--low); color: var(--on); font: 600 12px/16px var(--display); text-decoration: none; }
+.wish-link:hover { background: var(--high); }
+.wish-link .ms { font-size: 14px; }
+.wish-note { margin: 0; color: var(--on-var); font-size: 15px; line-height: 24px; }
+.wish-box { margin-top: auto; padding: 14px 16px; border-radius: 12px; background: var(--low); }
+.wish-form { display: flex; flex-direction: column; gap: 6px; }
+.wish-form label { font: 500 11px/14px var(--display); letter-spacing: .04em; color: var(--on-var); }
+.wish-form-row { display: flex; gap: 8px; }
+.wish-form input { flex: 1; min-width: 0; border: 1.5px solid transparent; background: var(--lowest); border-radius: 8px; padding: 9px 12px; outline: none; box-shadow: var(--shadow); }
+.wish-form input:focus { border-color: var(--primary-c); }
+.wish-form .btn { white-space: nowrap; }
+.wish-box.mine { display: flex; align-items: center; gap: 10px; background: rgba(190, 234, 209, .5); color: var(--on-secondary-c); }
+.wish-box.mine > .ms { color: var(--secondary); }
+.wish-box.mine p { flex: 1; margin: 0; font: 600 13px/18px var(--display); }
+.wish-box.mine .btn { background: var(--bg); color: var(--primary-c); }
+.wish-follow { margin-top: 16px; padding: 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--low); }
+.wish-follow-text { display: flex; flex-direction: column; gap: 8px; max-width: 620px; }
+.wish-follow p { margin: 0; }
+.wish-kicker { display: inline-flex; align-items: center; gap: 6px; color: var(--secondary); font: 600 14px/20px var(--display); }
+.wish-kicker .ms { font-size: 18px; }
+.wish-follow h2 { margin: 0; font: 700 28px/36px var(--display); letter-spacing: -.015em; }
+.wish-follow .help { font-size: 12px; line-height: 18px; color: var(--outline); }
+.wish-follow-action { flex: none; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.wish-follow-action .btn { padding: 14px 28px; font-size: 16px; }
+@media (max-width: 760px) {
+  .wish-promo .container { padding-top: 28px; padding-bottom: 28px; }
+  .wish-promo h2 { font-size: 30px; line-height: 38px; }
+  .wish-promo p { font-size: 15px; line-height: 23px; }
+  .wish-head h1 { font-size: 36px; line-height: 44px; }
+  .wish-items { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .wish-item { padding: 20px; }
+  .wish-form-row { flex-direction: column; }
+  .wish-form .btn { justify-content: center; }
+  .wish-follow { flex-direction: column; align-items: stretch; padding: 20px; }
+  .wish-follow h2 { font-size: 22px; line-height: 30px; }
+  .wish-follow-action { align-items: stretch; }
+  .wish-follow-action .btn { justify-content: center; }
+}
+.wishlist + .site-foot .container { max-width: 1040px; }

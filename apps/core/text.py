@@ -4,6 +4,7 @@ Samsvara `norm` og `storeKey` í gamla appinu (gjafalistinn/index.html).
 """
 
 import unicodedata
+from difflib import SequenceMatcher
 
 # Íslensk stafrófsröð; aðrir stafir raðast á eftir
 _IS_ALPHABET = "aábcdðeéfghiíjklmnoópqrstuúvwxyýzþæö"
@@ -40,3 +41,19 @@ def split_list(value: str | None) -> list[str]:
         if part and fold_key(part) not in seen:
             seen[fold_key(part)] = part
     return list(seen.values())
+
+
+def name_match(a: str | None, b: str | None) -> float:
+    """Hversu vel nöfn passa saman (0–1). „Sigga“ og „sigga litla“ passa betur en „Sigga“ og „Jói“.
+
+    Eins nafn (án kommu og hástafa) er 1; sama fyrsta orð gefur forskot; annars SequenceMatcher.
+    """
+    x, y = fold_key(a), fold_key(b)
+    if not x or not y:
+        return 0.0
+    if x == y:
+        return 1.0
+    ratio = SequenceMatcher(None, x, y).ratio()
+    if x.split()[0] == y.split()[0] or x.startswith(y) or y.startswith(x):
+        ratio = 0.5 + ratio / 2
+    return ratio

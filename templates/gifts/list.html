@@ -81,4 +81,5 @@
   {% endfor %}
 </section>
 {% endpartialdef %}
+{% if follow_popup %}{% include "wishlists/partials/follow_dialog.html" with share=follow_popup.share source=follow_popup.source follow=follow_popup.follow %}{% endif %}
 {% endblock %}

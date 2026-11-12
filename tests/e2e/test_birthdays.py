@@ -73,7 +73,10 @@ def test_bank_reminders_and_add_birthday(home, live_server, page):
 
     page.locator(".bday-hero").get_by_role("button", name="Bæta við afmæli").click()
     dialog.get_by_label("Nafn", exact=True).fill("Mamma")
-    dialog.get_by_label("Fæðingardagur").press_sequentially("020260")
+    birthday = dialog.get_by_label("Fæðingardagur")
+    birthday.press_sequentially("020260")
+    # Skástrikin bætast við á meðan skrifað er (Alpine); senda ekki fyrr en reiturinn er tilbúinn
+    expect(birthday).to_have_value("02/02/60")
     dialog.get_by_role("button", name="Bæta við").click()
     expect(page.locator(".bday-card", has_text="Mamma")).to_be_visible()
 

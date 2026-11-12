@@ -49,6 +49,9 @@ urlpatterns = [
     path("h/<slug:slug>/gjafir/<int:pk>/hugmyndir/", views.IdeaAddView.as_view(), name="idea_add"),
     path("h/<slug:slug>/gjafir/<int:pk>/eyda/", views.GiftDeleteView.as_view(), name="delete"),
     path("h/<slug:slug>/gjafir/<int:pk>/endurheimta/", views.GiftRestoreView.as_view(), name="restore"),
+    path(
+        "h/<slug:slug>/gjafir/<int:pk>/oskalisti/<int:idea>/", views.FeedIdeaView.as_view(), name="feed_idea"
+    ),
     path("h/<slug:slug>/hugmyndir/<int:pk>/", views.IdeaDialogView.as_view(), name="idea"),
     path("h/<slug:slug>/hugmyndir/<int:pk>/eyda/", views.IdeaRemoveView.as_view(), name="idea_remove"),
     path("h/<slug:slug>/hugmyndir/<int:pk>/keypt/", views.IdeaBoughtView.as_view(), name="idea_bought"),

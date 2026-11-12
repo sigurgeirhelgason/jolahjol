@@ -82,6 +82,20 @@
         </div>
       </div>
     {% endfor %}
+    {% for idea in row.feed %}
+      {# Af óskalista í öðru heimili: aðeins hægt að taka (keypt eða frátekið), sjá FeedIdeaView #}
+      <div class="idea-line feed">
+        <div class="idea-main">
+        <input type="checkbox" name="action" value="keypt"{% if locked %} disabled{% endif %}
+               aria-label="{% blocktranslate with what=idea.text name=gift.person.name %}{{ what }} handa {{ name }} keypt{% endblocktranslate %}"
+               hx-post="{% url 'gifts:feed_idea' household.slug gift.pk idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">
+        <button type="button" class="chip-t" title="{% blocktranslate with household=row.feed_from %}Af óskalista „{{ household }}“{% endblocktranslate %}"{% if locked %} disabled{% endif %}
+                hx-get="{% url 'gifts:feed_idea' household.slug gift.pk idea.pk %}" hx-target="#modal-body"><span class="ms">link</span>{{ idea.text }}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
+        </div>
+        {# Búðin sem hugmyndin er merkt (hjá þeim sem deildu); hvaðan hún kemur sést á hlekkjatákninu #}
+        <div class="store">{% if idea.store %}<span class="stores none">{{ idea.store.name }}</span>{% endif %}</div>
+      </div>
+    {% endfor %}
     <div class="idea-line add-line">
       <div class="idea-main">
         {% if not locked %}

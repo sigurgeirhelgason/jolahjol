@@ -1,0 +1,18 @@
+{% load i18n %}
+{% comment %}
+  Sameiginlegur fótur (eftir Stitch): vörumerki og slagorð, og ártal neðst.
+  Notaður í layouts/app.html og á opna óskalistanum.
+{% endcomment %}
+<footer class="site-foot">
+  <div class="container">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <a class="foot-name" href="{% url 'home' %}">Jólahjól <span aria-hidden="true">🎄</span></a>
+        <p>{% translate "Haltu utan um hugmyndir og gjafir." %}</p>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© {% now "Y" %} Jólahjól. {% translate "Gleðileg jól og góða gjafagleði." %}</span>
+    </div>
+  </div>
+</footer>

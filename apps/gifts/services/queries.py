@@ -9,7 +9,7 @@ def with_details(gifts: QuerySet[Gift]) -> QuerySet[Gift]:
     ideas = Idea.objects.select_related("store", "reserved_by").prefetch_related(
         Prefetch("giver_links", queryset=IdeaGiver.objects.select_related("person"))
     )
-    return gifts.select_related("person", "season").prefetch_related(
+    return gifts.select_related("person", "season", "person__source__household").prefetch_related(
         Prefetch("ideas", queryset=ideas), "stores__locations", "ideas__store__locations"
     )
 

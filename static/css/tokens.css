@@ -24,21 +24,21 @@
   src: url("../fonts/material-symbols.woff2") format("woff2");
 }
 
-/* Litir og letur úr stitch_gjafalistinn_holiday_tracker/DESIGN.md */
+/* Litir og letur úr Stitch: vínrauður grunnur og rauðhvítir fletir („Nordic Yuletide Warmth“) */
 :root {
-  --bg: #fdf9f3;
+  --bg: #fff8f6;
   --lowest: #ffffff;
-  --low: #f7f3ed;
-  --cont: #f1ede7;
-  --high: #ebe8e2;
-  --highest: #e6e2dc;
-  --on: #1c1c18;
-  --on-var: #5a403e;
-  --outline: #8e706d;
-  --outline-var: #e2beba;
-  --primary: #7e000b;
-  --primary-c: #a4161a;
-  --primary-soft: #ffdad6;
+  --low: #fcf1ef;
+  --cont: #f6ecea;
+  --high: #f0e6e4;
+  --highest: #eae0de;
+  --on: #1f1b1a;
+  --on-var: #574141;
+  --outline: #8b7171;
+  --outline-var: #debfbf;
+  --primary: #6b0217;
+  --primary-c: #8b1e2b;
+  --primary-soft: #ffdad9;
   --secondary: #3f6653;
   --secondary-c: #beead1;
   --on-secondary-c: #002114;

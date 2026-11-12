@@ -46,16 +46,7 @@
   </div>
 </main>
 
-<footer>
-  <div class="container">
-    <div class="foot-l">
-      <span class="wish"><span class="ms">auto_awesome</span>{% translate "Gleðileg jól og góða gjafagleði 🎄" %}</span>
-      <span>•</span>
-      <span>© {% now "Y" %} Jólahjól</span>
-    </div>
-    <div class="foot-r">{% block footer_actions %}{% endblock %}</div>
-  </div>
-</footer>
+{% block footer %}{% include "partials/footer.html" %}{% endblock %}
 {% block after %}{% endblock %}
 <dialog id="confirm-dialog" class="confirm-dlg" aria-labelledby="confirm-title" aria-describedby="confirm-message">
   <div class="confirm-icon"><span class="ms">warning</span></div>

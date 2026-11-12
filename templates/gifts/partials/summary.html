@@ -55,13 +55,13 @@
           <path id="treeShape" d="M100 35 L125 75 L115 75 L145 125 L130 125 L170 185 L145 185 L180 225 L112 225 L112 245 L88 245 L88 225 L20 225 L55 185 L30 185 L70 125 L55 125 L85 75 L75 75 Z"/>
           <clipPath id="treeClip"><use href="#treeShape"/></clipPath>
         </defs>
-        <use href="#treeShape" fill="#e6e2dc" stroke="rgba(142,112,109,.4)" stroke-width="2" stroke-dasharray="4 3"/>
+        <use href="#treeShape" fill="#eae0de" stroke="rgba(142,112,109,.4)" stroke-width="2" stroke-dasharray="4 3"/>
         <g clip-path="url(#treeClip)">
           <rect class="fill" x="0" y="{{ tree.fill_y }}" width="200" height="{{ tree.fill_height }}" fill="#274e3d"/>
           {% if tree.line %}<line x1="0" x2="200" y1="{{ tree.fill_y }}" y2="{{ tree.fill_y }}" stroke="#f0bd8b" stroke-width="2.5" stroke-dasharray="3 3"/>{% endif %}
         </g>
         {% for x, y, color, on in tree.ornaments %}
-          {% if on %}<circle cx="{{ x }}" cy="{{ y }}" r="4" fill="{{ color }}"/>{% else %}<circle cx="{{ x }}" cy="{{ y }}" r="3.5" fill="none" stroke="#8e706d" stroke-width="1.5" stroke-dasharray="2 2" opacity=".5"/>{% endif %}
+          {% if on %}<circle cx="{{ x }}" cy="{{ y }}" r="4" fill="{{ color }}"/>{% else %}<circle cx="{{ x }}" cy="{{ y }}" r="3.5" fill="none" stroke="#8b7171" stroke-width="1.5" stroke-dasharray="2 2" opacity=".5"/>{% endif %}
         {% endfor %}
         <use href="#treeShape" stroke="#3f6653" stroke-width="2"/>
       </svg>

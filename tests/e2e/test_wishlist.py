@@ -37,7 +37,7 @@ def test_share_reserve_and_household_sees_it(home, live_server, page, browser):
     # Amma opnar hlekkinn í síma, án innskráningar
     amma = browser.new_context(locale="is-IS", viewport={"width": 390, "height": 800}).new_page()
     amma.goto(link)
-    expect(amma.get_by_role("heading", name="Hugi")).to_be_visible()
+    expect(amma.get_by_role("heading", name="Hugi", exact=True)).to_be_visible()
     overflow = amma.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
     assert overflow <= 0
     item = amma.locator(".wish-item", has_text="legó")

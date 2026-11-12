@@ -106,7 +106,7 @@ def test_public_page_shows_only_this_persons_ideas_and_leaks_nothing(share):
     assert response.status_code == 200
     assert "<h1>Hugi</h1>" in html and "Óskalisti" in html
     assert "legó" in html and "Elko" in html and "8.990 kr." in html and "Bezzerwizzer" in html
-    assert "Frátekið" in html  # bók er keypt
+    assert ">bók<" not in html  # keypt: það sem aðrir hafa tekið sést ekki
     for secret in ("leyndó-hugmynd-Unu", "Una", "Leynigefandi", "Fjölskyldan á Þórsgötu"):
         assert secret not in html, secret
     assert response["X-Robots-Tag"] == "noindex, nofollow"
@@ -141,7 +141,8 @@ def test_reserving_adds_giver_and_hides_who_from_others(share, home):
 
     other = Client().get(public(share.token)).text
     assert "Amma Jóa" not in other
-    assert other.count("Frátekið") >= 2  # legó og bók
+    assert ">legó<" not in other and ">bók<" not in other  # frátekið af öðrum: falið
+    assert ">spil<" in other
 
 
 def test_reserving_matches_existing_person_by_name(share, home):
@@ -241,7 +242,7 @@ def test_household_marks_reserved_by_hand(client, member, share):
     client.post(reverse("gifts:idea", args=[slug, lego.pk]), data, **HX)
     lego.refresh_from_db()
     assert lego.reserved and lego.reserved_by is None and not lego.picked
-    assert "Frátekið" in Client().get(reverse("wishlists:public", args=[share.token])).text
+    assert ">legó<" not in Client().get(reverse("wishlists:public", args=[share.token])).text
     assert "legó" not in client.get(reverse("gifts:shop", args=[slug, YEAR])).text  # ekki á innkaupalista
     # Keypt: verður rautt
     client.post(reverse("gifts:idea", args=[slug, lego.pk]), {**data, "picked": "on"}, **HX)
@@ -252,3 +253,11 @@ def test_household_marks_reserved_by_hand(client, member, share):
     client.post(reverse("gifts:idea", args=[slug, lego.pk]), data, **HX)
     lego.refresh_from_db()
     assert not lego.reserved
+
+
+def test_everything_taken_shows_a_friendly_message(share):
+    from apps.gifts.models import Idea
+
+    Idea.objects.filter(gift__person__name="Hugi").update(reserved=True)
+    html = Client().get(public(share.token)).text
+    assert "Búið er að taka allt á listanum frá" in html

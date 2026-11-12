@@ -1,0 +1,20 @@
+{% load i18n money %}
+{% comment %}Hugmynd af óskalista í öðru heimili (FeedIdeaView): aðeins hægt að taka hana.{% endcomment %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">link</span>{% blocktranslate with name=source.name %}Af óskalista sem {{ name }} á{% endblocktranslate %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<form class="gift-form" novalidate hx-post="{% url 'gifts:feed_idea' household.slug gift.pk idea.pk %}" hx-target="#modal-body" hx-include="#list-state">
+  <p class="price-sub">{% blocktranslate with household=source.household.name %}Þessi gjafahugmynd kemur af óskalista heimilisins „{{ household }}“.{% endblocktranslate %}</p>
+  <div class="wish-locked">
+    <strong>{{ idea.text }}</strong>
+    {% if idea.note %}<p>{{ idea.note|linebreaksbr }}</p>{% endif %}
+    {% if idea.store or idea.link or idea.price %}<p class="muted">{% if idea.store %}{{ idea.store.name }}{% endif %}{% if idea.price %}{% if idea.store %} · {% endif %}{{ idea.price|kr }}{% endif %}{% if idea.link %}{% if idea.store or idea.price %} · {% endif %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer">{% translate "Hlekkur" %}</a>{% endif %}</p>{% endif %}
+  </div>
+  <p class="help">{% blocktranslate with owners=owners count n=owners_count %}Ef þú merkir hana frátekna eða keypta verður hún ekki sýnileg öðrum sem skoða hugmyndir en {{ owners }} mun sjá gjöfina sem frátekna.{% plural %}Ef þú merkir hana frátekna eða keypta verður hún ekki sýnileg öðrum sem skoða hugmyndir en {{ owners }} munu sjá gjöfina sem frátekna.{% endblocktranslate %}</p>
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Hætta" %}</button>
+    <button type="submit" name="action" value="fratekid" class="btn soft"><span class="ms">bookmark</span>{% translate "Frátekið" %}</button>
+    <button type="submit" name="action" value="keypt" class="btn primary"><span class="ms">check</span>{% translate "Keypt" %}</button>
+  </div>
+</form>

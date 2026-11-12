@@ -45,6 +45,17 @@ class Person(models.Model):
     birthday = models.DateField(_("fæðingardagur"), null=True, blank=True)
     give_christmas = models.BooleanField(_("gef jólagjafir"), default=True)
     give_birthday = models.BooleanField(_("gef afmælisgjafir"), default=False)
+    # Fylgir óskalista einstaklings í öðru heimili (t.d. Sigga hjá Dísu frænku fylgir Siggu hjá
+    # foreldrunum): hugmyndir þaðan birtast hér á meðan þær eru ekki keyptar eða fráteknar og
+    # uppsprettan á virkan óskalistahlekk. Hugmyndir héðan sjást aldrei þar. Sjá wishlists/services.
+    source = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="followers",
+        verbose_name=_("fylgir óskalista"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = PersonQuerySet.as_manager()
@@ -219,6 +230,14 @@ class Idea(models.Model):
     )
     reserved_at = models.DateTimeField(null=True, blank=True)
     reservation_secret = models.CharField(max_length=64, blank=True)
+    # Tekin af óskalista einstaklings í öðru heimili (fylgjandi merkti hana keypta eða frátekna):
+    # upprunalega hugmyndin er þá frátekin þar í nafni þess sem tók hana
+    source = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="copies"
+    )
+    # Bjó takan til gefandann á upprunanum? Þá (og aðeins þá) fer hann af þegar frátekningin losnar,
+    # svo gefandi sem var þar fyrir (t.d. í púkki) haldist
+    source_added_giver = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = _("hugmynd")

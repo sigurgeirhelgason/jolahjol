@@ -82,6 +82,16 @@ def merge(source: Person, target: Person) -> Person:
             link.person = target
             link.save(update_fields=["person"])
     Idea.objects.filter(reserved_by=source).update(reserved_by=target)
+    # Óskalisti: þeir sem fylgdu `source` fylgja `target`, og óskalistahlekkir `source` flytjast
+    # nema `target` eigi sjálfur virkan hlekk (annars myndu fylgjendurnir missa sambandið)
+    from apps.wishlists.models import WishlistShare
+
+    Person.objects.filter(source=source).update(source=target)
+    if not WishlistShare.objects.filter(person=target, revoked_at__isnull=True).exists():
+        WishlistShare.objects.filter(person=source).update(person=target)
+    if source.source_id and not target.source_id and source.source_id != target.pk:
+        target.source_id = source.source_id
+        target.save(update_fields=["source"])
     # Notandi tengdur `source` verður tengdur `target`, nema einhver annar sé það þegar
     from apps.households.models import Membership
 

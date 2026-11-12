@@ -2,6 +2,9 @@
 {% comment %}Óskalisti í einstaklingsglugga: hlekkur sem hægt er að senda (búa til, afrita, afturkalla).{% endcomment %}
 <div class="past wish-share" id="wishlist-share">
   <h4><span class="ms">share</span> {% translate "Óskalisti" %}</h4>
+  {% if share and followers %}
+    <p class="help"><span class="ms">group</span> {% blocktranslate with names=followers|join:", " %}Á lista hjá: {{ names }}{% endblocktranslate %}</p>
+  {% endif %}
   {% if share %}
     <p class="help">{% blocktranslate with name=person.name %}Sendu hlekkinn til þeirra sem vilja gefa {{ name }} gjöf. Þau sjá hugmyndirnar og geta tekið frá, án innskráningar.{% endblocktranslate %}</p>
     <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">

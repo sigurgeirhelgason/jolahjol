@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import FormView, TemplateView
@@ -50,6 +51,10 @@ class HouseholdCreateView(LoginRequiredMixin, FormView):
         household = services.create_household(
             self.request.user, form.cleaned_data["name"], form.cleaned_data["your_name"]
         )
+        # T.d. komið af opnu óskalistasíðunni („Stofna þinn gjafalista“) til að bæta einhverjum við
+        nxt = self.request.POST.get("next") or self.request.GET.get("next", "")
+        if nxt and url_has_allowed_host_and_scheme(nxt, {self.request.get_host()}, self.request.is_secure()):
+            return redirect(nxt)
         return redirect(household_home_url(household))
 
 

@@ -15,6 +15,7 @@ from django.utils.translation import ngettext
 
 from apps.core.money import format_kr
 from apps.core.text import fold_key, is_sort_key
+from apps.wishlists import services as wishlist_services
 
 from .models import GROUP_ICONS, Gift, Group, Person, Season, Store
 from .services.gifts import gift_text
@@ -81,6 +82,15 @@ class Row:
     secret: bool = False
     # Nafnið sem sá sem skoðar sér (hans eigið nafn á hans eigin línu)
     name: str = ""
+    # Hugmyndir af óskalista einstaklings í öðru heimili sem hann fylgir (Person.source); teljast
+    # ekki með fyrr en þær eru teknar (verða þá hugmyndir hér, sjá wishlists/services.claim)
+    feed: list = field(default_factory=list)
+
+    @property
+    def feed_from(self) -> str:
+        """Heimilið sem óskalistinn kemur frá, t.d. „Laugavegur 4“."""
+        source = self.gift.person.source
+        return source.household.name if source else ""
 
     @property
     def person(self) -> Person:
@@ -120,10 +130,13 @@ class Row:
         return "\n".join(f"{y}: {t}" for y, t in self.history)
 
 
-def _row(gift: Gift, histories: dict[int, list], viewer: Viewer = EVERYONE) -> Row:
+def _row(gift: Gift, histories: dict[int, list], viewer: Viewer = EVERYONE, feeds=None) -> Row:
     name = viewer.display_name(gift.person)
     if viewer.is_secret(gift):
         return Row(gift, [], [], None, None, secret=True, name=name)
+    if feeds is None:
+        feeds = wishlist_services.gift_feeds([gift])
+    feed = feeds.get(gift.pk, [])
     return Row(
         gift=gift,
         stores=stores_of(gift),
@@ -131,6 +144,7 @@ def _row(gift: Gift, histories: dict[int, list], viewer: Viewer = EVERYONE) -> R
         price=actual_price(gift),
         breakdown=giver_breakdown(gift),
         name=name,
+        feed=feed,
     )
 
 
@@ -271,7 +285,8 @@ def build_list(
     gifts = viewer.visible(all_gifts)
     locked = season.is_locked() if locked is None else locked
     hist = histories(season, {g.person_id for g in all_gifts}, viewer)
-    every_row = [_row(g, hist, viewer) for g in all_gifts]
+    feeds = wishlist_services.gift_feeds(all_gifts)  # óskalistar annarra heimila, í einu lagi
+    every_row = [_row(g, hist, viewer, feeds) for g in all_gifts]
     rows = [r for r in every_row if not r.secret]
 
     stores: dict[str, str] = {}
@@ -409,9 +424,9 @@ GROUP_SHORT = {Group.VINNA: _l("Vinna")}
 
 # Kúlur á jólatrénu: (x, y, litur)
 ORNAMENTS = [
-    (100, 95, "#a4161a"), (110, 120, "#f0bd8b"), (80, 145, "#ffb3ac"), (120, 150, "#a4161a"),
-    (90, 180, "#f0bd8b"), (135, 185, "#ffdad6"), (65, 200, "#a4161a"), (110, 205, "#ffdcbd"),
-    (50, 223, "#ffb3ac"), (75, 220, "#a4161a"), (100, 230, "#ffdad6"), (125, 218, "#f0bd8b"),
+    (100, 95, "#8b1e2b"), (110, 120, "#f0bd8b"), (80, 145, "#ffb3ac"), (120, 150, "#8b1e2b"),
+    (90, 180, "#f0bd8b"), (135, 185, "#ffdad9"), (65, 200, "#8b1e2b"), (110, 205, "#ffdcbd"),
+    (50, 223, "#ffb3ac"), (75, 220, "#8b1e2b"), (100, 230, "#ffdad9"), (125, 218, "#f0bd8b"),
     (150, 222, "#ffdcbd"),
 ]  # fmt: skip
 

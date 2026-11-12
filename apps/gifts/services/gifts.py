@@ -56,7 +56,12 @@ def unpick_idea(idea: Idea) -> Idea:
     return idea
 
 
+@transaction.atomic
 def remove_idea(idea: Idea) -> None:
+    """Eyðir hugmynd. Sé hún tekin af óskalista í öðru heimili fellur frátekningin þar niður."""
+    from apps.wishlists.services import release
+
+    release(idea)
     idea.delete()
 
 
@@ -162,7 +167,8 @@ def restore(gift: Gift) -> Gift:
     return gift
 
 
-def _and(names: list[str]) -> str:
+def and_join(names: list[str]) -> str:
+    """["Jói", "Anna", "Gunna"] → „Jói, Anna og Gunna“."""
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " og " + names[-1]
 
 
@@ -173,7 +179,7 @@ def who_gives(names: list[str]) -> str:
     """
     if not names:
         return ""
-    return f"{_and(names)} {'gefur' if len(names) == 1 else 'gefa'}"
+    return f"{and_join(names)} {'gefur' if len(names) == 1 else 'gefa'}"
 
 
 def gives_phrase(names: list[str]) -> str:
@@ -307,10 +313,17 @@ def set_reserved(idea: Idea, reserved: bool) -> Idea:
         idea.reserved_at = idea.reserved_at or timezone.now()
         idea.save(update_fields=["reserved", "reserved_at"])
     else:
+        from apps.wishlists.services import release
+
+        if not idea.picked:  # tekin af óskalista í öðru heimili og ekki keypt: losnar þar líka
+            release(idea)
         idea.reserved = False
         idea.reserved_by = None
         idea.reserved_at = None
-        idea.reservation_secret = ""
+        # Keypt afrit af óskalista heldur leyndarmálinu: það tengir það frátekningunni á
+        # upprunanum, svo hún losni ef afritið er síðar afkeypt og eytt
+        if not (idea.source_id and idea.picked):
+            idea.reservation_secret = ""
         idea.save(update_fields=["reserved", "reserved_by", "reserved_at", "reservation_secret"])
     return idea
 

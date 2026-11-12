@@ -98,11 +98,38 @@ document.addEventListener("alpine:init", () => {
 
   // Sprettigluggi á venjulegri síðu: <div x-data="popup"><button x-on:click="open"> … <dialog x-ref="dialog">
   Alpine.data("popup", () => ({
+    // data-autoopen: opnast strax (t.d. eftir innskráningu af opna óskalistanum, ?fylgja=1)
+    init() { if ("autoopen" in this.$root.dataset) this.$nextTick(() => this.open()); },
     open() {
       this.$refs.dialog.showModal();
       if (this.$refs.first) this.$refs.first.focus();
     },
     close() { this.$refs.dialog.close(); },
+  }));
+
+  // Opni óskalistinn, „Bæta á þitt Jólahjól“: val einstaklings fylgir völdu heimili, og nafn og
+  // flokkur hverfa þegar valinn er einhver sem er þegar á listanum
+  Alpine.data("followForm", () => ({
+    household(event) {
+      const slug = event.target.value;
+      this.$root.querySelectorAll("select[data-household]").forEach((select) => {
+        const on = select.dataset.household === slug;
+        select.disabled = !on;
+        select.hidden = !on;
+        if (on) select.value = "";
+      });
+      this.$refs.newFields.hidden = false;
+    },
+    person(event) { this.$refs.newFields.hidden = Boolean(event.target.value); },
+    close() {
+      this.$el.closest("dialog").close();
+      // ?fylgja=<token> af slóðinni svo glugginn opnist ekki aftur við endurhleðslu
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("fylgja")) {
+        url.searchParams.delete("fylgja");
+        window.history.replaceState(window.history.state, "", url);
+      }
+    },
   }));
 
   // Form sem er sent um leið og valið breytist: <form x-data="autoSubmit" x-on:change="submit">

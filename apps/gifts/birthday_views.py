@@ -89,7 +89,7 @@ def _bar(i: int, n: int, peak: int, this_month: int) -> dict:
         "label_x": 13 + 23 * i,
         "y": 80 - h,
         "h": h,
-        "fill": "#704b23" if current else "#3f6653" if top else "#e6dccf" if n else "#ebe8e2",
+        "fill": "#704b23" if current else "#3f6653" if top else "#e6dccf" if n else "#f0e6e4",
         "title": f"{MONTH_NAMES[i]}: {n}",
         "letter": MONTHS[i][0].upper(),
         "current": current,

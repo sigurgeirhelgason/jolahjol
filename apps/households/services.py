@@ -274,8 +274,10 @@ def leave(membership: Membership) -> None:
 
 def delete_household(household: Household) -> None:
     # Gift.person er PROTECT, svo gjafir fara á undan fólkinu
-    from apps.gifts.models import Gift
+    from apps.gifts.models import Gift, Idea
+    from apps.wishlists.services import release_copies
 
     with transaction.atomic():
+        release_copies(Idea.objects.filter(gift__season__household=household))
         Gift.objects.filter(season__household=household).delete()
         household.delete()

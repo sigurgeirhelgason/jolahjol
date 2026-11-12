@@ -6,7 +6,7 @@ from django.db import transaction
 
 from apps.households.models import Household
 
-from ..models import Gift, Person, Season
+from ..models import Gift, Idea, Person, Season
 from .gifts import gift_text
 from .queries import with_details
 
@@ -47,7 +47,10 @@ def history(person: Person, before_year: int | None = None) -> list[HistoryEntry
 @transaction.atomic
 def delete_season(season: Season) -> int:
     """Eyðir jólaári og gjöfum þess (líka eyddum). Fólk og búðir haldast. Skilar fjölda gjafa."""
+    from apps.wishlists.services import release_copies
+
     count = season.gifts.alive().count()
+    release_copies(Idea.objects.filter(gift__season=season))
     season.gifts.all().delete()
     season.delete()
     return count

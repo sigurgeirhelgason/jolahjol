@@ -3,7 +3,8 @@
   <h3 id="modal-title"><span class="ms">redeem</span>{% translate "Hvað kostaði gjöfin?" %}</h3>
   <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
 </div>
-<form class="gift-form" novalidate hx-post="{% if idea %}{% url 'gifts:idea_price' household.slug idea.pk %}{% else %}{% url 'gifts:price' household.slug gift.pk %}{% endif %}" hx-target="#modal-body" hx-include="#list-state">
+<form class="gift-form" novalidate hx-post="{% if post_url %}{{ post_url }}{% elif idea %}{% url 'gifts:idea_price' household.slug idea.pk %}{% else %}{% url 'gifts:price' household.slug gift.pk %}{% endif %}" hx-target="#modal-body" hx-include="#list-state">
+  {% if post_url %}<input type="hidden" name="action" value="keypt">{% endif %}
   <p class="price-sub">{% blocktranslate with what=what|default:_("Gjöfin") name=gift.person.name %}<strong>{{ what }}</strong> handa {{ name }}{% endblocktranslate %}</p>
   <div class="field{% if form.amount.errors %} has-error{% endif %}">
     <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>

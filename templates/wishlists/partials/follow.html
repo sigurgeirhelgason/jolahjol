@@ -1,0 +1,13 @@
+{% load i18n %}
+{% comment %}Einstaklingsglugginn: fylgir óskalista einstaklings í öðru heimili (Person.source).{% endcomment %}
+<div class="past wish-share" id="follow-source">
+  {% if person.source %}
+    <h4><span class="ms">link</span> {% translate "Óskalisti úr öðru heimili" %}</h4>
+    <p class="help">{% blocktranslate with name=person.source.name household=person.source.household.name %}Fylgir óskalista {{ name }} hjá „{{ household }}“. Þú sérð hugmyndirnar þaðan á meðan þær eru hvorki keyptar né fráteknar. Hugmyndir sem þú bætir við sjást ekki þar.{% endblocktranslate %}</p>
+    <div class="wish-share-actions">
+      <button type="button" class="btn small ghost" hx-post="{% url 'wishlists:unfollow' household.slug person.pk %}" hx-target="#follow-source" hx-swap="outerHTML">
+        <span class="ms">link_off</span>{% translate "Hætta að fylgja" %}
+      </button>
+    </div>
+  {% endif %}
+</div>

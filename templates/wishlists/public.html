@@ -8,59 +8,96 @@
 {% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
 {% block body %}
 <main class="wishlist">
+  {# Haus með kynningu, fyrir alla. Hnappurinn: „Prófa“ (nýskráning í FollowStartView) eða eigin listi #}
+  <section class="wish-promo">
+    <div class="container">
+      <span class="wish-promo-brand">Jólahjól 🎄</span>
+      <h2>{% translate "Minnkaðu jólastressið!" %}</h2>
+      <p>{% translate "Haltu utan um hugmyndir og gjafir." %} {% translate "Deildu gagnvirkum óskalista á einfaldan hátt til fjölskyldu eða vina." %}</p>
+      {% if follow.state == "anonymous" or follow.state == "no_household" %}
+        <a class="btn" href="{% url 'wishlists:follow_start' share.token %}">{% translate "Prófa" %}<span class="ms">arrow_forward</span></a>
+      {% else %}
+        <a class="btn" href="{% url 'home' %}">{% translate "Opna minn lista" %}<span class="ms">arrow_forward</span></a>
+      {% endif %}
+    </div>
+  </section>
   <div class="container">
-    <section class="card hero">
-      <div class="glow g-hero-1"></div>
-      <div class="glow g-hero-2"></div>
-      <div>
-        {# Nafnið stendur eitt (ekki „Óskalisti Hugi“): kerfið getur ekki fallbeygt nöfn #}
-        <span class="pill green"><span class="ms">card_giftcard</span>{% translate "Óskalisti" %}{% if season %} · {% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %}{% endif %}</span>
-        <h1>{{ person.name }}</h1>
-        <p>{% translate "Veldu „Ég kaupi þetta“ svo aðrir kaupi ekki það sama. Enginn sér hver tók frá." %}</p>
+    <header class="wish-head">
+      {# Nafnið stendur eitt (ekki „Óskalisti Hugi“): kerfið getur ekki fallbeygt nöfn #}
+      <span class="pill green"><span class="ms">card_giftcard</span>{% translate "Óskalisti" %}{% if season %} · {% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %}{% endif %}</span>
+      <h1>{{ person.name }}</h1>
+      <div class="wish-how">
+        <span class="wish-how-icon"><span class="ms">verified</span></span>
+        <p>{% translate "Veldu „Ég kaupi þetta“ svo aðrir kaupi ekki það sama." %}</p>
       </div>
-    </section>
+    </header>
 
     {% include "partials/messages.html" %}
 
     <section class="wish-items">
       {% for row in rows %}
         {% with idea=row.idea %}
-        <article class="card wish-item{% if row.taken %} taken{% endif %}">
-          <div class="wish-main">
-            <h2>{{ idea.text }}</h2>
-            {% if idea.note %}<p class="wish-note">{{ idea.note|linebreaksbr }}</p>{% endif %}
-            <div class="wish-meta">
-              {% if idea.store %}<span><span class="ms">storefront</span>{{ idea.store.name }}</span>{% endif %}
-              {% if idea.price %}<span><span class="ms">payments</span>{{ idea.price|kr }}</span>{% endif %}
-              {% if idea.link %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer"><span class="ms">open_in_new</span>{% translate "Skoða" %}</a>{% endif %}
+        <article class="card wish-item{% if row.mine %} mine{% endif %}">
+          <div class="wish-top">
+            <div class="wish-title">
+              {% if row.mine %}<span class="tag green"><span class="ms">check_circle</span>{% translate "Þú tókst þetta frá" %}</span>{% endif %}
+              <h2>{{ idea.text }}</h2>
+              {% if idea.store or idea.price %}<span class="wish-meta">{% if idea.store %}{{ idea.store.name }}{% endif %}{% if idea.store and idea.price %} · {% endif %}{% if idea.price %}{{ idea.price|kr }}{% endif %}</span>{% endif %}
             </div>
+            {% if idea.link %}<a class="wish-link" href="{{ idea.link }}" target="_blank" rel="noopener noreferrer">{% translate "Skoða" %}<span class="ms">north_east</span></a>{% endif %}
           </div>
-          <div class="wish-action">
-            {% if row.mine %}
-              <span class="tag green"><span class="ms">check_circle</span>{% translate "Þú tókst þetta frá" %}</span>
+          {% if idea.note %}<p class="wish-note">{{ idea.note|linebreaksbr }}</p>{% endif %}
+          {% if row.mine %}
+            <div class="wish-box mine">
+              <span class="ms">lock</span>
+              <p>{% translate "Aðeins þú sérð að þú tókst þetta frá." %}</p>
               <form method="post" action="{% url 'wishlists:cancel' share.token idea.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="btn ghost small">{% translate "Hætta við" %}</button>
               </form>
-            {% elif row.taken %}
-              <span class="tag neutral"><span class="ms">lock</span>{% translate "Frátekið" %}</span>
-            {% else %}
-              <form method="post" action="{% url 'wishlists:reserve' share.token idea.pk %}" class="wish-form">
-                {% csrf_token %}
-                <label class="visually-hidden" for="name-{{ idea.pk }}">{% translate "Nafnið þitt" %}</label>
+            </div>
+          {% else %}
+            <form method="post" action="{% url 'wishlists:reserve' share.token idea.pk %}" class="wish-box wish-form">
+              {% csrf_token %}
+              <label for="name-{{ idea.pk }}">{% translate "Nafnið þitt" %}</label>
+              <div class="wish-form-row">
                 <input id="name-{{ idea.pk }}" name="name" value="{{ name }}" placeholder="{% translate 'Nafnið þitt' %}"
                        autocomplete="off" maxlength="100" required>
                 <button type="submit" class="btn primary"><span class="ms">redeem</span>{% translate "Ég kaupi þetta" %}</button>
-              </form>
-            {% endif %}
-          </div>
+              </div>
+            </form>
+          {% endif %}
         </article>
         {% endwith %}
       {% empty %}
-        <div class="empty"><span class="ms">lightbulb</span>{% translate "Engar hugmyndir á listanum enn. Kíktu aftur seinna!" %}</div>
+        <div class="empty">
+          {% if all_taken %}<span class="ms">celebration</span>{% translate "Búið er að taka allt á listanum frá. Kíktu aftur seinna!" %}
+          {% else %}<span class="ms">lightbulb</span>{% translate "Engar hugmyndir á listanum enn. Kíktu aftur seinna!" %}{% endif %}
+        </div>
       {% endfor %}
     </section>
-    <p class="wish-foot">Jólahjól 🎄</p>
+    {% if follow.state != "own" %}
+    <section class="card wish-follow" id="follow">
+      <div class="wish-follow-text">
+      <span class="wish-kicker"><span class="ms">family_restroom</span>{% translate "Tengdu fjölskylduna saman" %}</span>
+      <h2>{% blocktranslate with name=person.name %}Á {{ name }} að vera á þínum lista á jolahjol.is?{% endblocktranslate %}</h2>
+      <p class="muted">{% blocktranslate with owners=follow.owners count n=follow.owners_count %}Ertu með þinn gjafalista á Jólahjól.is? Bættu viðkomandi við og fáðu allar hugmyndir sem {{ owners }} bætir við.{% plural %}Ertu með þinn gjafalista á Jólahjól.is? Bættu viðkomandi við og fáðu allar hugmyndir sem {{ owners }} bæta við.{% endblocktranslate %}</p>
+      {% if follow.state == "anonymous" or follow.state == "no_household" %}
+        <p class="help">{% if follow.state == "anonymous" %}{% translate "Það þarf bara netfang: við sendum þér kóða og aðgangurinn verður til. Svo opnast listinn þinn og þú velur hvernig viðkomandi bætist við hann. Ertu þegar með aðgang? Sama leið skráir þig inn." %}{% else %}{% translate "Gefðu listanum þínum nafn. Svo opnast hann og þú velur hvernig viðkomandi bætist við." %}{% endif %}</p>
+      {% endif %}
+      </div>
+      <div class="wish-follow-action">
+      {% if follow.state == "anonymous" or follow.state == "no_household" %}
+        <a class="btn primary" href="{% url 'wishlists:follow_start' share.token %}"><span class="ms">person_add</span>{% translate "Bæta á minn lista" %}</a>
+      {% elif follow.state == "following" %}
+        <p>{% for p in follow.people %}<a href="{% url 'gifts:list' p.household.slug %}">{% blocktranslate with name=p.name household=p.household.name %}„{{ name }}“ á listanum „{{ household }}“{% endblocktranslate %}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+      {% else %}
+        <a class="btn primary" href="{% url 'wishlists:follow_start' share.token %}"><span class="ms">person_add</span>{% translate "Bæta á minn lista" %}</a>
+      {% endif %}
+      </div>
+    </section>
+    {% endif %}
   </div>
 </main>
+{% include "partials/footer.html" %}
 {% endblock %}

@@ -1,0 +1,51 @@
+{% load i18n %}
+{% comment %}
+  „Bæta á minn lista“: valglugginn sem opnast á gjafalista notandans eftir að smellt var á
+  hnappinn á opna óskalistanum (sjá wishlists.views.FollowStartView og follow_popup_context).
+  Breytur: share, source (einstaklingurinn á óskalistanum), follow (_follow_state + _owners).
+{% endcomment %}
+<div x-data="popup" data-autoopen>
+  <dialog class="confirm-dlg invite-dlg follow-dlg" x-ref="dialog" aria-labelledby="follow-title">
+    <div class="confirm-icon"><span class="ms">person_add</span></div>
+    <h3 id="follow-title">{% blocktranslate with name=source.name %}Bæta á minn lista – {{ name }}{% endblocktranslate %}</h3>
+    <p class="follow-note">{% blocktranslate with owners=follow.owners count n=follow.owners_count %}Bættu viðkomandi við á þinn eigin gjafalista. Allar hugmyndir sem {{ owners }} setur inn eru sýnilegar þér en þær hugmyndir sem þú setur inn eru eingöngu sýnilegar á þínum lista.{% plural %}Bættu viðkomandi við á þinn eigin gjafalista. Allar hugmyndir sem {{ owners }} setja inn eru sýnilegar þér en þær hugmyndir sem þú setur inn eru eingöngu sýnilegar á þínum lista.{% endblocktranslate %}</p>
+    <form method="post" action="{% url 'wishlists:follow' share.token %}" class="follow-form" x-data="followForm">
+      {% csrf_token %}
+      {% if follow.households|length > 1 %}
+        <div class="field">
+          <label for="follow-household">{% translate "Á hvaða lista?" %}</label>
+          <select name="household" id="follow-household" x-on:change="household">
+            {% for h, people in follow.households %}<option value="{{ h.slug }}">{{ h.name }}</option>{% endfor %}
+          </select>
+        </div>
+      {% else %}
+        <input type="hidden" name="household" value="{{ follow.households.0.0.slug }}">
+      {% endif %}
+      <div class="field">
+        <label for="follow-person">{% translate "Tengja við einstakling sem er nú þegar á lista:" %}</label>
+        {% for h, people in follow.households %}
+          <select name="person" id="{% if forloop.first %}follow-person{% else %}follow-person-{{ h.slug }}{% endif %}" data-household="{{ h.slug }}"{% if not forloop.first %} disabled hidden{% endif %} x-on:change="person">
+            <option value="">{% blocktranslate with name=source.name %}{{ name }} er ekki á lista{% endblocktranslate %}</option>
+            {% for p in people %}<option value="{{ p.pk }}">{{ p.name }} - {{ p.get_group_display }}</option>{% endfor %}
+          </select>
+        {% endfor %}
+      </div>
+      <div class="grid2" x-ref="newFields">
+        <div class="field">
+          <label for="follow-name">{% translate "Nafn á þínum lista" %}</label>
+          <input id="follow-name" name="name" value="{{ source.name }}" maxlength="100" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="follow-group">{% translate "Flokkur" %}</label>
+          <select name="group" id="follow-group">
+            {% for value, label in follow.groups %}<option value="{{ value }}"{% if value == "fjolskylda" %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="dlg-actions">
+        <button type="button" class="btn ghost" x-on:click="close">{% translate "Hætta við" %}</button>
+        <button type="submit" class="btn primary"><span class="ms">person_add</span>{% translate "Bæta á listann" %}</button>
+      </div>
+    </form>
+  </dialog>
+</div>

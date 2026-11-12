@@ -29,6 +29,7 @@ from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
 from apps.households.views import person_invite_context
 from apps.wishlists import services as wishlist_services
+from apps.wishlists.views import follow_popup_context, owners_context
 
 from . import listing
 from .forms import (
@@ -211,7 +212,9 @@ class SeasonRedirectView(GiftsMixin, View):
         season = seasons.filter(year=this_year).first() or seasons.order_by("-year").first()
         if season is None:
             season = Season.objects.create(household=self.household, year=this_year)
-        return redirect(f"gifts:{self.target}", slug=slug, year=season.year)
+        url = reverse(f"gifts:{self.target}", kwargs={"slug": slug, "year": season.year})
+        # T.d. ?fylgja=<token> af opna óskalistanum („Bæta á minn lista“) fylgir með
+        return redirect(f"{url}?{request.GET.urlencode()}" if request.GET else url)
 
 
 class SeasonPageMixin(GiftsMixin):
@@ -263,6 +266,7 @@ class GiftListView(SeasonPageMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(self.season_context(self.season))
+        ctx["follow_popup"] = follow_popup_context(self.request, self.household)
         return ctx
 
 
@@ -765,6 +769,7 @@ class PersonDialogView(GiftsMixin, View):
                 if entry.gift.bought and not self.viewer.is_secret(entry.gift)
             ],
             "share": wishlist_services.active_share(person),
+            "followers": wishlist_services.follower_names(person),
             **person_invite_context(self.household, person, self.is_owner),
             "year": params.get("ar", ""),  # árið sem listinn sýnir, svo hann uppfærist eftir vistun
         }
@@ -854,6 +859,71 @@ class StoreDialogView(GiftsMixin, View):
             stores_services.set_locations(target, split_list(", ".join(names)))
         season = self.household.seasons.filter(year=request.POST.get("ar") or 0).first()
         return self.changed(season)
+
+
+class FeedIdeaView(IdeaBoughtView):
+    """Hugmynd af óskalista einstaklings í öðru heimili sem gjöfin fylgir (Person.source).
+
+    GET: glugginn (texti, lýsing, hlekkur, „Frátekið“ og „Keypt“). POST `action`=fratekid|keypt:
+    hugmyndin verður frátekin þar í nafni notandans og afrit verður til hér (wishlists.claim).
+    „Keypt“ án verðs spyr fyrst um verð og tekur ekkert fyrr en það er skráð eða sleppt, svo
+    „Hætta“ í verðglugganum skilji hugmyndina eftir lausa (eins og gátreitur hugmyndar).
+    """
+
+    template = "gifts/dialogs/feed_idea.html"
+
+    def feed_idea(self, gift, idea_id):
+        idea = wishlist_services.feed_idea(gift, idea_id)
+        if idea is None:
+            raise Http404
+        return idea
+
+    def get(self, request, slug, pk, idea):
+        gift = self.get_gift(pk)
+        self.ensure_editable(gift.season)
+        source = gift.person.source
+        ctx = {"gift": gift, "idea": self.feed_idea(gift, idea), "source": source}
+        ctx.update(owners_context(source.household))
+        return self.dialog(self.template, ctx)
+
+    def price_dialog(self, gift, idea, form=None, status=200):
+        ctx = {
+            "gift": gift,
+            "idea": idea,
+            "form": form or PriceForm(),
+            "what": idea.text,
+            "post_url": reverse("gifts:feed_idea", args=[self.household.slug, gift.pk, idea.pk]),
+        }
+        response = self.dialog("gifts/dialogs/price.html", ctx, status=status)
+        if status == 200 and self.page_name() == "listi":
+            # Ekkert tekið enn: línan (óhökuð) fylgir með
+            response.content += self.row_html(gift, oob=True).encode()
+        response["HX-Retarget"] = "#modal-body"
+        response["HX-Reswap"] = "innerHTML"
+        return response
+
+    def post(self, request, slug, pk, idea):
+        gift = self.get_gift(pk)
+        self.ensure_editable(gift.season)
+        bought = request.POST.get("action") == "keypt"
+        amount = None
+        if bought and not request.POST.get("skip"):
+            found = wishlist_services.feed_idea(gift, idea)
+            if found is not None and found.price is None:
+                if "amount" not in request.POST:
+                    return self.price_dialog(gift, found)
+                form = PriceForm(request.POST)
+                if not form.is_valid():
+                    return self.price_dialog(gift, found, form, status=422)
+                amount = form.cleaned_data["amount"]
+        name = wishlist_services.claimer_name(request.user, self.household)
+        try:
+            copy = wishlist_services.claim(gift, idea, name)
+        except wishlist_services.WishlistError as exc:
+            return self.refresh_list(gift.season, toast={"toast_text": str(exc)})
+        if bought:
+            gift_services.pick_idea(copy, amount)
+        return self.after_change(gift)
 
 
 class ReservationRemoveView(GiftsMixin, View):
