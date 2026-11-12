@@ -101,30 +101,35 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",  # admin
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
-LOGIN_URL = "account_request_login_code"
+LOGIN_URL = "account_login"
 LOGIN_REDIRECT_URL = "home"
 
-# Innskráning: netfang → kóði í tölvupósti. Nýskráning og innskráning eru eitt skref
-# (sjá apps.accounts.forms.EmailCodeForm). Eftir fyrstu innskráningu má velja lykilorð og
-# skrá sig svo inn með því á /accounts/login/; kóðinn virkar alltaf áfram (og kemur í stað endurstillingar).
+# Innskráning: netfang + lykilorð. Nýskráning er eitt skref með heimili og nafni
+# (apps.accounts.forms.SignupForm). Enginn póstur fer við nýskráningu eða innskráningu, aðeins
+# þegar fólk biður um „Týnt lykilorð“. Netföng eru því óstaðfest; allauth þurrkar út lykilorð
+# óstaðfests aðgangs þegar raunverulegur eigandi netfangsins kemur inn með Google.
 ACCOUNT_ADAPTER = "apps.accounts.adapter.AccountAdapter"
 ACCOUNT_FORMS = {
-    "request_login_code": "apps.accounts.forms.EmailCodeForm",
+    "signup": "apps.accounts.forms.SignupForm",
     "login": "apps.accounts.forms.PasswordLoginForm",
     "set_password": "apps.accounts.forms.SetPasswordForm",
     "change_password": "apps.accounts.forms.ChangePasswordForm",
+    "reset_password": "apps.accounts.forms.ResetPasswordForm",
+    "reset_password_from_key": "apps.accounts.forms.ResetPasswordKeyForm",
 }
 ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_LOGIN_BY_CODE_ENABLED = True
-ACCOUNT_LOGIN_BY_CODE_TIMEOUT = 15 * 60
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION = "none"
+# Ekki fela hvort netfang er skráð: annars sendir allauth póst („aðgangur er þegar til“), og
+# nýskráningin segir það hvort sem er
+ACCOUNT_PREVENT_ENUMERATION = False
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGOUT_REDIRECT_URL = "home"
-ALLAUTH_USER_CODE_FORMAT = {"numeric": True, "length": 6, "dashed": False}
-# Fastur innskráningarkóði, aðeins fyrir þróun (sjá dev.py og apps.accounts.checks)
-DEV_LOGIN_CODE = ""
+# Póstkvótinn er lítill (Gmail, sameiginlegur): endurstilling er takmörkuð harðar en sjálfgefið
+# Nýskráning stofnar líka heimili og er án staðfestingar, svo hún er takmörkuð harðar en sjálfgefið
+ACCOUNT_RATE_LIMITS = {"reset_password": "5/m/ip,3/h/key", "signup": "5/m/ip,20/h/ip"}
 
 # Google: virkt aðeins þegar lyklar eru komnir
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")

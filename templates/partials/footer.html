@@ -7,7 +7,7 @@
   <div class="container">
     <div class="foot-top">
       <div class="foot-brand">
-        <a class="foot-name" href="{% url 'home' %}">Jólahjól <span aria-hidden="true">🎄</span></a>
+        <a class="foot-name" href="{% url 'home' %}">{% include "partials/logo.html" with width=110 %}</a>
         <p>{% translate "Haltu utan um hugmyndir og gjafir." %}</p>
       </div>
     </div>

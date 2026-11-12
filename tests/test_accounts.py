@@ -10,173 +10,118 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.households import services
+from apps.households.models import Household, Membership
 from tests.factories import MembershipFactory, UserFactory
 
 pytestmark = pytest.mark.django_db
 
-
-def _request_code(client, email):
-    return client.post(reverse("account_request_login_code"), {"email": email})
+PASSWORD = "jolasveinn-123"
 
 
-def _code_from_outbox() -> str:
-    match = re.search(r"^\s*(\d{6})\s*$", mail.outbox[-1].body, re.MULTILINE)
-    assert match, mail.outbox[-1].body
-    return match.group(1)
+def _signup(client, url=None, **data):
+    data = {"name": "Okkar", "your_name": "Sibbi", "email": "Ny@Example.com", "password1": PASSWORD, **data}
+    return client.post(url or reverse("account_signup"), {k: v for k, v in data.items() if v is not None})
 
 
-def test_new_email_creates_account_and_logs_in_with_code(client):
-    response = _request_code(client, "Ny@Example.com")
+def _user_with_password(email="a@example.com", verified=True):
+    user = UserFactory(email=email)
+    user.set_password(PASSWORD)
+    user.save()
+    EmailAddress.objects.create(email=email, user=user, verified=verified, primary=True)
+    return user
+
+
+# ---------- Nýskráning ----------
+
+
+def test_signup_page_has_email_password_name_and_household_in_order(client):
+    page = client.get(reverse("account_signup")).text
+    assert "Velkomin í Jólahjól" in page
+    positions = [page.index(f'name="{f}"') for f in ("email", "password1", "your_name", "name")]
+    assert positions == sorted(positions)
+    assert 'name="password2"' not in page
+
+
+def test_signup_creates_account_and_household_in_one_step(client):
+    response = _signup(client)
     assert response.status_code == 302
-    assert response.url.startswith(reverse("account_confirm_login_code"))
-
     user = User.objects.get(email="ny@example.com")
-    assert not user.has_usable_password()
-    assert len(mail.outbox) == 1
-    assert "Innskráningarkóði" in mail.outbox[0].subject
-
-    response = client.post(reverse("account_confirm_login_code"), {"code": _code_from_outbox()})
-    assert response.status_code == 302
-    assert response.url == reverse("account_set_password") + "?next=%2F"  # boðið lykilorð
+    assert user.name == "Sibbi"
+    assert user.check_password(PASSWORD)
     assert client.session["_auth_user_id"] == str(user.pk)
-    assert EmailAddress.objects.get(user=user).verified
-    # Enginn heimili enn → stofnun heimilis
-    assert client.get(reverse("home")).url == reverse("households:create")
+
+    household = Household.objects.get(name="Okkar")
+    assert Membership.objects.get(user=user, household=household).role == Membership.Role.OWNER
+    assert client.get(response.url, follow=True).redirect_chain[-1][0].startswith(f"/h/{household.slug}/")
+    # Enginn póstur: hvorki kóði né staðfesting. Netfangið er óstaðfest (sjá wipe_password í allauth).
+    assert mail.outbox == []
+    assert not EmailAddress.objects.get(user=user).verified
 
 
-def test_existing_user_without_email_address_record_can_log_in(client):
-    """Notendur úr import_legacy --owner eða admin hafa enga EmailAddress-færslu."""
-    user = UserFactory(email="eigandi@example.com")
-    _request_code(client, "eigandi@example.com")
-    client.post(reverse("account_confirm_login_code"), {"code": _code_from_outbox()})
-    assert client.session["_auth_user_id"] == str(user.pk)
-    assert User.objects.count() == 1
-    assert EmailAddress.objects.get(user=user).verified
-
-
-def test_requesting_twice_does_not_duplicate_account(client):
-    _request_code(client, "a@example.com")
-    client.logout()
-    _request_code(client, "A@example.com")
-    assert User.objects.filter(email__iexact="a@example.com").count() == 1
-    assert EmailAddress.objects.filter(email__iexact="a@example.com").count() == 1
-
-
-def test_wrong_code_is_rejected(client):
-    _request_code(client, "a@example.com")
-    response = client.post(reverse("account_confirm_login_code"), {"code": "000000"})
+def test_signup_needs_household_and_name(client):
+    response = _signup(client, name="", your_name="")
     assert response.status_code == 200
-    assert "Kóðinn er ekki réttur" in response.text
-    assert "_auth_user_id" not in client.session
+    assert response.text.count("errorlist") >= 2
+    assert not User.objects.exists()
 
 
-def test_signup_and_password_reset_urls_redirect_to_code_page(client):
-    for name in ("account_signup", "account_reset_password"):
-        response = client.get(reverse(name) + "?next=/h/x/")
-        assert response.status_code == 302
-        assert response.url == reverse("account_request_login_code") + "?next=/h/x/"
+def test_signup_rejects_weak_password(client):
+    response = _signup(client, password1="12345678")
+    assert response.status_code == 200
+    assert not User.objects.exists()
+    assert not Household.objects.exists()
 
 
-def test_prune_users_removes_only_stale_unused_accounts():
-    old = timezone.now() - timedelta(days=3)
-    stale = UserFactory(date_joined=old)
-    UserFactory(date_joined=old, last_login=old)  # hefur skráð sig inn
-    MembershipFactory(user=UserFactory(date_joined=old))  # er í heimili
-    UserFactory()  # nýr, gæti enn verið að bíða eftir kóða
-    UserFactory(date_joined=old, is_staff=True)
-
-    call_command("prune_users", stdout=io.StringIO())
-    assert not User.objects.filter(pk=stale.pk).exists()
-    assert User.objects.count() == 4
+def test_signup_with_taken_email_points_to_login_and_reset(client):
+    _user_with_password("ny@example.com")
+    response = _signup(client)
+    assert response.status_code == 200
+    assert "Þetta netfang er þegar skráð" in response.text
+    assert User.objects.count() == 1 and not Household.objects.exists()
+    assert mail.outbox == []
 
 
-def test_dev_login_code_works_only_with_debug(client, settings):
-    from apps.accounts.adapter import AccountAdapter
-
-    settings.DEV_LOGIN_CODE = "666"
-    settings.DEBUG = True
-    assert AccountAdapter().generate_login_code() == "666"
-    _request_code(client, "dev@example.com")
-    client.post(reverse("account_confirm_login_code"), {"code": "666"})
-    assert "_auth_user_id" in client.session
-
-    settings.DEBUG = False
-    assert AccountAdapter().generate_login_code() != "666"
-
-
-def test_check_rejects_dev_login_code_without_debug(settings):
-    from apps.accounts.checks import dev_login_code_only_in_debug
-
-    settings.DEV_LOGIN_CODE, settings.DEBUG = "666", False
-    assert [e.id for e in dev_login_code_only_in_debug(None)] == ["accounts.E001"]
-    settings.DEBUG = True
-    assert dev_login_code_only_in_debug(None) == []
-
-
-def _log_in_with_code(client, email, **extra):
-    _request_code(client, email)
-    return client.post(reverse("account_confirm_login_code"), {"code": _code_from_outbox(), **extra})
-
-
-def test_password_is_offered_once_after_first_code_login(client):
-    response = _log_in_with_code(client, "a@example.com")
-    assert response.url.startswith(reverse("account_set_password"))
-    page = client.get(response.url)
-    assert "Viltu velja lykilorð?" in page.text
-    assert 'href="/">Sleppa' in page.text
-
-    client.logout()
-    response = _log_in_with_code(client, "a@example.com")
-    assert response.url == reverse("home")
-    assert not User.objects.get(email="a@example.com").has_usable_password()
-
-
-def test_password_offer_keeps_next(client):
-    client.post(reverse("account_request_login_code"), {"email": "a@example.com", "next": "/h/x/"})
-    response = client.post(
-        reverse("account_confirm_login_code"), {"code": _code_from_outbox(), "next": "/h/x/"}
-    )
-    assert response.url == reverse("account_set_password") + "?next=%2Fh%2Fx%2F"
-    assert 'href="/h/x/">Sleppa' in client.get(response.url).text
-
-
-def test_skip_link_ignores_external_next(client):
-    _log_in_with_code(client, "a@example.com")
-    page = client.get(reverse("account_set_password") + "?next=https://illt.example.com/")
-    assert 'href="/">Sleppa' in page.text
-
-
-def test_set_password_then_log_in_with_password_or_code(client):
-    _log_in_with_code(client, "a@example.com")
-    response = client.post(
-        reverse("account_set_password") + "?next=/h/x/", {"password1": "jolasveinn-123", "next": "/h/x/"}
-    )
+def test_signup_keeps_safe_next(client):
+    response = _signup(client, url=reverse("account_signup") + "?next=/h/x/", next="/h/x/")
     assert response.url == "/h/x/"
-    assert client.session["_auth_user_id"]  # áfram innskráður
-    client.logout()
 
-    response = client.post(reverse("account_login"), {"login": "A@example.com", "password": "jolasveinn-123"})
+
+def test_signup_from_invite_skips_household_and_joins_after(client):
+    owner = MembershipFactory(role=Membership.Role.OWNER)
+    invite = services.create_invite(owner.household, owner.user)
+    invite_url = reverse("households:invite_accept", args=[invite.token])
+
+    page = client.get(reverse("account_signup") + f"?next={invite_url}").text
+    assert 'name="name"' not in page
+    assert "Stofnaðu aðgang" in page
+
+    response = _signup(client, name=None, your_name="Maki", next=invite_url)
+    assert response.url == invite_url
+    user = User.objects.get(email="ny@example.com")
+    assert user.name == "Maki"
+    assert not Membership.objects.filter(user=user).exists()  # boðið er þegið á næstu síðu
+    assert 'value="Maki"' in client.get(invite_url).text
+
+
+# ---------- Innskráning ----------
+
+
+def test_log_in_with_password(client):
+    _user_with_password()
+    response = client.post(reverse("account_login"), {"login": "A@example.com", "password": PASSWORD})
     assert response.status_code == 302
     assert response.url == reverse("home")
-    client.logout()
-
-    # Kóðinn virkar áfram og lykilorðinu er ekki boðið aftur
-    response = _log_in_with_code(client, "a@example.com")
-    assert response.url == reverse("home")
 
 
-def test_weak_password_is_rejected(client):
-    _log_in_with_code(client, "a@example.com")
-    response = client.post(reverse("account_set_password"), {"password1": "12345678"})
-    assert response.status_code == 200
-    assert not User.objects.get(email="a@example.com").has_usable_password()
+def test_unverified_email_can_log_in(client):
+    _user_with_password(verified=False)
+    response = client.post(reverse("account_login"), {"login": "a@example.com", "password": PASSWORD})
+    assert response.status_code == 302
 
 
 def test_wrong_password_is_rejected_in_icelandic(client):
-    user = UserFactory(email="a@example.com")
-    user.set_password("jolasveinn-123")
-    user.save()
-    EmailAddress.objects.create(email=user.email, user=user, verified=True, primary=True)
+    _user_with_password()
     for email in ("a@example.com", "enginn@example.com"):
         response = client.post(reverse("account_login"), {"login": email, "password": "rangt-lykilord"})
         assert response.status_code == 200
@@ -184,25 +129,98 @@ def test_wrong_password_is_rejected_in_icelandic(client):
     assert "_auth_user_id" not in client.session
 
 
-def test_change_password_does_not_need_old_one(client):
-    _log_in_with_code(client, "a@example.com")
-    client.post(reverse("account_set_password"), {"password1": "jolasveinn-123"})
+def test_login_code_is_gone(client):
+    page = client.get(reverse("account_login")).text
+    assert "kóða" not in page.replace("Fékkstu áður kóða", "")
+
+
+def test_login_and_signup_link_to_each_other_and_keep_next(client):
+    login = client.get(reverse("account_login") + "?next=/h/x/").text
+    assert reverse("account_signup") + "?next=/h/x/" in login
+    assert reverse("account_reset_password") in login
+    signup = client.get(reverse("account_signup") + "?next=/h/x/").text
+    assert reverse("account_login") + "?next=/h/x/" in signup
+
+
+# ---------- Týnt lykilorð ----------
+
+
+def _reset_link() -> str:
+    match = re.search(r"https?://\S+/accounts/password/reset/key/\S+", mail.outbox[-1].body)
+    assert match, mail.outbox[-1].body
+    return match.group(0)
+
+
+def test_lost_password_sends_link_and_logs_in_with_new_password(client):
+    user = UserFactory(email="a@example.com")
+    user.set_unusable_password()  # eins og þeir sem skráðu sig áður inn með kóða
+    user.save()
+
+    response = client.post(reverse("account_reset_password"), {"email": "A@example.com"})
+    assert response.url == reverse("account_reset_password_done")
+    assert len(mail.outbox) == 1
+    assert "Nýtt lykilorð" in mail.outbox[0].subject
+
+    response = client.get(_reset_link(), follow=True)
+    assert "Veldu nýtt lykilorð" in response.text
+    response = client.post(response.redirect_chain[-1][0], {"password1": "grylan-og-leppaludi"})
+    assert response.status_code == 302
+    assert client.session["_auth_user_id"] == str(user.pk)
+    user.refresh_from_db()
+    assert user.check_password("grylan-og-leppaludi")
+
+
+def test_lost_password_for_unknown_email_sends_nothing(client):
+    response = client.post(reverse("account_reset_password"), {"email": "enginn@example.com"})
+    assert response.status_code == 200
+    assert "Enginn aðgangur er skráður á þetta netfang" in response.text
+    assert mail.outbox == []
+
+
+def test_bad_reset_link_explains(client):
+    user = _user_with_password()
+    response = client.get(reverse("account_reset_password_from_key", args=[user.pk, "rangur-lykill"]))
+    assert "Hlekkurinn virkar ekki" in response.text
+
+
+# ---------- Lykilorð í stillingum ----------
+
+
+def test_change_password_needs_current_one(client):
+    user = _user_with_password()
+    client.force_login(user)
     page = client.get(reverse("account_change_password"))
-    assert "Breyta lykilorði" in page.text
-    response = client.post(reverse("account_change_password"), {"password1": "grylan-og-leppaludi"})
+    assert "Núverandi lykilorð" in page.text
+
+    data = {"oldpassword": "rangt-lykilord", "password1": "grylan-og-leppaludi"}
+    response = client.post(reverse("account_change_password"), data)
+    assert response.status_code == 200
+    assert "Núverandi lykilorð er ekki rétt" in response.text
+
+    data["oldpassword"] = PASSWORD
+    response = client.post(reverse("account_change_password"), data)
     assert response.url == reverse("home")
-    assert User.objects.get().check_password("grylan-og-leppaludi")
+    user.refresh_from_db()
+    assert user.check_password("grylan-og-leppaludi")
 
 
-def test_login_pages_link_to_each_other(client):
-    assert reverse("account_login") in client.get(reverse("account_request_login_code")).text
-    assert reverse("account_request_login_code") in client.get(reverse("account_login")).text
+def test_set_password_without_one(client):
+    user = UserFactory()
+    user.set_unusable_password()  # t.d. kom inn með Google
+    user.save()
+    client.force_login(user)
+    response = client.post(
+        reverse("account_set_password") + "?next=/h/x/", {"password1": PASSWORD, "next": "/h/x/"}
+    )
+    assert response.url == "/h/x/"
+    user.refresh_from_db()
+    assert user.check_password(PASSWORD)
 
 
 def test_password_is_managed_from_household_settings(client):
     membership = MembershipFactory(user__email="a@example.com")
     user, household = membership.user, membership.household
-    user.set_unusable_password()  # eins og create_user; factory gefur tómt (nothæft) lykilorð
+    user.set_unusable_password()
     user.save()
     client.force_login(user)
     url = reverse("households:settings", args=[household.slug])
@@ -211,9 +229,50 @@ def test_password_is_managed_from_household_settings(client):
     assert "Velja lykilorð" in page
     assert reverse("account_set_password") + "?next=" in page
 
-    user.set_password("jolasveinn-123")
+    user.set_password(PASSWORD)
     user.save()
     client.force_login(user)
     page = client.get(url).text
     assert "Breyta lykilorði" in page
     assert reverse("account_change_password") + "?next=" in page
+
+
+def test_prune_users_removes_only_stale_unused_accounts():
+    old = timezone.now() - timedelta(days=3)
+    stale = UserFactory(date_joined=old)
+    UserFactory(date_joined=old, last_login=old)  # hefur skráð sig inn
+    MembershipFactory(user=UserFactory(date_joined=old))  # er í heimili
+    UserFactory()  # nýr
+    UserFactory(date_joined=old, is_staff=True)
+
+    call_command("prune_users", stdout=io.StringIO())
+    assert not User.objects.filter(pk=stale.pk).exists()
+    assert User.objects.count() == 4
+
+
+def test_password_reset_verifies_email(client):
+    """Án þessa þurrkar Google-innskráning út lykilorðið (wipe_password í allauth)."""
+    _signup(client)
+    client.logout()
+    client.post(reverse("account_reset_password"), {"email": "ny@example.com"})
+    response = client.get(_reset_link(), follow=True)
+    client.post(response.redirect_chain[-1][0], {"password1": "grylan-og-leppaludi"})
+    assert EmailAddress.objects.get(email="ny@example.com").verified
+
+
+def test_old_login_code_urls_redirect_to_login(client):
+    for url in ("/accounts/login/code/?next=/h/x/", "/accounts/login/code/confirm/"):
+        response = client.get(url)
+        assert response.status_code in (301, 302)
+        assert response.url.startswith(reverse("account_login"))
+    assert client.get("/accounts/login/code/?next=/h/x/").url.endswith("?next=/h/x/")
+
+
+@pytest.mark.parametrize("suffix", ["", "?a=1", "#x"])
+def test_invite_next_is_recognised_with_query_fragment_or_host(suffix):
+    from apps.accounts.forms import joins_by_invite
+
+    path = reverse("households:invite_accept", args=["abc"])
+    assert joins_by_invite(path + suffix)
+    assert joins_by_invite("https://jolahjol.is" + path + suffix)
+    assert not joins_by_invite("/h/x/" + suffix)

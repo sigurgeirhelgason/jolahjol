@@ -8,4 +8,4 @@ class AccountsConfig(AppConfig):
     verbose_name = _("Aðgangar")
 
     def ready(self):
-        from . import checks  # noqa: F401  (skráir kerfisathuganir)
+        from . import signals  # noqa: F401  (tengir móttakara)

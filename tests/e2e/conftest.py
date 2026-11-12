@@ -6,6 +6,8 @@ from django.core import mail
 from django.core.cache import cache
 from django.urls import reverse
 
+from apps.accounts.models import User
+
 # Playwright (sync) keyrir event loop í sama þræði; Django þarf leyfi til að nota ORM þar
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
@@ -19,7 +21,7 @@ def pytest_collection_modifyitems(items):
 
 @pytest.fixture(autouse=True)
 def _clear_cache():
-    """Rate limit allauth er í cache; án hreinsunar fá seinni próf með sama netfangi engan kóða."""
+    """Rate limit allauth er í cache; án hreinsunar lenda seinni próf í takmörkunum."""
     cache.clear()
 
 
@@ -38,25 +40,33 @@ def page(page):
     assert not errors, "Villur í vafra:\n" + "\n".join(errors)
 
 
+PASSWORD = "jolasveinn-123"
+
+
 @pytest.fixture
 def login(live_server):
-    """Skráir inn í gegnum raunverulega flæðið: netfang → kóði úr pósti."""
+    """Skráir inn með netfangi og lykilorði í gegnum innskráningarsíðuna.
+
+    Notandinn verður til (án heimilis) ef hann er ekki til, svo próf sem byrja á stofnun heimilis
+    lenda á henni. Nýskráningarsíðan sjálf er prófuð í test_auth_flow.
+    """
 
     def _login(page, email, navigate=True):
-        # navigate=False: síðan er þegar á innskráningu (t.d. eftir tilvísun með ?next=)
+        user = User.objects.filter(email=email).first() or User.objects.create_user(email=email)
+        user.set_password(PASSWORD)
+        user.save()
+        # navigate=False: síðan er þegar á innskráningu eða nýskráningu (eftir tilvísun með ?next=)
         if navigate:
-            page.goto(live_server.url + reverse("account_request_login_code"))
+            page.goto(live_server.url + reverse("account_login"))
+        elif "/accounts/signup/" in page.url:
+            page.get_by_role("link", name=re.compile("Skráðu þig inn")).click()
         page.get_by_label("Netfang").fill(email)
-        page.get_by_role("button", name="Senda mér kóða").click()
-        page.get_by_label("Kóði").fill(last_code())
+        page.get_by_label("Lykilorð").fill(PASSWORD)
         page.get_by_role("button", name="Skrá inn").click()
-        # Fyrsta innskráning býður upp á lykilorð; prófin sleppa því nema annað sé tekið fram
-        page.wait_for_url(lambda url: "/login/code/confirm/" not in url)
-        if "/accounts/password/set/" in page.url:
-            page.get_by_role("link", name="Sleppa").click()
+        page.wait_for_url(lambda url: "/accounts/login/" not in url)
 
     return _login
 
 
-def last_code() -> str:
-    return re.search(r"^\s*(\d{6})\s*$", mail.outbox[-1].body, re.MULTILINE).group(1)
+def last_link() -> str:
+    return re.search(r"https?://\S+", mail.outbox[-1].body).group(0)

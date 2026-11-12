@@ -1,23 +1,27 @@
 import re
 
+from django.core import mail
 from django.urls import reverse
 from playwright.sync_api import expect
 
+from apps.accounts.models import User
 from apps.gifts.models import Season
 from apps.households.models import Household, Membership
-from tests.e2e.conftest import last_code
+from tests.e2e.conftest import PASSWORD, last_link
 
 
-def test_signup_onboarding_and_invite(live_server, page, login, browser):
-    # Nýr notandi: forsíða → kóði → stofna heimili
+def test_signup_onboarding_and_invite(live_server, page, browser):
+    # Nýr notandi: forsíða → nýskráning með heimili, nafni, netfangi og lykilorði í einu skrefi
     page.goto(live_server.url)
     page.get_by_role("link", name="Byrja").click()
-    login(page, "sibbi@example.com")
     expect(page.get_by_role("heading", name="Velkomin í Jólahjól")).to_be_visible()
     page.get_by_label("Nafn heimilis").fill("Heimilið á Þórsgötu")
     page.get_by_label("Hvað heitir þú?").fill("Sibbi")
-    page.get_by_role("button", name="Stofna heimili").click()
+    page.get_by_label("Netfang").fill("sibbi@example.com")
+    page.get_by_label("Lykilorð").fill(PASSWORD)
+    page.get_by_role("button", name="Stofna aðgang").click()
     expect(page).to_have_url(re.compile(r"/h/heimilid-a-thorsgotu/\d{4}/$"))
+    assert not mail.outbox  # enginn póstur við nýskráningu
 
     # Valmynd heimilis (Alpine) → stillingar → boðshlekkur
     page.get_by_role("button", name="Heimilið á Þórsgötu").click()
@@ -29,12 +33,16 @@ def test_signup_onboarding_and_invite(live_server, page, login, browser):
     invite_url = page.get_by_label("Boðshlekkur").input_value()
     expect(page.locator(".invite-link button").first).to_have_text(re.compile(r"Afrita$"))
 
-    # Annar notandi í hreinum vafra þiggur boðið
+    # Annar notandi í hreinum vafra: boðið krefst innskráningar → nýr aðgangur án heimilis → boðið
     other = browser.new_context(locale="is-IS").new_page()
     other.goto(invite_url)
-    expect(other.get_by_label("Netfang")).to_be_visible()  # boðið krefst innskráningar
-    login(other, "maki@example.com", navigate=False)
+    other.get_by_role("link", name=re.compile("Stofnaðu aðgang")).click()
+    expect(other.get_by_label("Nafn heimilis")).to_have_count(0)
     other.get_by_label("Hvað heitir þú?").fill("Maki")
+    other.get_by_label("Netfang").fill("maki@example.com")
+    other.get_by_label("Lykilorð").fill(PASSWORD)
+    other.get_by_role("button", name="Stofna aðgang").click()
+    expect(other.get_by_label("Hvað heitir þú?")).to_have_value("Maki")
     other.get_by_role("button", name="Þiggja boð").click()
     expect(other.get_by_text("Gaman að fá þig")).to_be_visible()
     assert Membership.objects.filter(user__email="maki@example.com", role="member").exists()
@@ -98,26 +106,28 @@ def test_deleting_household_requires_typing_its_name(live_server, page, login):
     assert not Household.objects.exists()
 
 
-def test_choose_password_on_first_login_then_log_in_with_it(live_server, page):
-    page.goto(live_server.url + reverse("account_request_login_code"))
+def test_lost_password_then_log_in_with_new_one(live_server, page):
+    User.objects.create_user(email="lykill@example.com")  # t.d. skráði sig áður inn með kóða
+    page.goto(live_server.url + reverse("account_login"))
+    page.get_by_role("link", name="Týnt lykilorð?").click()
     page.get_by_label("Netfang").fill("lykill@example.com")
-    page.get_by_role("button", name="Senda mér kóða").click()
-    page.get_by_label("Kóði").fill(last_code())
-    page.get_by_role("button", name="Skrá inn").click()
+    page.get_by_role("button", name="Senda hlekk").click()
+    expect(page.get_by_role("heading", name="Athugaðu póstinn")).to_be_visible()
 
-    expect(page.get_by_role("heading", name="Viltu velja lykilorð?")).to_be_visible()
-    page.get_by_label("Lykilorð").fill("jolasveinn-123")
+    page.goto(last_link())
+    page.get_by_label("Nýtt lykilorð").fill("grylan-og-leppaludi")
     page.get_by_role("button", name="Vista lykilorð").click()
-    expect(page.get_by_text("Lykilorðið er komið")).to_be_visible()
+    expect(
+        page.get_by_role("heading", name="Velkomin í Jólahjól")
+    ).to_be_visible()  # innskráð, ekkert heimili
     page.get_by_label("Nafn heimilis").fill("Okkar")
     page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
     page.get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()
 
-    page.goto(live_server.url + reverse("account_request_login_code"))
-    page.get_by_role("link", name="Skrá inn með lykilorði").click()
+    page.goto(live_server.url + reverse("account_login"))
     page.get_by_label("Netfang").fill("lykill@example.com")
-    page.get_by_label("Lykilorð").fill("jolasveinn-123")
+    page.get_by_label("Lykilorð").fill("grylan-og-leppaludi")
     page.get_by_role("button", name="Skrá inn").click()
     expect(page).to_have_url(re.compile(r"/h/okkar/\d{4}/$"))

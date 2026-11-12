@@ -152,10 +152,10 @@
   <section class="card" id="account">
     <h2><span class="ms">key</span>{% translate "Aðgangurinn þinn" %}</h2>
     {% if request.user.has_usable_password %}
-      <p>{% blocktranslate with email=request.user.email %}Þú skráir þig inn sem <strong>{{ email }}</strong>, með lykilorði eða kóða í pósti.{% endblocktranslate %}</p>
+      <p>{% blocktranslate with email=request.user.email %}Þú skráir þig inn sem <strong>{{ email }}</strong>.{% endblocktranslate %}</p>
       <a class="btn soft" href="{% url 'account_change_password' %}?next={{ request.path|urlencode }}"><span class="ms">key</span>{% translate "Breyta lykilorði" %}</a>
     {% else %}
-      <p>{% blocktranslate with email=request.user.email %}Þú skráir þig inn sem <strong>{{ email }}</strong> með kóða í pósti. Viljirðu frekar nota lykilorð geturðu valið það hér; kóðinn virkar áfram.{% endblocktranslate %}</p>
+      <p>{% blocktranslate with email=request.user.email %}Netfangið þitt er <strong>{{ email }}</strong> en þú hefur ekki valið lykilorð. Veldu það svo þú getir skráð þig inn með því.{% endblocktranslate %}</p>
       <a class="btn soft" href="{% url 'account_set_password' %}?next={{ request.path|urlencode }}"><span class="ms">key</span>{% translate "Velja lykilorð" %}</a>
     {% endif %}
   </section>

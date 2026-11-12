@@ -7,7 +7,7 @@ from apps.accounts.models import User
 
 
 class Command(BaseCommand):
-    help = "Eyðir aðgöngum sem urðu til við beiðni um kóða en voru aldrei notaðir."
+    help = "Eyðir aðgöngum sem voru aldrei notaðir (t.d. frá tíma innskráningar með kóða)."
 
     def add_arguments(self, parser):
         parser.add_argument("--days", type=int, default=2, help="Aldur aðgangs í dögum (sjálfgefið 2)")

@@ -1,1 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#274e3d" d="M32 4 12 30h9L8 46h13l-7 10h36l-7-10h13L43 30h9z"/><rect x="28" y="54" width="8" height="8" rx="1" fill="#8a5828"/><circle cx="32" cy="6" r="5" fill="#f0bd8b"/><circle cx="25" cy="34" r="3" fill="#8b1e2b"/><circle cx="39" cy="44" r="3" fill="#8b1e2b"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 1.3 69.6 69.6">
+  <!-- Gjafamiði eins og í merkinu: rjómalitaður, saumuð brún, kristþyrnir og rauð slaufa við gatið -->
+  <g transform="translate(1 3) rotate(-15 32 32)">
+    <path d="M3 33 L16 16 H57 a5 5 0 0 1 5 5 V45 a5 5 0 0 1 -5 5 H16 Z" fill="#fbefd6" stroke="#b9853f" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M9 33 L18.5 20.5 H56 a2.5 2.5 0 0 1 2.5 2.5 V43 a2.5 2.5 0 0 1 -2.5 2.5 H18.5 Z" fill="none" stroke="#d9a55a" stroke-width="1.5" stroke-dasharray="2.8 2.3"/>
+    <circle cx="14" cy="33" r="3.4" fill="#e6d2ae" stroke="#b9853f" stroke-width="1.5"/>
+    <!-- Kristþyrnir -->
+    <path d="M27 33 C30 24 38 23 42 27 C38 27 35 31 36.5 33.5 C33.5 32.5 30 33 27 33 Z" fill="#2f7d3b"/>
+    <path d="M55 34 C52 43 44 44 40 40 C44 40 47 36 45.5 33.5 C48.5 34.5 52 34 55 34 Z" fill="#2f7d3b"/>
+    <circle cx="39" cy="36.5" r="4" fill="#d42030"/>
+    <circle cx="44.5" cy="32.5" r="3.6" fill="#d42030"/>
+    <circle cx="37.8" cy="35.2" r="1.2" fill="#ff8a8f"/>
+    <!-- Slaufan, bundin í gatið -->
+    <g stroke="#8b1020" stroke-width="1.3" stroke-linejoin="round">
+      <path d="M14 33 C4 24 -1 29 2 35 C4 39 10 37 14 33 Z" fill="#d42030"/>
+      <path d="M14 33 C11 20 18 14 22 19 C25 23 20 29 14 33 Z" fill="#d42030"/>
+    </g>
+    <path d="M14 33 L6 46 L10.5 45 L12.5 49.5 Z" fill="#c01a29"/>
+    <path d="M14 33 L19 47 L21.5 43.5 L25 45 Z" fill="#c01a29"/>
+    <circle cx="14" cy="33" r="3.6" fill="#b8172a"/>
+  </g>
+</svg>

@@ -265,12 +265,27 @@ def test_best_name_matches_first_in_dropdown(client, laugavegur, disa):
 
 
 def test_signup_from_wishlist_opens_the_popup_on_my_list(client, laugavegur):
-    """Ný manneskja: „Bæta á minn lista“ → kóði → stofna lista → listinn opnast með valglugganum."""
-    share, sigga = laugavegur["share"], laugavegur["sigga"]
+    """Ný manneskja: „Bæta á minn lista“ → nýskráning (með heimili) → listinn opnast með valglugganum."""
+    share = laugavegur["share"]
     start = reverse("wishlists:follow_start", args=[share.token])
     response = client.get(start)
-    assert response.url.startswith(reverse("account_request_login_code")) and "fylgja" in response.url
+    assert response.url.startswith(reverse("account_signup")) and "fylgja" in response.url
+    signup = {
+        "name": "Heima",
+        "your_name": "Dísa",
+        "email": "disa@example.com",
+        "password1": "jolasveinn-123",
+    }
+    response = client.post(response.url, {**signup, "next": start})
+    assert response.url == start
+    response = client.get(start, follow=True)
+    assert response.redirect_chain[-1][0].endswith(f"/{YEAR}/?fylgja={share.token}")
 
+
+def test_follow_without_household_asks_for_one_first(client, laugavegur):
+    """T.d. kom inn með Google og á ekkert heimili: stofna lista → listinn opnast með valglugganum."""
+    share, sigga = laugavegur["share"], laugavegur["sigga"]
+    start = reverse("wishlists:follow_start", args=[share.token])
     client.force_login(UserFactory(name=""))
     response = client.get(start)
     assert response.url.startswith(reverse("households:create"))

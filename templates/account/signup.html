@@ -1,0 +1,28 @@
+{% extends "layouts/entrance.html" %}
+{% load i18n %}
+{% block title %}{% translate "Nýskráning" %} · Jólahjól{% endblock %}
+{% block content %}
+  {% if form.joining %}
+    <h1>{% translate "Stofnaðu aðgang" %}</h1>
+    <p>{% translate "Svo geturðu þegið boðið í heimilið." %}</p>
+  {% else %}
+    <h1>{% translate "Velkomin í Jólahjól" %}</h1>
+    <p>{% translate "Gjafalistinn tilheyrir heimili. Þú getur boðið öðrum í heimilinu að vera með þegar það er komið." %}</p>
+  {% endif %}
+  <form method="post" action="{% url 'account_signup' %}" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <c-field :field="form.email" />
+    <c-field :field="form.password1" />
+    <c-field :field="form.your_name" />
+    {% if form.name %}<c-field :field="form.name" />{% endif %}
+    {{ redirect_field }}
+    <button type="submit" class="btn primary block">
+      <span class="ms">person_add</span>{% translate "Stofna aðgang" %}
+    </button>
+  </form>
+  {% include "account/snippets/google.html" %}
+  <div class="entrance-foot">
+    <a href="{% url 'account_login' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}">{% translate "Ertu með aðgang? Skráðu þig inn" %}</a>
+  </div>
+{% endblock %}

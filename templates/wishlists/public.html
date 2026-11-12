@@ -11,7 +11,7 @@
   {# Haus með kynningu, fyrir alla. Hnappurinn: „Prófa“ (nýskráning í FollowStartView) eða eigin listi #}
   <section class="wish-promo">
     <div class="container">
-      <span class="wish-promo-brand">Jólahjól 🎄</span>
+      {% include "partials/logo.html" with class="wish-promo-logo" width=220 %}
       <h2>{% translate "Minnkaðu jólastressið!" %}</h2>
       <p>{% translate "Haltu utan um hugmyndir og gjafir." %} {% translate "Deildu gagnvirkum óskalista á einfaldan hátt til fjölskyldu eða vina." %}</p>
       {% if follow.state == "anonymous" or follow.state == "no_household" %}

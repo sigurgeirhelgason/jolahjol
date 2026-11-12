@@ -134,7 +134,8 @@ def test_delete_household_removes_gifts_and_people(home):
 def test_home_for_guest_shows_landing(client):
     response = client.get(reverse("home"))
     assert response.status_code == 200
-    assert reverse("account_request_login_code") in response.text
+    assert reverse("account_signup") in response.text
+    assert reverse("account_login") in response.text
 
 
 def test_home_redirects_to_last_visited_household(client, owner):
@@ -177,7 +178,7 @@ def test_invite_link_requires_login_and_keeps_next(client, home, owner):
     url = reverse("households:invite_accept", args=[invite.token])
     response = client.get(url)
     assert response.status_code == 302
-    assert response.url.startswith(reverse("account_request_login_code"))
+    assert response.url.startswith(reverse("account_login"))
     assert "next=" in response.url
 
 
@@ -243,7 +244,7 @@ def test_guest_is_sent_to_login_on_every_household_url(client, home):
         response = client.get(_url(name, params, home.slug))
         assert response.status_code in (302, 405), name
         if response.status_code == 302:
-            assert response.url.startswith(reverse("account_request_login_code")), name
+            assert response.url.startswith(reverse("account_login")), name
 
 
 def test_member_cannot_do_owner_actions(client, home):

@@ -17,9 +17,8 @@ just e2e --headed       # Playwright-próf í vafra (sýnilegum)
 
 Docker Desktop þarf að vera í gangi fyrir gagnagrunninn (127.0.0.1:5433).
 
-**Innskráning í þróun:** hvaða netfang sem er og kóðinn **666** (`DEV_LOGIN_CODE` í
-`config/settings/dev.py`; kerfisathugun stöðvar ræsingu ef hann er virkur án `DEBUG`). Pósturinn
-prentast líka í terminal þar sem `just dev` keyrir. Admin er á `/admin/` með
+**Innskráning í þróun:** stofnaðu aðgang á `/accounts/signup/` (netfangið er ekki staðfest).
+Póstur („Týnt lykilorð“) prentast í terminal þar sem `just dev` keyrir. Admin er á `/admin/` með
 `just createsuperuser`.
 
 ## Gögn úr gamla appinu
@@ -38,7 +37,7 @@ Til að gera notanda að eiganda: `just manage import_legacy … --owner netfang
 | App | Hlutverk |
 |---|---|
 | `core` | texta- og upphæðarföll (`normalize`, `fold_key`, `evaluate_amount`, `kr`-filter) |
-| `accounts` | notandi auðkenndur með netfangi; innskráning með kóða eða valfrjálsu lykilorði (allauth), `prune_users` |
+| `accounts` | notandi auðkenndur með netfangi; netfang + lykilorð, nýskráning með heimili í einu skrefi, „Týnt lykilorð“ (allauth), `prune_users` |
 | `households` | heimili, aðild, boð; `HouseholdMixin` sækir heimilið úr `/h/<slug>/` og skilar 404 annars |
 | `gifts` | líkön og `services/` (reglur), `listing.py` (framsetning listans), views og gluggar |
 | `wishlists` | opnir óskalistahlekkir |

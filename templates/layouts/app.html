@@ -7,7 +7,7 @@
 <header class="topbar">
   <div class="container">
     <div class="brand">
-      <a class="brand-name" href="{% url 'gifts:list' household.slug %}">Jólahjól 🎄</a>
+      <a class="brand-logo" href="{% url 'gifts:list' household.slug %}">{% include "partials/logo.html" with width=76 %}</a>
       {% block year_pill %}{% endblock %}
     </div>
     <nav class="views" aria-label="{% translate 'Síður' %}">{% block nav %}{% include "partials/nav.html" %}{% endblock %}</nav>

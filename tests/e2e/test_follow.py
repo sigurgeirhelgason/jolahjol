@@ -78,11 +78,13 @@ def test_new_user_signs_up_from_wishlist(live_server, page, login):
     page.goto(live_server.url + reverse("wishlists:public", args=[share.token]))
     expect(page.get_by_text("Minnkaðu jólastressið!")).to_be_visible()
     page.get_by_role("link", name=re.compile("Bæta á minn lista")).click()
-    expect(page.get_by_text("getur Sigga bæst á þinn lista")).to_be_visible()
-    login(page, "ny@example.com", navigate=False)
+    expect(page.get_by_text("svo getur Sigga bæst á hann")).to_be_visible()
+    # Nýskráningin er eitt skref: heimili, nafn, netfang og lykilorð
     page.get_by_label("Nafn heimilis").fill("Heima hjá Dísu")
     page.get_by_label("Hvað heitir þú?").fill("Dísa")
-    page.get_by_role("button", name=re.compile("Stofna heimili")).click()
+    page.get_by_label("Netfang").fill("ny@example.com")
+    page.get_by_label("Lykilorð").fill("jolasveinn-123")
+    page.get_by_role("button", name=re.compile("Stofna aðgang")).click()
 
     popup = page.locator("dialog.follow-dlg")
     expect(popup).to_be_visible()

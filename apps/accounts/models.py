@@ -33,8 +33,6 @@ class User(AbstractUser):
     last_name = None
     email = models.EmailField(_("netfang"), unique=True)
     name = models.CharField(_("nafn"), max_length=150, blank=True)
-    # Notanda sem skráir sig inn með kóða er boðið einu sinni að velja lykilorð (sjá AccountAdapter)
-    password_offered = models.BooleanField(_("boðið lykilorð"), default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

@@ -1,16 +1,199 @@
-{% extends "layouts/entrance.html" %}
-{% load i18n %}
-{% block content %}
-  <div class="landing">
-    <h1>{% translate "Jólagjafirnar á einum stað" %}</h1>
+{% extends "base.html" %}
+{% load static i18n %}
+{% comment %}
+  Forsíða fyrir gesti. Skrollið er „fast“: tréð stendur kyrrt vinstra megin og textinn hægra megin
+  skiptir um skref, tréð fyllist og talan hækkar (static/js/landing.js). Án JS birtast skrefin hvert
+  undir öðru. data-count er hve margar af TOTAL gjöfum eru keyptar í skrefinu.
+{% endcomment %}
+{% block title %}Jólahjól · {% translate "Jólagjafirnar á einum stað" %}{% endblock %}
+{% block meta %}<meta name="description" content="{% translate 'Jólahjól hjálpar þér að skipuleggja jólagjafirnar og deila listanum með heimilinu. Ókeypis.' %}">{% endblock %}
+{% block scripts %}<script defer src="{% static 'js/landing.js' %}"></script>{% endblock %}
+{% block body %}
+<header class="topbar">
+  <div class="container">
+    <a class="brand-logo" href="{% url 'home' %}">{% include "partials/logo.html" with width=76 %}</a>
+    <div class="topbar-right">
+      <a class="btn ghost" href="{% url 'account_login' %}">{% translate "Skrá inn" %}</a>
+      <a class="btn primary" href="{% url 'account_signup' %}">{% translate "Stofna aðgang" %}</a>
+    </div>
   </div>
-  <div class="landing">
-    <ul>
-      <li><span class="ms">card_giftcard</span>{% translate "Hugmyndir, búðir og verð fyrir hvern og einn" %}</li>
-      <li><span class="ms">payments</span>{% translate "Peningastaða og hvað er eftir að kaupa" %}</li>
-      <li><span class="ms">group</span>{% translate "Heimilið deilir einum lista" %}</li>
-      <li><span class="ms">request_quote</span>{% translate "Rukkun þegar þú kaupir fyrir aðra" %}</li>
-    </ul>
-  </div>
-  <a class="btn primary block" href="{% url 'account_request_login_code' %}"><span class="ms">login</span>{% translate "Byrja" %}</a>
+</header>
+
+<main class="lp">
+  {# Sami borði og á opna óskalistanum (wishlists/public.html), án hnapps #}
+  <section class="wish-promo lp-promo no-logo">
+    <div class="container">
+      <h1>{% translate "Minnkaðu jólastressið!" %}</h1>
+      <p>{% translate "Haltu utan um hugmyndir og gjafir." %} {% translate "Deildu gagnvirkum óskalista á einfaldan hátt til fjölskyldu eða vina." %}</p>
+    </div>
+  </section>
+
+  {% comment %}
+    Skrefin (0–4) og hvað glugginn sýnir í hverju:
+    0 merki og texti · 1 fólkið og áætlun · 2 hugmyndirnar bætast við · 3 deilingargluggi yfir listanum
+    (frátekið á báðum) · 4 allt keypt, tréð fullt og áætlunargluggi yfir listanum.
+    landing.js setur bekkinn s0–s4 á gluggann; CSS sér um hvað sést.
+  {% endcomment %}
+  <section class="lp-scroll" data-total="6">
+    {# Smellipunktar: eitt hjólhak eða ein stroka = eitt skref (scroll-snap, sjá site.css) #}
+    {% for _ in "12345" %}<span class="lp-snap" aria-hidden="true"></span>{% endfor %}
+    <div class="lp-stage">
+      <div class="lp-inner">
+        <div class="lp-window s0" aria-hidden="true">
+        <div class="lp-window-bar"><i></i><i></i><i></i><span>jolahjol.is</span></div>
+        <div class="lp-snow">{% for _ in "12345678910" %}<span>❄</span>{% endfor %}</div>
+
+        <div class="lp-splash">
+          {% include "partials/logo.html" with width=340 %}
+          <span>{% translate "Gjafalisti heimilisins" %}</span>
+        </div>
+
+        <div class="lp-visual">
+        <div class="lp-tree">
+          <div class="tree">
+            <span class="ms star">star</span>
+            <svg viewBox="0 0 200 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <path id="lpTree" d="M100 35 L125 75 L115 75 L145 125 L130 125 L170 185 L145 185 L180 225 L112 225 L112 245 L88 245 L88 225 L20 225 L55 185 L30 185 L70 125 L55 125 L85 75 L75 75 Z"/>
+                <clipPath id="lpTreeClip"><use href="#lpTree"/></clipPath>
+              </defs>
+              <use href="#lpTree" fill="#eae0de" stroke="rgba(142,112,109,.4)" stroke-width="2" stroke-dasharray="4 3"/>
+              <g clip-path="url(#lpTreeClip)">
+                <rect class="fill" x="0" y="245" width="200" height="5" fill="#274e3d"/>
+              </g>
+              {% for x, y, color in ornaments %}<circle class="orn" cx="{{ x }}" cy="{{ y }}" r="4" fill="{{ color }}" stroke="#8b7171" stroke-width="1.5" stroke-dasharray="2 2"/>{% endfor %}
+              <use href="#lpTree" stroke="#3f6653" stroke-width="2"/>
+            </svg>
+          </div>
+          <p class="lp-count"><strong class="lp-num">0</strong> / 6 {% translate "gjafir keyptar" %}</p>
+        </div>
+
+        <div class="lp-board">
+          {# Hugmyndalistinn: nöfn og áætlun (1), hugmyndir með búð og verði (2), merkt keypt (3–4) #}
+          <div class="lp-mock lp-list">
+            <div class="lp-mock-head">
+              <strong>{% blocktranslate with year=year %}Jól {{ year }}{% endblocktranslate %}</strong>
+              <span class="lp-col">{% translate "Áætlun" %}</span>
+            </div>
+            {% for row in rows %}
+              <div class="lp-row{% if row.reserved %} has-reserved{% endif %}" data-done="{{ row.done }}">
+                <span class="lp-av">{{ row.initial }}</span>
+                <span class="lp-row-txt">
+                  <b>{{ row.name }}</b>
+                  <small class="lp-idea">
+                    {% if row.reserved %}<span class="lp-reserved-idea">{{ row.reserved }} <em>{% translate "Frátekið" %}</em></span>{% endif %}
+                    <span>{{ row.idea }} · {{ row.store }} · {{ row.price }}{% if row.link %} <span class="ms">link</span>{% endif %}</span>
+                  </small>
+                </span>
+                <span class="lp-price">{{ row.budget }}</span>
+                <span class="ms lp-tick">check_circle</span>
+              </div>
+            {% endfor %}
+            <div class="lp-total"><span>{% translate "Samtals" %}</span><b>29.000 kr.</b></div>
+          </div>
+
+          {# Deilingarglugginn (3): eins og opni óskalistinn séð af þeim sem fékk hlekkinn #}
+          <div class="lp-mock lp-overlay lp-wish">
+            <span class="pill green"><span class="ms">card_giftcard</span>{% translate "Óskalisti" %}</span>
+            <strong class="lp-wish-name">Dísa</strong>
+            <div class="lp-wish-item"><span>{% translate "Lego Friends" %}</span><span class="lp-chip reserved"><span class="ms">check_circle</span>{% translate "Þú tókst þetta frá" %}</span></div>
+            <div class="lp-wish-item"><span>{% translate "Hárskraut" %}</span><span class="lp-chip buy"><span class="ms">redeem</span>{% translate "Ég kaupi þetta" %}</span></div>
+            <p class="lp-wish-note"><span class="ms">link</span>{% translate "Opnast með hlekk, enginn aðgangur" %}</p>
+          </div>
+
+          {# Áætlunarglugginn (4): tölurnar úr listanum, rétt undir áætlun #}
+          <div class="lp-mock lp-overlay lp-money">
+            <div class="lp-money-big"><span>{% translate "Búið að eyða" %}</span><strong>27.550 kr.</strong></div>
+            <div class="lp-bar"><span></span></div>
+            <div class="lp-money-row"><span>{% translate "Áætlun" %}</span><b>29.000 kr.</b></div>
+            <div class="lp-money-row ok"><span>{% translate "Undir áætlun" %}</span><b>1.450 kr.</b></div>
+            <div class="lp-money-bill"><span class="ms">request_quote</span><span>{% translate "Keypt fyrir aðra" %}<small>{% translate "Trefill fyrir ömmu" %}</small></span><b>3.990 kr.</b></div>
+          </div>
+        </div>
+        </div>
+        </div>
+
+        <div class="lp-copy">
+        <div class="lp-steps">
+          <article class="lp-step on" data-count="0">
+            <span class="lp-kicker"><span class="ms">park</span>{% translate "Ókeypis jólagjafalisti" %}</span>
+            <h2>{% translate "Jólagjafirnar á einum stað" %}</h2>
+            <p>{% translate "Jólahjól hjálpar þér að skipuleggja jólin, svo þau verði skemmtileg en ekki stressandi." %}</p>
+            <div class="lp-actions">
+              <a class="btn primary" href="{% url 'account_signup' %}">{% translate "Byrja – það er ókeypis" %}<span class="ms">arrow_forward</span></a>
+            </div>
+            <span class="lp-cue"><span class="ms">expand_more</span>{% translate "Skrollaðu og sjáðu hvernig það virkar" %}</span>
+          </article>
+          <article class="lp-step" data-count="0">
+            <span class="lp-kicker"><span class="ms">group</span>{% translate "Skref 1 af 4" %} · {% translate "Fólkið" %}</span>
+            <h2>{% translate "Haltu utan um alla sem eiga að fá gjafir" %}</h2>
+            <p>{% translate "Skráðu alla sem eiga að fá gjafir og búðu til áætlun um hvað þú ætlar að eyða miklu í gjöf handa hverjum og einum." %}</p>
+          </article>
+          <article class="lp-step" data-count="0">
+            <span class="lp-kicker"><span class="ms">lightbulb</span>{% translate "Skref 2 af 4" %} · {% translate "Hugmyndir" %}</span>
+            <h2>{% translate "Settu inn hugmyndir" %}</h2>
+            <p>{% translate "Settu inn hugmyndir að gjöfum fyrir hvern og einn. Þú getur haldið utan um búðina og verðið og skráð hlekk á vefverslun." %}</p>
+          </article>
+          <article class="lp-step" data-count="2">
+            <span class="lp-kicker"><span class="ms">share</span>{% translate "Skref 3 af 4" %} · {% translate "Deiling" %}</span>
+            <h2>{% translate "Deildu óskalistanum" %}</h2>
+            <p>{% translate "Viltu deila óskalista með öðrum? Það er lítið mál. Viðkomandi þarf ekki aðgang að Jólahjól en getur samt tekið frá hlut af listanum og þannig tryggt að enginn annar kaupi það sama." %}</p>
+          </article>
+          <article class="lp-step" data-count="6">
+            <span class="lp-kicker"><span class="ms">payments</span>{% translate "Skref 4 af 4" %} · {% translate "Peningarnir" %}</span>
+            <h2>{% translate "Peningarnir á hreinu" %}</h2>
+            <p>{% translate "Sjáðu hvað er búið að eyða og hvað er eftir. Kaupir þú gjafir fyrir aðra er hægt að merkja það sérstaklega og halda utan um það sér." %}</p>
+            <div class="lp-actions">
+              <a class="btn primary" href="{% url 'account_signup' %}">{% translate "Búa til minn lista" %}<span class="ms">arrow_forward</span></a>
+              <a class="btn ghost" href="{% url 'account_login' %}">{% translate "Ég er með aðgang" %}</a>
+            </div>
+          </article>
+        </div>
+        <nav class="lp-dots" aria-label="{% translate 'Skref' %}">
+          {% for _ in "12345" %}<button type="button" aria-label="{% blocktranslate with n=forloop.counter %}Skref {{ n }}{% endblocktranslate %}"></button>{% endfor %}
+        </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-more-features">
+    <div class="lp-section">
+      <h2>{% translate "Og svo smáatriðin sem skipta máli" %}</h2>
+      <div class="lp-cards">
+        <article class="lp-card">
+          <span class="ms">cake</span>
+          <h3>{% translate "Afmælin líka" %}</h3>
+          <p>{% translate "Afmælisgjafir allt árið og áminning í tölvupósti áður en afmælið kemur." %}</p>
+        </article>
+        <article class="lp-card">
+          <span class="ms">storefront</span>
+          <h3>{% translate "Eftir búðum" %}</h3>
+          <p>{% translate "Sjáðu hvað á að kaupa í hverri búð, svo ein ferð í Kringluna dugi." %}</p>
+        </article>
+        <article class="lp-card">
+          <span class="ms">bookmark</span>
+          <h3>{% translate "Óskalistar annarra" %}</h3>
+          <p>{% translate "Fáðu óskalista frá vinum eða ættingjum, bættu honum við á þinn lista og sjáðu allar hugmyndir jafnóðum og þær eru settar inn." %}</p>
+        </article>
+        <article class="lp-card">
+          <span class="ms">lock</span>
+          <h3>{% translate "Engin uppljóstrun" %}</h3>
+          <p>{% translate "Þú sérð aldrei hvað hinir í heimilinu ætla að gefa þér ef aðgangi er deilt. Þú getur sett inn þínar hugmyndir en sérð ekki hugmyndir frá öðrum eða hvort það sé búið að kaupa þær eða taka frá." %}</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-band">
+    <div class="lp-section">
+      <div>
+        <h2>{% translate "Byrjaðu á listanum í ár" %}</h2>
+        <p>{% translate "Það tekur eina mínútu og kostar ekkert." %}</p>
+      </div>
+      <a class="btn" href="{% url 'account_signup' %}">{% translate "Stofna aðgang" %}<span class="ms">arrow_forward</span></a>
+    </div>
+  </section>
+</main>
+{% include "partials/footer.html" %}
 {% endblock %}

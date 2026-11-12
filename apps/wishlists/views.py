@@ -215,13 +215,10 @@ class FollowStartView(View):
         if not request.user.is_authenticated:
             messages.info(
                 request,
-                _(
-                    "Skráðu netfangið þitt og við sendum þér kóða. Nýr aðgangur verður til um leið "
-                    "og svo getur %(name)s bæst á þinn lista."
-                )
+                _("Stofnaðu aðgang og listann þinn (eða skráðu þig inn) og svo getur %(name)s bæst á hann.")
                 % {"name": source.name},
             )
-            return redirect(f"{reverse('account_request_login_code')}?{urlencode({'next': here})}")
+            return redirect(f"{reverse('account_signup')}?{urlencode({'next': here})}")
         state = _follow_state(request.user, share)
         if state["state"] == "no_household":
             messages.info(

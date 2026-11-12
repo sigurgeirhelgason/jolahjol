@@ -3,13 +3,18 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-# Nýskráning er netfang → kóði, og kóðinn kemur í stað endurstillingar á lykilorði
-_to_code = RedirectView.as_view(pattern_name="account_request_login_code", query_string=True)
+from apps.accounts import views as account_views
 
 urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
-    path("accounts/signup/", _to_code, name="account_signup"),
-    path("accounts/password/reset/", _to_code, name="account_reset_password"),
+    # Á undan allauth: nýskráning með heimili og nafni (sjá apps.accounts.views)
+    path("accounts/signup/", account_views.signup, name="account_signup"),
+    # Innskráning með kóða er hætt; gömul bókamerki og póstar lenda á innskráningunni
+    path("accounts/login/code/", RedirectView.as_view(pattern_name="account_login", query_string=True)),
+    path(
+        "accounts/login/code/confirm/",
+        RedirectView.as_view(pattern_name="account_login", query_string=True),
+    ),
     path("accounts/", include("allauth.urls")),
     path("", include("apps.core.urls")),
     path("", include("apps.households.urls")),

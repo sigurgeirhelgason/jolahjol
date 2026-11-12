@@ -83,3 +83,27 @@ def test_people_change_group_and_edit_person(home, live_server, page):
     dialog.get_by_role("button", name="Vista").click()
     expect(dialog).to_be_hidden()
     expect(page.locator(".person", has_text="Una")).to_contain_text("🎂")
+
+
+def test_landing_scroll_fills_tree_and_changes_text(live_server, page):
+    """Forsíðan: merki fyrst, svo listi; í lokin eru allar 6 gjafirnar keyptar og tréð fullt."""
+    page.set_viewport_size({"width": 1280, "height": 800})
+    page.goto(live_server.url)
+    count = page.locator(".lp-num")
+    expect(count).to_have_text("0")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Minnkaðu jólastressið!")
+    expect(page.get_by_role("heading", name="Jólagjafirnar á einum stað")).to_be_visible()
+    expect(page.get_by_role("heading", name="Peningarnir á hreinu")).to_be_hidden()
+    expect(page.locator(".lp-window")).to_have_class(re.compile(r"\bs0\b"))  # merkið, ekki tréð
+
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    expect(count).to_have_text("6")
+    expect(page.get_by_role("heading", name="Peningarnir á hreinu")).to_be_visible()
+    expect(page.locator(".lp-money")).to_be_visible()
+    expect(page.locator(".lp-row.done")).to_have_count(6)
+    expect(page.get_by_role("heading", name="Jólagjafirnar á einum stað")).to_be_hidden()
+    expect(page.locator(".lp-tree .star")).to_have_class(re.compile(r"\blit\b"))
+    expect(page.locator(".lp-window")).to_have_class(re.compile(r"\bcomplete\b"))
+    expect(page.locator("circle.orn.on")).to_have_count(13)
+    page.get_by_role("link", name="Búa til minn lista").click()
+    expect(page).to_have_url(re.compile(r"/accounts/signup/$"))

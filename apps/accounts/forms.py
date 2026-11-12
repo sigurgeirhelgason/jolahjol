@@ -1,47 +1,67 @@
+from urllib.parse import urlsplit
+
 from allauth.account import forms as allauth_forms
-from allauth.account.forms import LoginForm, RequestLoginCodeForm
-from allauth.account.models import EmailAddress
+from allauth.account.forms import LoginForm
 from django.db import transaction
+from django.urls import Resolver404, resolve
 from django.utils.translation import gettext_lazy as _
 
-from .models import User
+from apps.households import services as household_services
+from apps.households.forms import OnboardingForm
+
+PASSWORD_HELP = _("Minnst 8 stafir, ekki bara tölustafir og ekki algengt lykilorð.")
 
 
-class EmailCodeForm(RequestLoginCodeForm):
-    """Innskráning og nýskráning í einu skrefi: netfang → kóði.
+def joins_by_invite(next_url: str | None) -> bool:
+    """Á leið að þiggja boð (?next=/bod/…): þá bætist fólk í heimili og stofnar ekki nýtt."""
+    if not next_url:
+        return False
+    try:
+        # get_next_redirect_url hefur þegar hafnað öðrum vefjum; hér skiptir bara slóðin máli
+        return resolve(urlsplit(next_url).path).view_name == "households:invite_accept"
+    except Resolver404:
+        return False
 
-    Ef netfangið er ekki til verður aðgangurinn til hér, óstaðfestur. Kóðinn staðfestir
-    netfangið (allauth `verify_email_indirectly`). Aðgangar sem aldrei skrá sig inn eru
-    hreinsaðir með `manage.py prune_users`.
+
+class SignupForm(allauth_forms.SignupForm):
+    """Nýskráning í einu skrefi: heimili, nafn, netfang og lykilorð.
+
+    Sá sem kemur af boðshlekk (`joining`) fær ekki heimilisreitinn; hann bætist í heimilið á
+    boðssíðunni strax á eftir. Netfangið er ekki staðfest með pósti (sjá ACCOUNT_EMAIL_VERIFICATION).
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["email"].label = _("Netfang")
-        self.fields["email"].widget.attrs.update(
-            {"placeholder": _("netfang@dæmi.is"), "autocomplete": "email", "autofocus": True}
-        )
+    name = OnboardingForm.base_fields["name"]
+    your_name = OnboardingForm.base_fields["your_name"]
 
-    def clean_email(self) -> str:
-        # Rate limit allauth (á IP og netfang) keyrir fyrst, svo ekki er hægt að stofna aðganga í löngum bunum
-        email = super().clean_email()
-        if not email:
-            return email
-        with transaction.atomic():
-            if self._user is None:
-                self._user = User.objects.create_user(email=email)
-            # Notendur úr admin eða import_legacy hafa enga EmailAddress-færslu; án hennar
-            # staðfestir kóðinn ekki netfangið og allauth krefst sérstakrar staðfestingar.
-            if not EmailAddress.objects.filter(user=self._user, email__iexact=self._user.email).exists():
-                EmailAddress.objects.create(
-                    user=self._user, email=self._user.email, primary=True, verified=False
-                )
-        return email
+    def __init__(self, *args, joining: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.joining = joining
+        if joining:
+            del self.fields["name"]
+            self.fields["your_name"].help_text = ""
+        email = self.fields["email"]
+        email.label = _("Netfang")
+        email.widget.attrs.update({"placeholder": _("netfang@dæmi.is"), "autocomplete": "email"})
+        email.widget.attrs["autofocus"] = True
+        password = self.fields["password1"]
+        password.label = _("Lykilorð")
+        password.help_text = PASSWORD_HELP
+        password.widget.attrs["placeholder"] = ""
+        order = ["email", "password1", "your_name", "name"]
+        self.order_fields([f for f in order if f in self.fields])
+
+    @transaction.atomic
+    def save(self, request):
+        user = super().save(request)
+        your_name = self.cleaned_data["your_name"]
+        if self.joining:
+            household_services.save_user_name(user, your_name)
+        else:
+            household_services.create_household(user, self.cleaned_data["name"], your_name)
+        return user
 
 
 class PasswordLoginForm(LoginForm):
-    """Innskráning með netfangi og lykilorði, fyrir þá sem hafa valið sér lykilorð."""
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["login"].label = _("Netfang")
@@ -50,16 +70,12 @@ class PasswordLoginForm(LoginForm):
         )
         password = self.fields["password"]
         password.label = _("Lykilorð")
-        password.help_text = ""  # allauth vísar á endurstillingu; hér kemur kóðinn í staðinn
+        password.help_text = ""  # „Týnt lykilorð?“ er tengill í sniðmátinu
         password.widget.attrs["placeholder"] = ""
-
-    def _setup_password_field(self) -> None:
-        # allauth fjarlægir reitinn þegar nýskráning er án lykilorðs, sem á við hér
-        pass
 
 
 class _NewPasswordMixin:
-    """Einn reitur fyrir nýtt lykilorð, ekki tveir: gleymist það er kóðinn alltaf til taks."""
+    """Einn reitur fyrir nýtt lykilorð, ekki tveir: gleymist það er „Týnt lykilorð“ til taks."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -67,17 +83,33 @@ class _NewPasswordMixin:
         password = self.fields["password1"]
         password.label = _("Lykilorð")
         password.widget.attrs.update({"placeholder": "", "autofocus": True})
-        password.help_text = _("Minnst 8 stafir, ekki bara tölustafir og ekki algengt lykilorð.")
+        password.help_text = PASSWORD_HELP
 
 
 class SetPasswordForm(_NewPasswordMixin, allauth_forms.SetPasswordForm):
-    pass
+    """Fyrir þá sem eiga ekkert lykilorð (komu inn með Google)."""
 
 
-class ChangePasswordForm(_NewPasswordMixin, allauth_forms.SetPasswordForm):
-    """Breyta lykilorði án þess að slá inn það gamla: innskráning með kóða er jafngild, og gleymt
-    lykilorð á ekki að læsa notandann frá því að velja nýtt."""
+class ChangePasswordForm(_NewPasswordMixin, allauth_forms.ChangePasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        old = self.fields["oldpassword"]
+        old.label = _("Núverandi lykilorð")
+        old.widget.attrs.update({"placeholder": "", "autofocus": True})
+        self.fields["password1"].label = _("Nýtt lykilorð")
+        self.fields["password1"].widget.attrs.pop("autofocus", None)
 
+
+class ResetPasswordForm(allauth_forms.ResetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].label = _("Netfang")
+        self.fields["email"].widget.attrs.update(
+            {"placeholder": _("netfang@dæmi.is"), "autocomplete": "email", "autofocus": True}
+        )
+
+
+class ResetPasswordKeyForm(_NewPasswordMixin, allauth_forms.ResetPasswordKeyForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["password1"].label = _("Nýtt lykilorð")

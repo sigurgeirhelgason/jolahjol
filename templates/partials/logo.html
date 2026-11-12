@@ -1,0 +1,6 @@
+{% load static %}{% comment %}
+  Merkið (static/img/logo-*.webp, búið til með scripts/make_logo.py). Hlutföll 1,23 : 1.
+  Notkun: {% include "partials/logo.html" with class="..." width=240 %}; width er birtingarbreidd í px.
+{% endcomment %}<img class="logo {{ class }}" src="{% static 'img/logo-320.webp' %}"
+  srcset="{% static 'img/logo-160.webp' %} 160w, {% static 'img/logo-320.webp' %} 320w, {% static 'img/logo-640.webp' %} 640w"
+  sizes="{{ width|default:240 }}px" width="{{ width|default:240 }}" height="{% widthratio width|default:240 1226 1000 %}" alt="Jólahjól" decoding="async">

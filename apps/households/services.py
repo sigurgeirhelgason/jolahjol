@@ -48,7 +48,7 @@ def unique_slug(name: str) -> str:
     return slug
 
 
-def _save_user_name(user, name: str) -> None:
+def save_user_name(user, name: str) -> None:
     name = name.strip()[:150]
     if name and name != user.name:
         user.name = name
@@ -86,7 +86,7 @@ def _person_named(household: Household, name: str):
 def create_household(user, name: str, your_name: str = "") -> Household:
     """Nýtt heimili; sá sem stofnar það verður eigandi og einstaklingur í Fjölskyldu."""
     your_name = your_name.strip() or user.name
-    _save_user_name(user, your_name)
+    save_user_name(user, your_name)
     household = Household.objects.create(name=name.strip(), slug=unique_slug(name))
     membership = Membership.objects.create(user=user, household=household, role=Membership.Role.OWNER)
     if your_name:
@@ -226,7 +226,7 @@ def accept_invite(token: str, user, name: str = "") -> Membership:
     person = invite.person
     if person is None or Membership.objects.filter(person=person).exists():
         person = _person_named(invite.household, name)
-    _save_user_name(user, name)
+    save_user_name(user, name)
     invite.accepted_by = user
     invite.accepted_at = timezone.now()
     invite.save(update_fields=["accepted_by", "accepted_at"])

@@ -5,7 +5,7 @@
   <section class="card entrance-card">
     <div class="glow g-hero-1"></div>
     <div class="glow g-hero-2"></div>
-    <a class="brand-name" href="{% url 'home' %}">Jólahjól 🎄</a>
+    <a class="entrance-logo" href="{% url 'home' %}">{% include "partials/logo.html" with width=150 %}</a>
     {% include "partials/messages.html" %}
     {% block content %}{% endblock %}
   </section>

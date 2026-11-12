@@ -75,7 +75,7 @@ import-legacy-replace file household="okkar":
 reminders:
     {{manage}} send_birthday_reminders
 
-# Eyða aðgöngum sem báðu um kóða en skráðu sig aldrei inn
+# Eyða aðgöngum sem skráðu sig aldrei inn og eru ekki í heimili
 prune-users *args:
     {{manage}} prune_users {{args}}
 

@@ -5,18 +5,41 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 from django.views import View
 from django.views.generic import FormView, TemplateView
 
 from apps.core.text import is_sort_key
+from apps.gifts.listing import ORNAMENTS
 from apps.gifts.models import Person
 
 from . import services
 from .forms import DeleteHouseholdForm, HouseholdForm, OnboardingForm
 from .mixins import SESSION_KEY, HouseholdMixin, OwnerRequiredMixin
 from .models import Household, Invite, Membership
+
+# Sýnishorn á forsíðunni (core/landing.html). `done` er skrefið þar sem gjöfin er merkt keypt.
+# Verðin eru samtals 27.550 kr., rétt undir 29.000 kr. áætlun; tölurnar í áætlunarglugganum passa.
+LANDING_ROWS = [
+    dict(
+        zip(
+            ("initial", "name", "budget", "idea", "store", "price", "link", "done", "reserved"),
+            row,
+            strict=True,
+        )
+    )
+    for row in [
+        ("D", "Dísa", "8.000 kr.", _l("Skautar"), "Útilíf", "7.490 kr.", True, 4, _l("Lego Friends")),
+        ("K", "Kalli", "5.000 kr.", _l("Fótbolti"), "Jói Útherji", "4.990 kr.", False, 3, ""),
+        ("S", "Signý", "5.000 kr.", _l("Bók um risaeðlur"), "Penninn", "4.490 kr.", True, 4, ""),
+        ("B", "Baldur", "3.500 kr.", _l("Púsl, 500 bitar"), "Hagkaup", "3.290 kr.", False, 3, ""),
+        ("S", "Stína frænka", "2.500 kr.", _l("Ilmkerti"), "Epal", "2.390 kr.", True, 4, ""),
+        ("L", "Lalli afi", "5.000 kr.", _l("Ullarsokkar"), "Rammagerðin", "4.900 kr.", False, 4, ""),
+    ]
+]
 
 
 def household_home_url(household: Household) -> str:
@@ -26,7 +49,8 @@ def household_home_url(household: Household) -> str:
 def home(request):
     """Forsíða: kynning fyrir gesti, annars síðasta heimili notandans."""
     if not request.user.is_authenticated:
-        return render(request, "core/landing.html")
+        ctx = {"ornaments": ORNAMENTS, "rows": LANDING_ROWS, "year": timezone.localdate().year}
+        return render(request, "core/landing.html", ctx)
     memberships = Membership.objects.filter(user=request.user).select_related("household")
     chosen = memberships.filter(household__slug=request.session.get(SESSION_KEY)).first()
     chosen = chosen or memberships.order_by("created_at").first()
