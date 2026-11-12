@@ -5,6 +5,8 @@
   annarra, engin greiðslustaða og ekki hver tók frá. Sjá apps/wishlists/services.py.
 {% endcomment %}
 {% block title %}{% translate "Óskalisti" %} – {{ person.name }} · Jólahjól{% endblock %}
+{% block og_title %}{% translate "Óskalisti" %} – {{ person.name }}{% endblock %}
+{% block og_description %}{% translate "Sjáðu óskalistann og merktu við það sem þú ætlar að gefa, svo enginn kaupi það sama. Enginn aðgangur nauðsynlegur." %}{% endblock %}
 {% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
 {% block body %}
 <main class="wishlist">

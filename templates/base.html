@@ -11,6 +11,18 @@
   <link rel="icon" href="{% static 'favicon-32.png' %}" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="{% static 'apple-touch-icon.png' %}">
   {% block meta %}{% endblock %}
+  {# Forskoðun þegar hlekk er deilt (Facebook, Messenger, Slack o.fl.); síður yfirskrifa titil og lýsingu #}
+  <meta property="og:site_name" content="Jólahjól">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="is_IS">
+  <meta property="og:url" content="{{ site_url }}{{ request.path }}">
+  <meta property="og:title" content="{% block og_title %}Jólahjól – {% translate "jólagjafirnar á einum stað" %}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{% translate "Haltu utan um hugmyndir, gjafir og áætlun og deildu óskalista með fjölskyldunni. Ókeypis." %}{% endblock %}">
+  <meta property="og:image" content="{{ site_url }}{% static 'img/og-image.jpg' %}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{% translate "Jólahjól: Minnkaðu jólastressið!" %}">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preload" href="{% static 'fonts/material-symbols.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
