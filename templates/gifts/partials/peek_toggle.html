@@ -1,0 +1,8 @@
+{% load i18n %}
+{% comment %}
+  Augað við nafnið: felur gjafir og verð `person` á þessu tæki (apps/gifts/context_processors.py).
+  Ílátið sem á að fela fær data-peek="{{ person.pk }}" og klasann peek-off ef `hidden`.
+{% endcomment %}
+<button type="button" class="icon-btn peek-btn" data-peek-toggle="{{ person.pk }}" aria-pressed="{% if hidden %}true{% else %}false{% endif %}"
+        title="{% blocktranslate with name=person.name %}Fela eða sýna gjafir handa {{ name }} á þessu tæki{% endblocktranslate %}"
+        aria-label="{% blocktranslate with name=person.name %}Fela gjafir handa {{ name }}{% endblocktranslate %}"><span class="ms on" aria-hidden="true">visibility</span><span class="ms off" aria-hidden="true">visibility_off</span></button>

@@ -88,6 +88,8 @@ ICONS = [
     "storefront",
     "undo",
     "upload_file",
+    "visibility",
+    "visibility_off",
     "warning",
 ]
 

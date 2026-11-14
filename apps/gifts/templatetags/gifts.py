@@ -90,6 +90,30 @@ def get(mapping, key):
 
 
 @register.filter
+def in_set(value, collection) -> bool:
+    """`{% with hidden=person.pk|in_set:hidden_people %}`; `in` dugar aðeins í {% if %}."""
+    return bool(collection) and value in collection
+
+
+def _peek_labels() -> list[str]:
+    return [
+        _("Bannað að kíkja! 🎅"),
+        _("Gluggagægir, farðu frá! 👀"),
+        _("Leyndó 🤫"),
+        _("Jólasveinninn einn veit 🎁"),
+        _("Kertasníkir faldi þetta 🕯️"),
+        _("Pakkað inn og falið 🎄"),
+    ]
+
+
+@register.filter
+def peek_label(person_id) -> str:
+    """Texti yfir falinni línu (augað við nafnið); alltaf sá sami fyrir sama einstakling."""
+    labels = _peek_labels()
+    return labels[int(person_id or 0) % len(labels)]
+
+
+@register.filter
 def gift_summary(gift) -> str:
     """Valdar hugmyndir (annars allar) með gefendum: „púsl (Amma Jóa gefur), bók“."""
     from apps.gifts.services.gifts import gift_text

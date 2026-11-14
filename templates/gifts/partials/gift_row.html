@@ -3,7 +3,8 @@
 {% if row.secret %}
 {% include "gifts/partials/wish_row.html" %}
 {% else %}
-<div class="row gift{% if gift.bought %} done{% endif %}" id="gift-{{ gift.pk }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+{% with hidden=gift.person_id|in_set:hidden_people %}
+<div class="row gift{% if gift.bought %} done{% endif %}{% if hidden %} peek-off{% endif %}" data-peek="{{ gift.person_id }}" data-peek-label="{{ gift.person_id|peek_label }}" id="gift-{{ gift.pk }}"{% if oob %} hx-swap-oob="true"{% endif %}>
   <div class="check">
     <input type="checkbox" name="bought" value="on"{% if gift.bought %} checked{% endif %}{% if locked %} disabled{% endif %}
            aria-label="{% blocktranslate with name=gift.person.name %}Keypt handa {{ name }}{% endblocktranslate %}"
@@ -13,6 +14,7 @@
     <div class="name-line">
       <button class="name-btn" type="button" title="{% blocktranslate with name=gift.person.name %}Opna upplýsingar um {{ name }}{% endblocktranslate %}"
               hx-get="{% url 'gifts:person' household.slug gift.person_id %}?ar={{ gift.season.year }}" hx-target="#modal-body">{{ gift.person.name }}</button>
+      {% include "gifts/partials/peek_toggle.html" with person=gift.person %}
       {% if gift.bought %}<span class="badge">{% translate "KEYPT" %}</span>{% endif %}
     </div>
     {% if row.history %}<div class="hist" title="{{ row.history_title }}"><span class="ms">history</span><span>{{ row.history_line }}</span></div>{% endif %}
@@ -98,5 +100,6 @@
     {% endif %}
   </div>
 </div>
+{% endwith %}
 {% endif %}
 {% endwith %}

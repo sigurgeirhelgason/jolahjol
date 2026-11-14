@@ -18,10 +18,11 @@
   </div>
   {% regroup store_group.items by gift as per_gift %}
   {% for entry in per_gift %}
-    {% with gift=entry.grouper %}
-    <div class="shop-person">
+    {% with gift=entry.grouper hidden=entry.grouper.person_id|in_set:hidden_people %}
+    <div class="shop-person{% if hidden %} peek-off{% endif %}" data-peek="{{ gift.person_id }}" data-peek-label="{{ gift.person_id|peek_label }}">
       <div class="who">
         <button type="button" class="name-btn" hx-get="{% url 'gifts:person' household.slug gift.person_id %}?ar={{ season.year }}" hx-target="#modal-body">{{ gift.person.name }}</button>
+        {% include "gifts/partials/peek_toggle.html" with person=gift.person %}
       </div>
       {% for item in entry.list %}
         <div class="shop-item">

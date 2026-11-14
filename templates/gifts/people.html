@@ -13,10 +13,14 @@
         </div>
       </div>
       {% for person, past in members %}
-        <div class="person">
+        {% with hidden=person.pk|in_set:hidden_people %}
+        <div class="person{% if hidden %} peek-off{% endif %}" data-peek="{{ person.pk }}">
           <div>
-            <button type="button" class="name-btn" title="{% translate 'Opna upplýsingar' %}"
-                    hx-get="{% url 'gifts:person' household.slug person.pk %}?ar={{ season.year }}" hx-target="#modal-body">{{ person.name }}</button>
+            <div class="name-line">
+              <button type="button" class="name-btn" title="{% translate 'Opna upplýsingar' %}"
+                      hx-get="{% url 'gifts:person' household.slug person.pk %}?ar={{ season.year }}" hx-target="#modal-body">{{ person.name }}</button>
+              {% if past %}{% include "gifts/partials/peek_toggle.html" %}{% endif %}
+            </div>
             {% if person.birthday or not person.give_christmas or person.give_birthday %}
               <div class="person-meta">
                 {% if person.birthday %}<span>🎂 {{ person.birthday|date:"j. N" }}</span>{% endif %}
@@ -33,6 +37,7 @@
             {% for year, text in past %}<b>{{ year }}</b> {{ text }}{% if not forloop.last %} · {% endif %}{% empty %}{% translate "Engar gjafir keyptar enn" %}{% endfor %}
           </div>
         </div>
+        {% endwith %}
       {% endfor %}
     </div>
   {% empty %}

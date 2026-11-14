@@ -410,6 +410,31 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+// Augað við nafnið: fela gjafir einstaklings á þessu tæki, t.d. þegar makinn horfir á skjáinn.
+// Vafrakakan `faldir` (auðkenni aðskilin með punkti) er lesin af þjóninum
+// (apps/gifts/context_processors.py) svo línur teiknist strax faldar eftir hleðslu og htmx-uppfærslu;
+// hér er bara skipt um klasa á því sem þegar er á síðunni.
+const PEEK_COOKIE = "faldir";
+function hiddenPeople() {
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${PEEK_COOKIE}=([^;]*)`));
+  return new Set(match ? match[1].split(".").filter((id) => /^\d+$/.test(id)) : []);
+}
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-peek-toggle]");
+  if (!button) return;
+  event.preventDefault();
+  const id = button.dataset.peekToggle;
+  const hidden = hiddenPeople();
+  const hide = !hidden.has(id);
+  if (hide) hidden.add(id);
+  else hidden.delete(id);
+  const secure = location.protocol === "https:" ? "; secure" : "";
+  const value = [...hidden].join(".");
+  document.cookie = `${PEEK_COOKIE}=${value}; path=/; max-age=${value ? 31536000 : 0}; samesite=lax${secure}`;
+  document.querySelectorAll(`[data-peek="${id}"]`).forEach((el) => el.classList.toggle("peek-off", hide));
+  document.querySelectorAll(`[data-peek-toggle="${id}"]`).forEach((b) => b.setAttribute("aria-pressed", String(hide)));
+});
+
 // Breyting á annarri síðu en listanum (Verslanir, Fólk, Rukkun): síðan sótt aftur í heild,
 // svo yfirlit og teljari á Rukkun-flipanum uppfærist líka. Skrunstaða helst.
 document.body.addEventListener("refreshPage", () => {

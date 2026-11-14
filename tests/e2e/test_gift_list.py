@@ -244,3 +244,32 @@ def test_selecting_text_and_releasing_outside_keeps_dialog_open(home, page):
     # Venjulegur smellur á bakgrunninn lokar
     page.mouse.click(5, 5)
     expect(dialog).to_be_hidden()
+
+
+def test_eye_hides_a_persons_gifts_on_this_device(home, page):
+    add_gift(page, "Fjölskylda", "Kona", plan="20000", ideas="hálsmen")
+    add_gift(page, "Fjölskylda", "Mamma", ideas="bók")
+    kona, mamma = row(page, "Kona"), row(page, "Mamma")
+    eye = kona.get_by_role("button", name="Fela gjafir handa Kona")
+    expect(eye).to_have_attribute("aria-pressed", "false")
+
+    eye.click()
+    expect(kona).to_have_class(re.compile(r"\bpeek-off\b"))
+    expect(eye).to_have_attribute("aria-pressed", "true")
+    expect(mamma).not_to_have_class(re.compile(r"\bpeek-off\b"))
+    # Óskýrt og ekki hægt að smella á hugmyndina; nafnið sést áfram
+    assert "blur" in kona.locator(".ideas").evaluate("el => getComputedStyle(el).filter")
+    expect(kona.get_by_role("button", name="Kona", exact=True)).to_be_visible()
+
+    # Helst eftir endurhleðslu (vafrakaka sem þjónninn les) og á Verslunum
+    page.reload()
+    expect(row(page, "Kona")).to_have_class(re.compile(r"\bpeek-off\b"))
+    page.get_by_role("link", name="Verslanir").click()
+    expect(page.locator(".shop-person", has_text="Kona")).to_have_class(re.compile(r"\bpeek-off\b"))
+    expect(page.locator(".shop-person", has_text="Mamma")).not_to_have_class(re.compile(r"\bpeek-off\b"))
+
+    # Aftur sýnilegt
+    page.locator(".shop-person", has_text="Kona").get_by_role("button", name="Fela gjafir handa Kona").click()
+    page.go_back()
+    page.reload()
+    expect(row(page, "Kona")).not_to_have_class(re.compile(r"\bpeek-off\b"))

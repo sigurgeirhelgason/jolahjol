@@ -71,6 +71,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.csp",
                 "apps.core.context_processors.site",
+                "apps.gifts.context_processors.hidden_people",
             ],
         },
     },

@@ -1,4 +1,4 @@
-{% load i18n money %}
+{% load i18n money gifts %}
 <div class="dlg-head">
   <h3 id="modal-title"><span class="ms">person</span>{% translate "Einstaklingur" %}</h3>
   <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
@@ -36,8 +36,8 @@
     <span class="slider" aria-hidden="true"></span>
     <span><strong>{% translate "Gef afmælisgjafir" %}</strong><small>{% translate "Til að halda utan um afmælisgjafir" %}</small></span>
   </label>
-  <div class="past">
-    <h4>{% translate "Fyrri gjafir" %}</h4>
+  <div class="past{% if person.pk in hidden_people %} peek-off{% endif %}" data-peek="{{ person.pk }}">
+    <h4>{% translate "Fyrri gjafir" %}{% if history %}{% include "gifts/partials/peek_toggle.html" with hidden=person.pk|in_set:hidden_people %}{% endif %}</h4>
     <ul>
       {% for entry in history %}
         {% with gift=entry.gift price=entry.gift.actual_price %}

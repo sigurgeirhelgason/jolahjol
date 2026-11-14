@@ -1,12 +1,13 @@
 {% load i18n money gifts %}
 {% comment %}Afmæliskort: `e` er services.birthdays.Entry. Gjöfin verður til við fyrstu aðgerð.{% endcomment %}
-{% with gift=e.gift year=e.date.year %}
-<article class="card bday-card{% if e.bought %} done{% endif %}" id="person-{{ e.person.pk }}">
+{% with gift=e.gift year=e.date.year hidden=e.person.pk|in_set:hidden_people %}
+<article class="card bday-card{% if e.bought %} done{% endif %}{% if hidden and not e.secret %} peek-off{% endif %}" id="person-{{ e.person.pk }}"{% if not e.secret %} data-peek="{{ e.person.pk }}" data-peek-label="{{ e.person.pk|peek_label }}"{% endif %}>
   <div class="bday-card-head">
     <span class="avatar{% if e.urgent %} urgent{% elif e.bought %} ok{% endif %}" aria-hidden="true">{{ e.person.name|first|upper }}</span>
     <div class="bday-who">
       <h3>
         <button type="button" class="name-btn" hx-get="{% url 'gifts:person' household.slug e.person.pk %}?ar={{ year }}" hx-target="#modal-body">{{ e.name|default:e.person.name }}</button>
+        {% if not e.secret %}{% include "gifts/partials/peek_toggle.html" with person=e.person %}{% endif %}
         <span class="muted">· {% blocktranslate with age=e.age %}verður {{ age }} ára{% endblocktranslate %}{% if e.round_birthday %} ({% translate "Stórafmæli" %} 🎉){% endif %}</span>
       </h3>
       <p class="muted">{{ e.date|date:"j. F Y" }}{% if e.near_christmas %} · {% translate "Jólakrakki" %} 🌟{% endif %}</p>

@@ -55,7 +55,7 @@
             {% if e.days == 0 %}{% blocktranslate with name=e.person.name %}Í dag: {{ name }} á afmæli! 🎂{% endblocktranslate %}
             {% else %}{% blocktranslate count n=e.days with name=e.person.name date=e.date|date:"j. b" %}Næst á dagskrá: {{ name }} á afmæli á morgun ({{ date }}){% plural %}Næst á dagskrá: {{ name }} á afmæli eftir {{ n }} daga ({{ date }}){% endblocktranslate %}{% endif %}
           </p>
-          <p class="muted">
+          <p class="muted peek-text{% if not e.secret and e.person.pk in hidden_people %} peek-off{% endif %}"{% if not e.secret %} data-peek="{{ e.person.pk }}"{% endif %}>
             {% if e.secret %}{% translate "Leyndarmál 🤫" %}{% elif e.bought %}{% translate "Gjöfin er keypt." %}{% elif e.gift and e.gift.ideas.all %}{% blocktranslate with what=e.gift|gift_summary %}Ókeypt: {{ what }}{% endblocktranslate %}{% else %}{% translate "Engin hugmynd skráð enn." %}{% endif %}
           </p>
         </div>
