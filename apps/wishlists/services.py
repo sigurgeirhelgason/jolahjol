@@ -4,18 +4,20 @@ Opna síðan sýnir aðeins hugmyndir einstaklingsins á yfirstandandi ári. Hvo
 upphæðir sem hafa verið greiddar, rukkun né hver tók frá birtast þar.
 """
 
+import datetime
 import secrets
 from dataclasses import dataclass
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy
 
 from apps.core.text import normalize
 from apps.gifts.models import Gift, Group, Idea, IdeaGiver, Person, Season
 from apps.gifts.services.privacy import is_linked
 from apps.households.models import Household
 
-from .models import WishlistShare
+from .models import WishlistShare, WishRequest
 
 
 class WishlistError(Exception):
@@ -63,7 +65,7 @@ def visible_ideas(share: WishlistShare) -> tuple[Season | None, list[Idea]]:
     gift = Gift.objects.alive().christmas().filter(season=season, person=share.person).first()
     if gift is None:
         return season, []
-    ideas = gift.ideas.select_related("store").order_by("position", "id")
+    ideas = gift.ideas.visible().select_related("store").order_by("position", "id")
     if is_linked(share.person):
         ideas = ideas.filter(wish=True)
     return season, list(ideas)
@@ -190,7 +192,10 @@ def gift_feeds(gifts) -> dict[int, list[Idea]]:
     }
     ideas: dict[int, list[Idea]] = {}
     for idea in (
-        Idea.objects.filter(gift__in=source_gifts.values()).select_related("store").order_by("position", "id")
+        Idea.objects.visible()
+        .filter(gift__in=source_gifts.values())
+        .select_related("store")
+        .order_by("position", "id")
     ):
         ideas.setdefault(idea.gift_id, []).append(idea)
     linked = set(Membership.objects.filter(person_id__in=sources).values_list("person_id", flat=True))
@@ -366,3 +371,159 @@ def release_copies(ideas) -> None:
     """Á undan fjöldaeyðingu (heimili, ár): losar frátekningar afrita svo þær sitji ekki eftir."""
     for copy in ideas.filter(source__isnull=False).exclude(reservation_secret=""):
         release(copy)
+
+
+# ---------- Óskabeiðni: einstaklingurinn skrifar sjálfur óskirnar sínar ----------
+#
+# Jói og Anna vilja vita hvað Dísa frænka vill. Þau búa til hlekk í glugga Dísu, velja hvað hann
+# lifir lengi og senda henni. Dísa skrifar óskirnar sínar á jólagjöf sína á lista Jóa og Önnu
+# (`Idea.wish`) án innskráningar. Hún sér aðeins óskirnar sínar, aldrei hvort þær hafa verið
+# keyptar eða teknar frá, og ekkert annað af listanum (sama regla og services/privacy.py).
+
+# Hvað hlekkurinn lifir: {gildi: (dagar, heiti)}; „jol“ er fram yfir aðfangadag
+LIFETIMES = {
+    "1": (1, gettext_lazy("Virkar í 1 dag")),
+    "3": (3, gettext_lazy("Virkar í 3 daga")),
+    "7": (7, gettext_lazy("Virkar í 1 viku")),
+    "14": (14, gettext_lazy("Virkar í 2 vikur")),
+    "30": (30, gettext_lazy("Virkar í 1 mánuð")),
+    "jol": (None, gettext_lazy("Virkar fram að jólum")),
+}
+DEFAULT_LIFETIME = "7"
+
+
+def christmas_year(now=None) -> int:
+    """Næstu jól: þetta ár til og með aðfangadegi, annars næsta ár."""
+    today = timezone.localdate(now)
+    return today.year if today <= datetime.date(today.year, 12, 24) else today.year + 1
+
+
+def expiry(lifetime: str, now=None):
+    """Hvenær hlekkur með `lifetime` (lykill í LIFETIMES) hættir að virka.
+
+    „Fram að jólum“: til loka aðfangadags (næstu jól ef þau eru liðin í ár).
+    """
+    now = now or timezone.now()
+    days, _label = LIFETIMES.get(lifetime, LIFETIMES[DEFAULT_LIFETIME])
+    if days is not None:
+        return now + datetime.timedelta(days=days)
+    end = datetime.datetime.combine(datetime.date(christmas_year(now), 12, 25), datetime.time.min)
+    return timezone.make_aware(end)
+
+
+def _live_requests(now=None):
+    now = now or timezone.now()
+    return WishRequest.objects.filter(revoked_at__isnull=True, expires_at__gt=now)
+
+
+def active_request(person: Person) -> WishRequest | None:
+    """Nýjasti óútrunni hlekkurinn. `closed`: virkar ekki á meðan gjöfin í ár er eydd."""
+    request = _live_requests().filter(person=person).order_by("-created_at").first()
+    if request is not None:
+        request.closed = _gift_deleted(person)
+    return request
+
+
+def _gift_deleted(person: Person) -> bool:
+    """Heimilið eyddi jólagjöf einstaklingsins fyrir næstu jól og bjó ekki til aðra."""
+    gifts = Gift.objects.christmas().filter(person=person, season__year=christmas_year())
+    return gifts.filter(deleted_at__isnull=False).exists() and not gifts.alive().exists()
+
+
+def get_request(token: str) -> WishRequest | None:
+    """Virkur hlekkur. Einstaklingur sem er orðinn notandi í heimilinu skráir sjálfur í appinu,
+    svo eldri hlekkur hans hættir að virka (glugginn sýnir hann ekki lengur til að loka).
+
+    Hafi heimilið eytt jólagjöf hans (og ekki búið til aðra) hættir hlekkurinn líka að virka:
+    annars yrði ný gjöf til og „Afturkalla“ á þeirri eyddu virkaði ekki.
+    """
+    request = (
+        _live_requests()
+        .select_related("person__household")
+        .filter(token=token, person__memberships__isnull=True)
+        .first()
+    )
+    if request is None or _gift_deleted(request.person):
+        return None
+    return request
+
+
+@transaction.atomic
+def create_request(person: Person, by, lifetime: str) -> WishRequest:
+    """Nýr hlekkur; eldri hlekkir einstaklingsins hætta að virka."""
+    revoke_request(person)
+    return WishRequest.objects.create(person=person, created_by=by, expires_at=expiry(lifetime))
+
+
+def revoke_request(person: Person) -> None:
+    person.wish_requests.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
+
+
+def _request_gift(request: WishRequest) -> Gift | None:
+    """Jólagjöf einstaklingsins fyrir næstu jól (eftir aðfangadag: næsta ár, ekki liðin jól)."""
+    return (
+        Gift.objects.alive()
+        .christmas()
+        .filter(season__household=request.person.household, season__year=christmas_year())
+        .filter(person=request.person)
+        .first()
+    )
+
+
+def _wishes(gift: Gift | None):
+    if gift is None:
+        return Idea.objects.none()
+    return (
+        gift.ideas.filter(wish=True)
+        .select_related("store", "gift__season")
+        .prefetch_related("store__locations")
+        .order_by("position", "id")
+    )
+
+
+def own_wishes(request: WishRequest) -> list[Idea]:
+    """Óskirnar sem einstaklingurinn hefur skráð sjálfur fyrir næstu jól. Ekkert um stöðu þeirra."""
+    return list(_wishes(_request_gift(request)))
+
+
+def wish_row(request: WishRequest) -> dict:
+    """Línan á opnu síðunni, eins og „Ég“-línan á gjafalistanum (gifts/partials/wish_row.html)."""
+    gift = _request_gift(request)
+    return {"name": request.person.name, "gift": gift, "wishes": list(_wishes(gift))}
+
+
+@transaction.atomic
+def add_wishes(request: WishRequest, text: str) -> list[Idea]:
+    """„+ Hugmynd“ eins og á gjafalistanum: „sokkar, spil“ verða tvær óskir; tvítekningar hunsaðar.
+
+    Jólagjöfin fyrir næstu jól verður til við fyrstu óskina.
+    """
+    from apps.gifts.services.gifts import add_ideas, ensure_christmas_gift
+
+    if not any(normalize(t) for t in text.split(",")):
+        return []
+    # Einstaklingurinn læstur: tvísending býr ekki til tvær gjafir
+    person = Person.objects.select_for_update().get(pk=request.person_id)
+    # Borið saman við eigin óskir einar: annars kæmi í ljós hvað aðrir hafa skráð (privacy.py)
+    return add_ideas(ensure_christmas_gift(person, christmas_year()), text[:1000], wish=True)
+
+
+def own_wish(request: WishRequest, idea_id: int) -> Idea:
+    """Ósk sem einstaklingurinn skráði sjálfur í ár; annars WishlistError."""
+    idea = _wishes(_request_gift(request)).filter(pk=idea_id).first()
+    if idea is None:
+        raise WishlistError("Þessi ósk er ekki á listanum lengur.")
+    return idea
+
+
+def set_store(request: WishRequest, idea_id: int, name: str) -> Idea:
+    from apps.gifts.services.gifts import set_wish_store
+
+    return set_wish_store(own_wish(request, idea_id), name)
+
+
+def delete_wish(request: WishRequest, idea_id: int) -> None:
+    """Sé óskin keypt eða frátekin hverfur hún bara hjá honum (gifts.remove_wish)."""
+    from apps.gifts.services.gifts import remove_wish
+
+    remove_wish(own_wish(request, idea_id))

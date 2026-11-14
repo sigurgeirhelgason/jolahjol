@@ -15,6 +15,14 @@ def _names(people) -> str:
 
 
 @register.filter
+def can_hide(idea) -> bool:
+    """× á ósk annars á listanum: sama regla og þjónninn (gifts.can_hide)."""
+    from apps.gifts.services.gifts import can_hide as rule
+
+    return rule(idea)
+
+
+@register.filter
 def giver_names(idea) -> str:
     """„Amma Jóa og Afi“ (úr prefetch, ekkert nýtt kall)."""
     return _names(link.person for link in idea.giver_links.all())

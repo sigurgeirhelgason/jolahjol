@@ -221,7 +221,14 @@ class WishForm(forms.Form):
         max_length=2000,
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": _("t.d. stærð, litur, hvaða útgáfa…")}),
     )
+    store = _text(_("Búð"), _("t.d. Elko, Epal…"), max_length=100, required=False)
     link = _link()
+
+    @classmethod
+    def for_idea(cls, idea) -> "WishForm":
+        """Óskaglugginn opnaður: núverandi efni óskarinnar (appið og óskabeiðnin)."""
+        store = idea.store.name if idea.store else ""
+        return cls(initial={"text": idea.text, "note": idea.note, "store": store, "link": idea.link})
 
 
 class PriceForm(forms.Form):

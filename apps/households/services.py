@@ -179,12 +179,15 @@ def _keep_what_was_seen(person) -> None:
     (sjást áfram, en ekki staða þeirra). Á aðeins við þetta ár og næstu, ekki liðin ár.
 
     Nýr notandi úr boði hefur ekkert séð, svo þetta er ekki gert í `accept_invite`.
+
+    Afrit heimilisins af óskum hans (keypt eða tekið frá, gifts.take_wish) verða ekki hans: þá sæi
+    hann óskina tvisvar og vissi að hún var tekin. Óskin sjálf (falin hjá heimilinu) er þegar hans.
     """
     from apps.gifts.models import Idea
 
     Idea.objects.filter(
         gift__person=person, gift__deleted_at__isnull=True, gift__season__year__gte=timezone.localdate().year
-    ).update(wish=True)
+    ).exclude(source__gift__person=person).update(wish=True)
 
 
 @transaction.atomic

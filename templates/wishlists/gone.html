@@ -4,5 +4,5 @@
 {% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
 {% block content %}
   <h1>{% translate "Þessi hlekkur virkar ekki lengur" %}</h1>
-  <p>{% translate "Óskalistinn hefur verið færður eða hlekknum lokað. Biddu um nýjan hlekk." %}</p>
+  <p>{% if message %}{{ message }}{% else %}{% translate "Óskalistinn hefur verið færður eða hlekknum lokað. Biddu um nýjan hlekk." %}{% endif %}</p>
 {% endblock %}

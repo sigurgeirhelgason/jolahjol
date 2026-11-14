@@ -1,0 +1,42 @@
+{% load i18n %}
+{% comment %}
+  Einstaklingsglugginn: „Biðja um óskir“. Hlekkur sem einstaklingurinn fær til að skrifa sjálfur
+  óskirnar sínar á listann, án innskráningar. Heimilið velur hvað hlekkurinn lifir lengi.
+  Ekki fyrir notendur heimilisins (þeir skrá óskir sjálfir). Sjá wishlists/services.py.
+{% endcomment %}
+{% if can_request %}
+<div class="past wish-share" id="wish-request">
+  <h4><span class="ms">edit</span> {% translate "Biðja um óskir" %}</h4>
+  {% if wish_request %}
+    <p class="help">{% blocktranslate with name=person.name %}Viltu að {{ name }} skrái sínar eigin hugmyndir? Sendu hlekk. Viðkomandi sér ekki þínar hugmyndir eða hvað þú hefur keypt og getur aðeins skráð eigin hugmyndir.{% endblocktranslate %}</p>
+    <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">
+      <input x-ref="source" readonly aria-label="{% translate 'Hlekkur til að skrifa óskir' %}"
+             value="{{ request.scheme }}://{{ request.get_host }}{% url 'wishlists:request' wish_request.token %}">
+      <button type="button" class="btn small soft" x-on:click="copy"><span class="ms">content_copy</span><span x-text="label">{% translate "Afrita" %}</span></button>
+    </div>
+    {% if wish_request.closed %}
+      <p class="help error" role="alert"><span class="ms">warning</span> {% translate "Hlekkurinn virkar ekki á meðan gjöfin í ár er eydd. Endurheimtu gjöfina eða bættu viðkomandi aftur á listann." %}</p>
+    {% else %}
+      <p class="help"><span class="ms">schedule</span> {% blocktranslate with until=wish_request.expires_at|date:"j. F Y, H:i" %}Virkar til {{ until }}{% endblocktranslate %}</p>
+    {% endif %}
+    <div class="wish-share-actions">
+      <button type="button" class="btn small danger" hx-post="{% url 'wishlists:request_revoke' household.slug person.pk %}" hx-target="#wish-request" hx-swap="outerHTML">
+        <span class="ms">link_off</span>{% translate "Loka hlekk" %}
+      </button>
+    </div>
+  {% else %}
+    <p class="help">{% blocktranslate with name=person.name %}Hvað vill {{ name }} fá? Búðu til hlekk og sendu. Þar getur {{ name }} skrifað óskir beint á listann, án innskráningar.{% endblocktranslate %}</p>
+    <div class="invite-link">
+      <select name="lifetime" id="request-lifetime-{{ person.pk }}" aria-label="{% translate 'Hvað á hlekkurinn að virka lengi?' %}">
+        {% for key, label in lifetimes %}
+          <option value="{{ key }}"{% if key == default_lifetime %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="button" class="btn small soft" hx-post="{% url 'wishlists:request_create' household.slug person.pk %}"
+              hx-include="#request-lifetime-{{ person.pk }}" hx-target="#wish-request" hx-swap="outerHTML">
+        <span class="ms">link</span>{% translate "Búa til hlekk" %}
+      </button>
+    </div>
+  {% endif %}
+</div>
+{% endif %}

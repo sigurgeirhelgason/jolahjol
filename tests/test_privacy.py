@@ -519,10 +519,17 @@ def test_others_can_buy_but_not_edit_her_idea(as_joi, gift, home):
     as_joi.post(url("idea", home.slug, wish.pk), data, **HX)
     wish.refresh_from_db()
     assert wish.text == "trefill" and wish.note == "" and wish.store is None  # efnið óbreytt
-    assert wish.picked and wish.price == 4000  # kaupin vistuðust
-    assert as_joi.post(url("idea_remove", home.slug, wish.pk), **HX).status_code == 403
-    assert as_joi.post(url("idea_store", home.slug, wish.pk), {"store": "Elko"}, **HX).status_code == 403
+    # Kaupin fara á afrit sem heimilið á; óskin verður falin og frátekin (gifts.take_wish)
+    assert wish.hidden and wish.reserved and not wish.picked
+    copy = wish.copies.get()
+    assert copy.picked and copy.price == 4000 and copy.text == "trefill" and not copy.wish
+    # Tekin ósk er ekki lengur til í augum heimilisins (falin): hvorki fjarlægð né breytt
+    assert as_joi.post(url("idea_remove", home.slug, wish.pk), **HX).status_code == 404
+    assert as_joi.post(url("idea_store", home.slug, wish.pk), {"store": "Elko"}, **HX).status_code == 404
     assert Idea.objects.filter(pk=wish.pk, store=None).exists()
+    # Ósk annars sem er ekki tekin: má ekki breyta búð hennar
+    other = Idea.objects.create(gift=wish.gift, text="vettlingar", wish=True)
+    assert as_joi.post(url("idea_store", home.slug, other.pk), {"store": "Elko"}, **HX).status_code == 403
 
 
 def test_gift_dialog_leaves_her_ideas_alone(as_joi, gift, home):

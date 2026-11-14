@@ -29,7 +29,7 @@ from apps.core.text import fold_key, is_sort_key, split_list
 from apps.households.mixins import HouseholdMixin, OwnerRequiredMixin
 from apps.households.views import person_invite_context
 from apps.wishlists import services as wishlist_services
-from apps.wishlists.views import follow_popup_context, owners_context
+from apps.wishlists.views import follow_popup_context, owners_context, request_context
 
 from . import listing
 from .forms import (
@@ -93,15 +93,34 @@ class GiftsMixin(HouseholdMixin):
             raise Http404
         return gift
 
-    def get_idea(self, pk: int, *, wish_ok=False) -> Idea:
-        """Hugmynd; í leyndri gjöf aðeins óskir viðtakandans sjálfs og aðeins ef `wish_ok`."""
+    def get_idea(self, pk: int, *, wish_ok=False, hidden_ok=False) -> Idea:
+        """Hugmynd; í leyndri gjöf aðeins óskir viðtakandans sjálfs og aðeins ef `wish_ok`.
+
+        Ósk sem heimilið faldi eða tók (Idea.hidden) er ekki til í augum þess nema `hidden_ok`
+        („Afturkalla“); viðtakandinn sér hana áfram.
+        """
         qs = Idea.objects.select_related("gift__season", "gift__person")
         idea = get_object_or_404(qs, pk=pk, gift__season__household=self.household)
         if idea.gift.deleted_at:
             raise Http404
+        if idea.hidden and not hidden_ok and not self.viewer.is_recipient(idea.gift):
+            raise Http404
         if self.viewer.is_secret(idea.gift) and not (wish_ok and idea.wish):
             raise Http404
         return idea
+
+    def take(self, idea: Idea) -> Idea:
+        """Keypt eða tekið frá: ósk annars verður afrit sem heimilið á (gifts.take_wish).
+
+        take_wish ákveður undir læsingu, svo tvísmellt hakar við afritið sem varð til, ekki óskina.
+        Falin ósk (× eða síða sem var ekki uppfærð) er ekki til í augum heimilisins.
+        """
+        if not self.is_others_wish(idea):
+            return idea
+        taken = gift_services.take_wish(idea)
+        if taken.hidden:
+            raise Http404
+        return taken
 
     def is_others_wish(self, idea: Idea) -> bool:
         """Hugmynd sem viðtakandinn skráði sjálfur, skoðuð af öðrum: aðeins hann breytir efni hennar."""
@@ -523,7 +542,7 @@ class IdeaRemoveView(GiftsMixin, View):
         gift = idea.gift
         self.ensure_editable(gift.season)
         if self.is_others_wish(idea):
-            raise PermissionDenied
+            return self.hide(idea)
         if self.viewer.is_secret(gift):
             gift_services.remove_wish(idea)
         else:
@@ -531,6 +550,28 @@ class IdeaRemoveView(GiftsMixin, View):
         if self.page_name() != "listi":
             return self.changed(gift.season)
         return self.row_response(gift)
+
+    def hide(self, idea: Idea) -> HttpResponse:
+        """× á ósk annars: falin hjá heimilinu (viðtakandinn sér hana áfram), með „Afturkalla“."""
+        try:
+            gift_services.hide_wish(idea)  # athugað undir læsingu: ekki keypt, frátekin né með gefanda
+        except ValueError as exc:
+            raise PermissionDenied from exc
+        if self.page_name() != "listi":
+            return self.changed(idea.gift.season)
+        ctx = self.base_context(idea.gift.season)
+        toast = _partial(
+            self.request,
+            "toast",
+            {
+                **ctx,
+                "oob": True,
+                "toast_text": _("„%(text)s“ falin. %(name)s sér hana áfram.")
+                % {"text": idea.text, "name": idea.gift.person.name},
+                "undo_url": reverse("gifts:idea_unhide", args=[self.household.slug, idea.pk]),
+            },
+        )
+        return self.row_response(idea.gift, extra=toast)
 
 
 class IdeaBoughtView(GiftsMixin, View):
@@ -551,7 +592,7 @@ class IdeaBoughtView(GiftsMixin, View):
             response["HX-Reswap"] = "innerHTML"
             return response
         else:
-            gift_services.pick_idea(idea)
+            gift_services.pick_idea(self.take(idea))
         return self.after_change(gift)
 
     def after_change(self, gift):
@@ -580,10 +621,15 @@ class IdeaStoreView(GiftsMixin, View):
         self.ensure_editable(gift.season)
         if self.is_others_wish(idea):
             raise PermissionDenied
-        store = stores_services.get_or_create_store(self.household, request.POST.get("store", ""))
-        if store:
-            idea.store = store
-            idea.save(update_fields=["store"])
+        name = request.POST.get("store", "")
+        if idea.wish:
+            gift_services.set_wish_store(idea, name)  # afrit (keypt eða frátekið) fá merki um breytingu
+        else:
+            store = stores_services.get_or_create_store(self.household, name)
+            if store and store.pk != idea.store_id:
+                idea.store = store
+                idea.edited = bool(idea.source_id)  # afrit af ósk: heimilið breytti því
+                idea.save(update_fields=["store", "edited"])
         return self.row_response(gift)
 
 
@@ -594,13 +640,13 @@ class IdeaPriceView(IdeaBoughtView):
         idea = self.get_idea(pk)
         self.ensure_editable(idea.gift.season)
         if request.POST.get("skip"):
-            gift_services.pick_idea(idea)
+            gift_services.pick_idea(self.take(idea))
         else:
             form = PriceForm(request.POST)
             if not form.is_valid():
                 ctx = IdeaBoughtView.price_context(idea, form)
                 return self.dialog("gifts/dialogs/price.html", ctx, status=422)
-            gift_services.pick_idea(idea, form.cleaned_data["amount"])
+            gift_services.pick_idea(self.take(idea), form.cleaned_data["amount"])
         return self.after_change(idea.gift)
 
 
@@ -770,6 +816,7 @@ class PersonDialogView(GiftsMixin, View):
             ],
             "share": wishlist_services.active_share(person),
             "followers": wishlist_services.follower_names(person),
+            **request_context(person),
             **person_invite_context(self.household, person, self.is_owner),
             "year": params.get("ar", ""),  # árið sem listinn sýnir, svo hann uppfærist eftir vistun
         }
@@ -933,8 +980,27 @@ class ReservationRemoveView(GiftsMixin, View):
 
     def post(self, request, slug, pk):
         idea = self.get_idea(pk)
-        wishlist_services.clear_reservation(idea)
+        self.ensure_editable(idea.gift.season)
+        with transaction.atomic():
+            wishlist_services.clear_reservation(idea)
+            gift_services.untake(idea)  # afrit af ósk sem er ekki lengur í notkun: óskin losnar
         return self.changed(idea.gift.season)
+
+
+class IdeaUnhideView(GiftsMixin, View):
+    """„Afturkalla“ eftir að ósk var falin."""
+
+    def post(self, request, slug, pk):
+        idea = self.get_idea(pk, hidden_ok=True)
+        self.ensure_editable(idea.gift.season)
+        # Aðeins ósk annars sem var falin með × (tekin ósk, með afrit, birtist ekki svona)
+        if not self.is_others_wish(idea):
+            raise Http404
+        try:
+            gift_services.hide_wish(idea, hidden=False)  # athugað undir læsingu: ekki tekin ósk
+        except ValueError as exc:
+            raise Http404 from exc
+        return self.refresh_list(idea.gift.season, close_modal=False)
 
 
 class IdeaDialogView(GiftsMixin, View):
@@ -962,8 +1028,7 @@ class IdeaDialogView(GiftsMixin, View):
         idea = self.get_idea(pk, wish_ok=True)
         self.ensure_editable(idea.gift.season)
         if self.viewer.is_secret(idea.gift):
-            initial = {"text": idea.text, "note": idea.note, "link": idea.link}
-            return self.render_wish(idea, WishForm(initial=initial))
+            return self.render_wish(idea, WishForm.for_idea(idea))
         links = list(idea.giver_links.select_related("person"))
         initial = {
             "text": idea.text,
@@ -997,8 +1062,14 @@ class IdeaDialogView(GiftsMixin, View):
             data["text"] = idea.text
         form = IdeaForm(data)
         if form.is_valid():
+            idea_data = form.to_data()
             with transaction.atomic():
-                gift_services.save_idea(idea, form.to_data(), keep_content=locked)
+                if idea_data.picked or idea_data.reserved or idea_data.givers or idea_data.for_other:
+                    # Kaup, frátekning og gefendur eru heimilisins og fara á afrit, ekki á ósk
+                    # viðtakandans. Glugginn sýndi efni óskarinnar læst (ekki í forminu), svo
+                    # afritið heldur efni óskarinnar við þessa vistun.
+                    idea = self.take(idea)
+                gift_services.save_idea(idea, idea_data, keep_content=locked)
             return self.changed(idea.gift.season)
         givers = request.POST.getlist("givers")
         return self.render(idea, form, givers, status=422)

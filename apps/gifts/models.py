@@ -206,6 +206,12 @@ class Gift(models.Model):
         return actual_price(self)
 
 
+class IdeaQuerySet(models.QuerySet):
+    def visible(self):
+        """Það sem heimilið sér: ekki óskir sem það faldi eða tók (Idea.hidden)."""
+        return self.filter(hidden=False)
+
+
 class Idea(models.Model):
     gift = models.ForeignKey(Gift, on_delete=models.CASCADE, related_name="ideas")
     text = models.CharField(_("hugmynd"), max_length=200)
@@ -219,6 +225,9 @@ class Idea(models.Model):
     for_other = models.BooleanField(_("keypt fyrir annan"), default=False)
     # Viðtakandinn skráði hana sjálfur: hann sér aðeins sínar eigin óskir (services/privacy.py)
     wish = models.BooleanField(_("ósk viðtakanda"), default=False)
+    # Ósk sem heimilið faldi (× á línunni): hverfur af listanum, innkaupum og opna óskalistanum,
+    # en viðtakandinn sér hana áfram og veit ekki af því (services/privacy.py)
+    hidden = models.BooleanField(_("falin"), default=False)
     givers = models.ManyToManyField(Person, through="IdeaGiver", related_name="given_ideas", blank=True)
     position = models.PositiveIntegerField(default=0)
     # „Frátekið“: einhver ætlar að kaupa þetta (af opnum óskalista eða merkt af heimilinu, t.d.
@@ -238,6 +247,14 @@ class Idea(models.Model):
     # Bjó takan til gefandann á upprunanum? Þá (og aðeins þá) fer hann af þegar frátekningin losnar,
     # svo gefandi sem var þar fyrir (t.d. í púkki) haldist
     source_added_giver = models.BooleanField(default=False)
+    # Upprunanum (ósk) var breytt eftir að afritið varð til, t.d. „stærð 40, ekki 38“. Afritið
+    # uppfærist ekki (keypt er það sem var keypt); merkið hverfur þegar heimilið vistar afritið.
+    source_changed = models.BooleanField(default=False)
+    # Heimilið breytti efni afritsins (texti, lýsing, hlekkur, búð). Óbreyttu afriti er eytt þegar
+    # óskin losnar; breytt afrit helst sem hugmynd heimilisins (gifts.untake).
+    edited = models.BooleanField(default=False)
+
+    objects = IdeaQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("hugmynd")

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% comment %}
+  Óskabeiðni (án innskráningar): einstaklingurinn skrifar óskirnar sínar á lista heimilisins.
+  Sama útlit og „Ég“ á gjafalistanum: sama lína (gifts/partials/wish_row.html) og sami óskagluggi
+  (gifts/dialogs/wish.html). Sýnir AÐEINS óskirnar sem hann skráði sjálfur: hvorki stöðu, verð,
+  gefendur né aðrar hugmyndir. Sjá apps/wishlists/services.py („Óskabeiðni“) og services/privacy.py.
+{% endcomment %}
+{% block title %}{% translate "Óskirnar þínar" %} – {{ person.name }} · Jólahjól{% endblock %}
+{% block og_title %}{% translate "Hvað langar þig í?" %}{% endblock %}
+{% block og_description %}{% blocktranslate with owners=owners count n=owners_count %}{{ owners }} vill vita hvað þig langar í. Skrifaðu óskirnar þínar, enginn aðgangur nauðsynlegur.{% plural %}{{ owners }} vilja vita hvað þig langar í. Skrifaðu óskirnar þínar, enginn aðgangur nauðsynlegur.{% endblocktranslate %}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
+{% block body_attrs %} data-page="oskir"{% endblock %}
+{% block body %}
+<header class="topbar">
+  <div class="container">
+    <div class="brand">
+      <span class="brand-logo">{% include "partials/logo.html" with width=76 %}</span>
+      <span class="year-pill"><span class="ms">calendar_today</span>{% blocktranslate with year=year %}Jól {{ year }}{% endblocktranslate %}</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <section class="card hero wish-request-hero">
+      <div class="glow g-hero-1"></div>
+      <div class="glow g-hero-2"></div>
+      <div>
+        <span class="pill green"><span class="ms">star</span>{% translate "Óskirnar þínar" %}</span>
+        <h1>{% blocktranslate with name=person.name %}Hæ {{ name }}!{% endblocktranslate %}</h1>
+        <p>{% blocktranslate with owners=owners count n=owners_count %}{{ owners }} vill vita hvað þig langar í um jólin. Skrifaðu hugmyndir í „+ Hugmynd“ og ýttu á Enter. Smelltu á hugmynd til að bæta við lýsingu eða hlekk.{% plural %}{{ owners }} vilja vita hvað þig langar í um jólin. Skrifaðu hugmyndir í „+ Hugmynd“ og ýttu á Enter. Smelltu á hugmynd til að bæta við lýsingu eða hlekk.{% endblocktranslate %}</p>
+      </div>
+    </section>
+
+    <div class="card">
+      <div class="g-head">
+        <div class="g-title"><span class="emoji">🙋</span><h2>{% translate "Ég" %}</h2></div>
+        <div class="g-meta"><span><span class="ms">lock</span> {% blocktranslate with until=wish_request.expires_at|date:"j. F" %}Þú sérð bara það sem þú skrifar, ekki hvort eitthvað hefur verið keypt. Hlekkurinn virkar til {{ until }}.{% endblocktranslate %}</span></div>
+      </div>
+      <div class="row thead" aria-hidden="true">
+        <div class="c"></div><div>{% translate "Nafn" %}</div><div>{% translate "Hugmyndir" %}</div>
+        <div>{% translate "Búð" %}</div><div></div><div></div><div></div>
+      </div>
+      {% include "gifts/partials/wish_row.html" %}
+    </div>
+  </div>
+</main>
+
+{% include "partials/footer.html" %}
+<dialog id="modal" x-data="modal" x-on:close="cleanup" aria-labelledby="modal-title">
+  <div id="modal-body"></div>
+</dialog>
+{% endblock %}

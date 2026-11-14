@@ -425,6 +425,7 @@ progress.bday-bar.amber::-moz-progress-bar { background: var(--gold); }
   .wish-follow-action .btn { justify-content: center; }
 }
 .wishlist + .site-foot .container { max-width: 1040px; }
+.invite-link select { flex: 1; min-width: 0; border: none; background: var(--low); border-radius: 8px; padding: 8px 12px; font: inherit; font-size: 13px; color: var(--on); }
 
 /* ---------- Forsíða (core/landing.html, static/js/landing.js) ---------- */
 .lp-inner { max-width: 1240px; margin: 0 auto; padding: 48px 48px 64px; display: grid; grid-template-columns: auto 1fr; gap: 56px; align-items: center; }
@@ -643,7 +644,7 @@ main.lp { position: relative; overflow-x: clip; padding: 0; }
   .lp-wish-name { font-size: 18px; line-height: 22px; }
   .lp-money-big strong { font-size: 20px; line-height: 26px; }
   .lp-splash .logo { width: 170px; }
-  .wish-promo .container { padding-right: 16px; padding-top: 24px; }
+  .wish-promo .container, .wish-promo:not(.no-logo) .container { padding-right: 16px; padding-top: 24px; }
   .wish-promo-logo { position: static; width: 120px; transform: rotate(-4deg); margin-bottom: 4px; }
   .lp-splash span { font-size: 11px; letter-spacing: .2em; }
   .lp-av { width: 24px; height: 24px; font-size: 11px; }

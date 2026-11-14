@@ -21,7 +21,7 @@ from .models import GROUP_ICONS, Gift, Group, Person, Season, Store
 from .services.gifts import gift_text
 from .services.pricing import actual_price, giver_breakdown
 from .services.privacy import EVERYONE, Viewer
-from .services.queries import season_gifts, with_details
+from .services.queries import season_gifts, wishes_of, with_details
 from .services.stores import stores_of
 from .services.summary import SeasonSummary, season_summary
 
@@ -98,7 +98,7 @@ class Row:
 
     @property
     def wishes(self):
-        return [i for i in self.gift.ideas.all() if i.wish]
+        return wishes_of(self.gift)
 
     @property
     def gift_stores(self) -> list[Store]:

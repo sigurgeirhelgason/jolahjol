@@ -1,0 +1,60 @@
+{% load i18n gifts %}
+{% comment %}
+  Lína með óskum viðtakandans sjálfs; ekkert um stöðu, verð né gefendur (services/privacy.py).
+  Sama línan á tveimur stöðum:
+  - gjafalistinn („Ég“): `row` (listing.Row, secret), `gift`, `household`, `locked`
+  - óskabeiðni án innskráningar (wishlists/request.html): `wish_request` og `row` með `name`,
+    `wishes` og `gift` (getur verið None þar til fyrsta óskin er skráð).
+{% endcomment %}
+<div class="row gift secret" id="{% if wish_request %}wish-row{% else %}gift-{{ gift.pk }}{% endif %}"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="check"></div>
+  <div>
+    <div class="name-line">
+      {% if wish_request %}<span class="name-btn">{{ row.name }}</span>{% else %}
+      <button class="name-btn" type="button" title="{% blocktranslate with name=gift.person.name %}Opna upplýsingar um {{ name }}{% endblocktranslate %}"
+              hx-get="{% url 'gifts:person' household.slug gift.person_id %}?ar={{ gift.season.year }}" hx-target="#modal-body">{{ row.name }}</button>{% endif %}
+    </div>
+  </div>
+  <div class="ideas">
+    {% for idea in row.wishes %}
+      <div class="idea-line">
+        <div class="idea-main">
+        <button type="button" class="chip-t" title="{{ idea.text }}{% if idea.note %} · {{ idea.note }}{% endif %}"{% if locked %} disabled{% endif %}
+                hx-get="{% if wish_request %}{% url 'wishlists:request_edit' wish_request.token idea.pk %}{% else %}{% url 'gifts:idea' household.slug idea.pk %}{% endif %}" hx-target="#modal-body">{{ idea.text }}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
+        {% if not locked %}<button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
+                hx-post="{% if wish_request %}{% url 'wishlists:request_delete' wish_request.token idea.pk %}{% else %}{% url 'gifts:idea_remove' household.slug idea.pk %}{% endif %}" hx-target="#{% if wish_request %}wish-row{% else %}gift-{{ gift.pk }}{% endif %}" hx-swap="outerHTML">×</button>{% endif %}
+        </div>
+        <div class="store">
+          {% if wish_request %}
+          {# Án tillagna (datalist): búðir heimilisins sjást ekki hér. Breytt í óskaglugganum. #}
+          {% if idea.store %}<span class="stores"><span class="store-btn">{{ idea.store.name }}</span></span>
+          {% else %}<input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" autocomplete="off" maxlength="100"
+              aria-label="{% blocktranslate with what=idea.text %}Búð fyrir {{ what }}{% endblocktranslate %}"
+              hx-post="{% url 'wishlists:request_store' wish_request.token idea.pk %}" hx-trigger="change" hx-target="#wish-row" hx-swap="outerHTML">{% endif %}
+          {% else %}
+          {% if idea.store %}<span class="stores"><button type="button" class="store-btn" title="{{ idea.store|locations_title|default:_('Bæta við staðsetningu') }}"
+              hx-get="{% url 'gifts:store' household.slug idea.store.pk %}?ar={{ gift.season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ idea.store.name }}</button></span>
+          {% elif not locked %}<input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" list="row-store-list" autocomplete="off"
+              aria-label="{% blocktranslate with what=idea.text %}Búð fyrir {{ what }}{% endblocktranslate %}"
+              hx-post="{% url 'gifts:idea_store' household.slug idea.pk %}" hx-trigger="change" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">{% endif %}
+          {% endif %}
+          {% if idea.link %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer" title="{{ idea.link }}"><span class="ms">open_in_new</span></a>{% endif %}
+        </div>
+      </div>
+    {% endfor %}
+    <div class="idea-line add-line">
+      <div class="idea-main">
+        {% if not locked %}
+          <input class="chip-input" name="text" placeholder="{% translate '+ Hugmynd' %}" aria-label="{% translate 'Ný hugmynd fyrir þig' %}"
+                 autocomplete="off" id="{% if wish_request %}chip-wish{% else %}chip-{{ gift.pk }}{% endif %}" x-data="chipInput" x-on:keydown="onKey" x-on:blur="onBlur"
+                 hx-post="{% if wish_request %}{% url 'wishlists:request' wish_request.token %}{% else %}{% url 'gifts:idea_add' household.slug gift.pk %}{% endif %}" hx-trigger="add"
+                 hx-target="#{% if wish_request %}wish-row{% else %}gift-{{ gift.pk }}{% endif %}" hx-swap="outerHTML">
+        {% endif %}
+      </div>
+      <div class="store"></div>
+    </div>
+  </div>
+  <div class="amount"></div>
+  <div class="price-wrap"></div>
+  <div class="actions"></div>
+</div>

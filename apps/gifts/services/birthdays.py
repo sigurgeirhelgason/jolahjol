@@ -22,7 +22,7 @@ from apps.households.models import Household
 from ..models import BirthdayReminder, Gift, Occasion, Person, Season
 from .pricing import actual_price
 from .privacy import EVERYONE, Viewer
-from .queries import with_details
+from .queries import wishes_of, with_details
 from .stores import stores_of
 
 WINDOW_DAYS = 365
@@ -85,7 +85,7 @@ class Entry:
 
     @property
     def wishes(self):
-        return [i for i in self.gift.ideas.all() if i.wish] if self.gift else []
+        return wishes_of(self.gift) if self.gift else []
 
 
 @dataclass

@@ -1,3 +1,4 @@
+import contextlib
 import json
 from urllib.parse import urlencode
 
@@ -12,11 +13,13 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views import View
+from django_htmx.http import trigger_client_event
 from django_ratelimit.decorators import ratelimit
 
 from apps.core.text import is_sort_key, name_match
+from apps.gifts.forms import WishForm
 from apps.gifts.models import Group, Person
-from apps.gifts.services.gifts import and_join
+from apps.gifts.services.gifts import and_join, save_wish
 from apps.households.mixins import SESSION_KEY, HouseholdMixin
 from apps.households.models import Membership
 
@@ -347,3 +350,149 @@ class UnfollowView(HouseholdMixin, View):
         services.unfollow(person)
         ctx = {"household": self.household, "person": person}
         return HttpResponse(render_to_string("wishlists/partials/follow.html", ctx, request=request))
+
+
+# ---------- Óskabeiðni: einstaklingurinn skrifar sjálfur óskirnar sínar (/oskir/<token>/) ----------
+#
+# Sama lína og „Ég“ á gjafalistanum (gifts/partials/wish_row.html) og sami óskagluggi
+# (gifts/dialogs/wish.html): „+ Hugmynd“, × og smellur á hugmynd til að bæta við lýsingu og hlekk.
+# Dísa sér aðeins eigin óskir, ekki hvort þær hafa verið keyptar eða teknar frá (privacy.py).
+
+
+class _WishRequestMixin:
+    """Sækir virka óskabeiðni úr slóðinni; útrunninn eða lokaður hlekkur fær „virkar ekki lengur“."""
+
+    def dispatch(self, request, token, *args, **kwargs):
+        self.wish_request = services.get_request(token)
+        if self.wish_request is None:
+            message = _("Hlekkurinn er útrunninn eða honum hefur verið lokað. Biddu um nýjan hlekk.")
+            return _private(render(request, "wishlists/gone.html", {"message": message}, status=404))
+        if request.method == "POST" and getattr(request, "limited", False):
+            return HttpResponse(_("Of margar beiðnir í einu. Reyndu aftur eftir smá stund."), status=429)
+        return super().dispatch(request, token, *args, **kwargs)
+
+    def context(self) -> dict:
+        return {"wish_request": self.wish_request, **owners_context(self.wish_request.person.household)}
+
+    def row(self, status=200) -> HttpResponse:
+        ctx = {**self.context(), "row": services.wish_row(self.wish_request)}
+        html = render_to_string("gifts/partials/wish_row.html", ctx, request=self.request)
+        return _private(HttpResponse(html, status=status))
+
+
+@method_decorator(ratelimit(key="ip", rate="120/h", method="POST", block=False), name="dispatch")
+class WishRequestView(_WishRequestMixin, View):
+    """Síðan sjálf (GET) og „+ Hugmynd“ (POST, skilar línunni)."""
+
+    def get(self, request, token):
+        ctx = {
+            **self.context(),
+            "person": self.wish_request.person,
+            "row": services.wish_row(self.wish_request),
+            "year": services.christmas_year(),
+        }
+        return _private(render(request, "wishlists/request.html", ctx))
+
+    def post(self, request, token):
+        services.add_wishes(self.wish_request, request.POST.get("text", ""))
+        return self.row()
+
+
+@method_decorator(ratelimit(key="ip", rate="120/h", method="POST", block=False), name="dispatch")
+class WishEditView(_WishRequestMixin, View):
+    """Óskaglugginn: texti, nánari lýsing og hlekkur."""
+
+    def dialog(self, idea, form, status=200):
+        ctx = {**self.context(), "idea": idea, "form": form}
+        return _private(render(self.request, "gifts/dialogs/wish.html", ctx, status=status))
+
+    def get(self, request, token, idea_id):
+        idea = self.get_wish(idea_id)
+        return self.dialog(idea, WishForm.for_idea(idea))
+
+    def post(self, request, token, idea_id):
+        idea = self.get_wish(idea_id)
+        form = WishForm(request.POST)
+        if not form.is_valid():
+            return self.dialog(idea, form, status=422)
+        save_wish(idea, **form.cleaned_data)
+        response = self.row()
+        response["HX-Retarget"] = "#wish-row"
+        response["HX-Reswap"] = "outerHTML"
+        trigger_client_event(response, "closeModal", after="settle")
+        return response
+
+    def get_wish(self, idea_id):
+        try:
+            return services.own_wish(self.wish_request, idea_id)
+        except WishlistError as exc:
+            raise Http404 from exc
+
+
+@method_decorator(ratelimit(key="ip", rate="120/h", method="POST", block=False), name="dispatch")
+class WishStoreView(_WishRequestMixin, View):
+    """„+ Búð“ á línunni, eins og á gjafalistanum."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, token, idea_id):
+        with contextlib.suppress(WishlistError):  # óskin farin: línan sýnir stöðuna eins og hún er
+            services.set_store(self.wish_request, idea_id, request.POST.get("store", ""))
+        return self.row()
+
+
+@method_decorator(ratelimit(key="ip", rate="120/h", method="POST", block=False), name="dispatch")
+class WishDeleteView(_WishRequestMixin, View):
+    http_method_names = ["post"]
+
+    def post(self, request, token, idea_id):
+        # Þegar farin (t.d. tvísmellt): línan sýnir stöðuna eins og hún er
+        with contextlib.suppress(WishlistError):
+            services.delete_wish(self.wish_request, idea_id)
+        return self.row()
+
+
+# ---------- Heimilið: búa til og loka óskabeiðni (í einstaklingsglugganum) ----------
+
+
+def request_context(person) -> dict:
+    """Óskabeiðnin í einstaklingsglugganum. Ekki fyrir notendur heimilisins: þeir skrá sjálfir."""
+    from apps.gifts.services.privacy import is_linked
+
+    return {
+        "can_request": not is_linked(person),
+        "wish_request": services.active_request(person),
+        "lifetimes": [(key, label) for key, (_days, label) in services.LIFETIMES.items()],
+        "default_lifetime": services.DEFAULT_LIFETIME,
+    }
+
+
+class _RequestSection(HouseholdMixin, View):
+    http_method_names = ["post"]
+
+    def get_person(self, pk):
+        from apps.gifts.services.privacy import is_linked
+
+        person = get_object_or_404(Person, pk=pk, household=self.household)
+        if is_linked(person):  # notendur heimilisins skrá sjálfir
+            raise Http404
+        return person
+
+    def section(self, person):
+        ctx = {"household": self.household, "person": person, **request_context(person)}
+        return HttpResponse(render_to_string("wishlists/partials/request.html", ctx, request=self.request))
+
+
+class RequestCreateView(_RequestSection):
+    def post(self, request, slug, pk):
+        person = self.get_person(pk)
+        # Óþekkt gildi fær sjálfgefinn tíma (services.expiry)
+        services.create_request(person, request.user, request.POST.get("lifetime", ""))
+        return self.section(person)
+
+
+class RequestRevokeView(_RequestSection):
+    def post(self, request, slug, pk):
+        person = self.get_person(pk)
+        services.revoke_request(person)
+        return self.section(person)

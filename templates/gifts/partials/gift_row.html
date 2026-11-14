@@ -1,49 +1,7 @@
 {% load i18n money gifts %}
 {% with gift=row.gift %}
 {% if row.secret %}
-{# Gjöf handa þeim sem skoðar: aðeins óskirnar hans sjálfs, ekkert um stöðu (services/privacy.py) #}
-<div class="row gift secret" id="gift-{{ gift.pk }}"{% if oob %} hx-swap-oob="true"{% endif %}>
-  <div class="check"></div>
-  <div>
-    <div class="name-line">
-      <button class="name-btn" type="button" title="{% blocktranslate with name=gift.person.name %}Opna upplýsingar um {{ name }}{% endblocktranslate %}"
-              hx-get="{% url 'gifts:person' household.slug gift.person_id %}?ar={{ gift.season.year }}" hx-target="#modal-body">{{ row.name }}</button>
-    </div>
-  </div>
-  <div class="ideas">
-    {% for idea in row.wishes %}
-      <div class="idea-line">
-        <div class="idea-main">
-        <button type="button" class="chip-t" title="{{ idea.text }}{% if idea.note %} · {{ idea.note }}{% endif %}"{% if locked %} disabled{% endif %}
-                hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
-        {% if not locked %}<button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
-                hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">×</button>{% endif %}
-        </div>
-        <div class="store">
-          {% if idea.store %}<span class="stores"><button type="button" class="store-btn" title="{{ idea.store|locations_title|default:_('Bæta við staðsetningu') }}"
-              hx-get="{% url 'gifts:store' household.slug idea.store.pk %}?ar={{ gift.season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ idea.store.name }}</button></span>
-          {% elif not locked %}<input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" list="row-store-list" autocomplete="off"
-              aria-label="{% blocktranslate with what=idea.text %}Búð fyrir {{ what }}{% endblocktranslate %}"
-              hx-post="{% url 'gifts:idea_store' household.slug idea.pk %}" hx-trigger="change" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">{% endif %}
-          {% if idea.link %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer" title="{{ idea.link }}"><span class="ms">open_in_new</span></a>{% endif %}
-        </div>
-      </div>
-    {% endfor %}
-    <div class="idea-line add-line">
-      <div class="idea-main">
-        {% if not locked %}
-          <input class="chip-input" name="text" placeholder="{% translate '+ Hugmynd' %}" aria-label="{% translate 'Ný hugmynd fyrir þig' %}"
-                 autocomplete="off" id="chip-{{ gift.pk }}" x-data="chipInput" x-on:keydown="onKey" x-on:blur="onBlur"
-                 hx-post="{% url 'gifts:idea_add' household.slug gift.pk %}" hx-trigger="add" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">
-        {% endif %}
-      </div>
-      <div class="store"></div>
-    </div>
-  </div>
-  <div class="amount"></div>
-  <div class="price-wrap"></div>
-  <div class="actions"></div>
-</div>
+{% include "gifts/partials/wish_row.html" %}
 {% else %}
 <div class="row gift{% if gift.bought %} done{% endif %}" id="gift-{{ gift.pk }}"{% if oob %} hx-swap-oob="true"{% endif %}>
   <div class="check">
@@ -68,8 +26,10 @@
                aria-label="{% blocktranslate with what=idea.text name=gift.person.name %}{{ what }} handa {{ name }} keypt{% endblocktranslate %}"
                hx-post="{% url 'gifts:idea_bought' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">{% endif %}
         <button type="button" class="chip-t" title="{{ idea|idea_title }}"{% if locked %} disabled{% endif %}
-                hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% with gives=idea|gives_text %}{% if gives %}<span class="from"> – {{ gives }}</span>{% endif %}{% endwith %}<span class="tail">{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}{% if idea.for_other %}<span class="ms">{% if idea|all_paid %}paid{% else %}request_quote{% endif %}</span>{% endif %}{% if idea.wish %}<span class="ms wish-icon" title="{% blocktranslate with name=gift.person.name %}Hugmynd sem {{ name }} skráði{% endblocktranslate %}">star</span>{% endif %}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</span></button>
+                hx-get="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body">{{ idea.text }}{% with gives=idea|gives_text %}{% if gives %}<span class="from"> – {{ gives }}</span>{% endif %}{% endwith %}<span class="tail">{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}{% if idea.for_other %}<span class="ms">{% if idea|all_paid %}paid{% else %}request_quote{% endif %}</span>{% endif %}{% if idea.wish %}<span class="ms wish-icon" title="{% blocktranslate with name=gift.person.name %}Hugmynd sem {{ name }} skráði{% endblocktranslate %}">star</span>{% endif %}{% if idea.source_changed and idea.source %}<span class="ms wish-icon" title="{% blocktranslate with name=gift.person.name text=idea.source.text %}{{ name }} breytti óskinni: {{ text }}{% endblocktranslate %}{% if idea.source.note %} – {{ idea.source.note }}{% endif %}">info</span>{% endif %}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</span></button>
         {% if not locked and not idea.wish %}<button type="button" class="chip-x" aria-label="{% blocktranslate with text=idea.text %}Fjarlægja hugmynd: {{ text }}{% endblocktranslate %}"
+                hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">×</button>
+        {% elif not locked and idea|can_hide %}{# Ósk: falin hjá okkur, viðtakandinn sér hana áfram #}<button type="button" class="chip-x" title="{% translate 'Fela hjá okkur' %}" aria-label="{% blocktranslate with text=idea.text %}Fela hugmynd: {{ text }}{% endblocktranslate %}"
                 hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">×</button>{% endif %}
         </div>
         <div class="store">

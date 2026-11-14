@@ -2,16 +2,23 @@
 {% comment %}
   Óskaglugginn: viðtakandinn breytir eigin ósk; staða gjafarinnar er leynd fyrir honum. Hér má ekkert
   birtast um stöðu, verð, búð eða gefendur (sjá apps/gifts/services/privacy.py).
+  Líka notaður á óskabeiðninni án innskráningar (`wish_request`, wishlists/request.html).
 {% endcomment %}
 <div class="dlg-head">
   <h3 id="modal-title"><span class="ms">star</span>{% translate "Hugmyndin þín" %}</h3>
   <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
 </div>
+{% if wish_request %}
+<form class="gift-form" novalidate hx-post="{% url 'wishlists:request_edit' wish_request.token idea.pk %}" hx-target="#modal-body">
+  <p class="price-sub">{% blocktranslate with owners=owners count n=owners_count %}{{ owners }} sér hugmyndina. Þú sérð ekki hvort hún hefur verið keypt.{% plural %}{{ owners }} sjá hugmyndina. Þú sérð ekki hvort hún hefur verið keypt.{% endblocktranslate %}</p>
+{% else %}
 <form class="gift-form" novalidate hx-post="{% url 'gifts:idea' household.slug idea.pk %}" hx-target="#modal-body" hx-include="#list-state">
   <p class="price-sub">{% translate "Aðrir í heimilinu sjá hugmyndina. Þú sérð ekki hvort hún hefur verið keypt." %}</p>
+{% endif %}
   {{ form.non_field_errors }}
   <c-field :field="form.text" />
   <c-field :field="form.note" />
+  <c-field :field="form.store" />
   <c-field :field="form.link" />
   <div class="dlg-actions">
     <button type="button" class="btn ghost" data-close>{% translate "Hætta" %}</button>

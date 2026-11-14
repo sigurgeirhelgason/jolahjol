@@ -13,6 +13,13 @@
       <span>{% blocktranslate with name=idea.reserved_by.name when=idea.reserved_at|date:"j. N" %}Frátekið af {{ name }} á óskalista ({{ when }}){% endblocktranslate %}</span>
     </div>
   {% endif %}
+  {% if idea.source_changed and idea.source %}
+    {# Óskinni var breytt eftir að hún var keypt eða tekin frá; merkið hverfur þegar þetta er vistað #}
+    <div class="flash-item reserved-note">
+      <span class="ms">info</span>
+      <span>{% blocktranslate with name=gift.person.name text=idea.source.text %}{{ name }} breytti óskinni eftir að hún var tekin: <strong>{{ text }}</strong>{% endblocktranslate %}{% if idea.source.note %} – {{ idea.source.note }}{% endif %}{% if idea.source.link %} · <a href="{{ idea.source.link }}" target="_blank" rel="noopener noreferrer">{% translate "Hlekkur" %}</a>{% endif %}</span>
+    </div>
+  {% endif %}
   {% if locked %}
     {# Ósk viðtakandans: aðeins hann breytir efninu; hér er það bara sýnt #}
     <div class="wish-locked">
