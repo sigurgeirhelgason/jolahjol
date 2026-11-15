@@ -1,6 +1,9 @@
-"""Býr til deilimyndina (Open Graph, 1200×630) sem Facebook, Messenger o.fl. sýna með hlekk.
+"""Býr til deilimyndirnar (Open Graph, 1200×630) sem Facebook, Messenger o.fl. sýna með hlekk.
 
-Merkið (static/img/logo-640.webp) og slagorðið á vínrauðum grunni, eins og borðinn á síðunni.
+Merkið (static/img/logo-640.webp) og texti á vínrauðum grunni, eins og borðinn á síðunni:
+- og-image.jpg: forsíðan og aðrar síður
+- og-oskalisti.jpg: opinn óskalisti (/o/<token>/), þar sem gefendur taka frá
+- og-oskir.jpg: óskabeiðni (/oskir/<token>/), hlekkur sem viðtakandi fær til að skrá óskir
 Keyrt með: uv run python scripts/make_og_image.py
 """
 
@@ -10,7 +13,24 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
-OUT = STATIC / "img" / "og-image.jpg"
+# (skrá, fyrirsögn, texti)
+IMAGES = [
+    (
+        "og-image.jpg",
+        "Minnkaðu jólastressið!",
+        "Jólagjafirnar, áætlunin og óskalistarnir á einum stað. Ókeypis.",
+    ),
+    (
+        "og-oskalisti.jpg",
+        "Hvað á að gefa?",
+        "Sjáðu óskalistann og taktu frá það sem þú gefur, svo enginn kaupi það&nbsp;sama.",
+    ),
+    (
+        "og-oskir.jpg",
+        "Hvað langar þig&nbsp;í?",  # „þig í?“ saman í línu
+        "Skrifaðu óskirnar þínar beint á listann. Enginn aðgangur nauðsynlegur.",
+    ),
+]
 
 
 def main() -> None:
@@ -21,7 +41,20 @@ def main() -> None:
         '@font-face { font-family: "Plus Jakarta Sans"; font-weight: 200 800; '
         f'src: url(data:font/woff2;base64,{jakarta}) format("woff2"); }}'
     )
-    html = f"""<html><head><style>{fonts}
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1200, "height": 630})
+        for name, title, text in IMAGES:
+            out = STATIC / "img" / name
+            page.set_content(_html(fonts, logo, title, text))
+            page.wait_for_timeout(300)
+            page.screenshot(path=out, type="jpeg", quality=88)
+            print(f"{out.relative_to(STATIC.parent)}  {out.stat().st_size // 1024} KB")
+        browser.close()
+
+
+def _html(fonts: str, logo: str, title: str, text: str) -> str:
+    return f"""<html><head><style>{fonts}
       body {{ margin: 0; width: 1200px; height: 630px; overflow: hidden; color: #fff;
         font-family: "Plus Jakarta Sans", sans-serif;
         background:
@@ -39,20 +72,12 @@ def main() -> None:
       img {{ width: 470px; transform: rotate(-5deg); filter: drop-shadow(0 24px 40px rgba(40, 0, 8, .55)); }}
     </style></head><body><div class="wrap">
       <div class="text">
-        <h1>Minnkaðu jólastressið!</h1>
-        <p>Jólagjafirnar, áætlunin og óskalistarnir á einum stað. Ókeypis.</p>
+        <h1>{title}</h1>
+        <p>{text}</p>
         <span class="url">jolahjol.is</span>
       </div>
       <img src="data:image/webp;base64,{logo}">
     </div></body></html>"""
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 1200, "height": 630})
-        page.set_content(html)
-        page.wait_for_timeout(300)
-        page.screenshot(path=OUT, type="jpeg", quality=88)
-        browser.close()
-    print(f"{OUT.relative_to(STATIC.parent)}  {OUT.stat().st_size // 1024} KB")
 
 
 if __name__ == "__main__":

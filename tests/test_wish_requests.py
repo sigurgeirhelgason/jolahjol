@@ -211,7 +211,7 @@ def test_cannot_touch_other_ideas(client, req, disa):
 
 
 def test_own_row_on_gift_list_unchanged(client, member):
-    """„Ég“-línan á gjafalistanum notar sama sniðmát og óskabeiðnin."""
+    """Eigin lína á gjafalistanum notar sama sniðmát og óskabeiðnin."""
     me = PersonFactory(household=member.household, name="Jói")
     member.person = me
     member.save()
@@ -796,3 +796,15 @@ def test_x_button_follows_can_hide(client, member, trefill):
     assert "Fela hugmynd: Trefill" in list_html(client, member)
     Idea.objects.filter(pk=trefill.pk).update(reserved=True)
     assert "Fela hugmynd: Trefill" not in list_html(client, member)
+
+
+def test_share_preview_has_its_own_image(client, req):
+    body = client.get(page(req.token)).content.decode()
+    assert "img/og-oskir" in body and "Hvað langar þig í?" in body
+    assert "img/og-image" in client.get("/").content.decode()
+
+
+def test_wishlist_share_preview_has_its_own_image(client, member, disa):
+    share = services.create_share(disa, member.user)
+    body = client.get(reverse("wishlists:public", args=[share.token])).content.decode()
+    assert "img/og-oskalisti" in body and "Hvað á að gefa?" in body

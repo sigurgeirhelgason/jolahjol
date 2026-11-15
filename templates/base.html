@@ -18,10 +18,10 @@
   <meta property="og:url" content="{{ site_url }}{{ request.path }}">
   <meta property="og:title" content="{% block og_title %}Jólahjól – {% translate "jólagjafirnar á einum stað" %}{% endblock %}">
   <meta property="og:description" content="{% block og_description %}{% translate "Haltu utan um hugmyndir, gjafir og áætlun og deildu óskalista með fjölskyldunni. Ókeypis." %}{% endblock %}">
-  <meta property="og:image" content="{{ site_url }}{% static 'img/og-image.jpg' %}">
+  <meta property="og:image" content="{{ site_url }}{% block og_image %}{% static 'img/og-image.jpg' %}{% endblock %}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="{% translate "Jólahjól: Minnkaðu jólastressið!" %}">
+  <meta property="og:image:alt" content="{% block og_image_alt %}{% translate "Jólahjól: Minnkaðu jólastressið!" %}{% endblock %}">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preload" href="{% static 'fonts/material-symbols.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">

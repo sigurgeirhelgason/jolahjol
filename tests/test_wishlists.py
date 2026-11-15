@@ -268,9 +268,10 @@ def test_share_preview_tags_on_wishlist_and_landing(client, share, settings):
     settings.SITE_URL = "https://jolahjol.is"
     page = client.get(public(share.token)).text
     assert '<meta property="og:title" content="Óskalisti – Hugi">' in page
-    assert '<meta property="og:image" content="https://jolahjol.is/static/img/og-image' in page
+    assert '<meta property="og:image" content="https://jolahjol.is/static/img/og-oskalisti' in page
     assert f'<meta property="og:url" content="https://jolahjol.is{public(share.token)}">' in page
 
     landing = client.get(reverse("home")).text
     assert "Minnkaðu jólastressið!" in landing.split('property="og:title"')[1].split(">")[0]
     assert 'name="twitter:card" content="summary_large_image"' in landing
+    assert '<meta property="og:image" content="https://jolahjol.is/static/img/og-image' in landing

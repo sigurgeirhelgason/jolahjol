@@ -1,14 +1,16 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% comment %}
   Óskabeiðni (án innskráningar): einstaklingurinn skrifar óskirnar sínar á lista heimilisins.
-  Sama útlit og „Ég“ á gjafalistanum: sama lína (gifts/partials/wish_row.html) og sami óskagluggi
+  Sama útlit og eigin lína á gjafalistanum: sama lína (gifts/partials/wish_row.html) og sami óskagluggi
   (gifts/dialogs/wish.html). Sýnir AÐEINS óskirnar sem hann skráði sjálfur: hvorki stöðu, verð,
   gefendur né aðrar hugmyndir. Sjá apps/wishlists/services.py („Óskabeiðni“) og services/privacy.py.
 {% endcomment %}
 {% block title %}{% translate "Óskirnar þínar" %} – {{ person.name }} · Jólahjól{% endblock %}
 {% block og_title %}{% translate "Hvað langar þig í?" %}{% endblock %}
 {% block og_description %}{% blocktranslate with owners=owners count n=owners_count %}{{ owners }} vill vita hvað þig langar í. Skrifaðu óskirnar þínar, enginn aðgangur nauðsynlegur.{% plural %}{{ owners }} vilja vita hvað þig langar í. Skrifaðu óskirnar þínar, enginn aðgangur nauðsynlegur.{% endblocktranslate %}{% endblock %}
+{% block og_image %}{% static 'img/og-oskir.jpg' %}{% endblock %}
+{% block og_image_alt %}{% translate "Jólahjól: Hvað langar þig í?" %}{% endblock %}
 {% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
 {% block body_attrs %} data-page="oskir"{% endblock %}
 {% block body %}
