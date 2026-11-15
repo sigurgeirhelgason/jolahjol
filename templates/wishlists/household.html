@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load i18n money static %}
+{% comment %}
+  Opinn óskalisti heimilis (án innskráningar): óskir alls heimilisfólksins á einni síðu, sömu
+  reglur og óskalisti eins einstaklings (public.html). Sjá apps/wishlists/services.py.
+{% endcomment %}
+{% block title %}{% translate "Óskalisti" %} – {{ household.name }} · Jólahjól{% endblock %}
+{% block og_title %}{% translate "Óskalisti" %} – {{ household.name }}{% endblock %}
+{% block og_description %}{% translate "Sjáðu óskir allra í fjölskyldunni og merktu við það sem þú ætlar að gefa, svo enginn kaupi það sama. Enginn aðgangur nauðsynlegur." %}{% endblock %}
+{% block og_image %}{% static 'img/og-oskalisti.jpg' %}{% endblock %}
+{% block og_image_alt %}{% translate "Jólahjól: Hvað á að gefa?" %}{% endblock %}
+{% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
+{% block body %}
+<main class="wishlist">
+  <section class="wish-promo">
+    <div class="container">
+      {% include "partials/logo.html" with class="wish-promo-logo" width=220 %}
+      <h2>{% translate "Minnkaðu jólastressið!" %}</h2>
+      <p>{% translate "Haltu utan um hugmyndir og gjafir." %} {% translate "Deildu gagnvirkum óskalista á einfaldan hátt til fjölskyldu eða vina." %}</p>
+      {% if follow.state == "anonymous" or follow.state == "no_household" %}
+        <a class="btn" href="{% url 'wishlists:household_follow_start' share.token %}">{% translate "Prófa" %}<span class="ms">arrow_forward</span></a>
+      {% else %}
+        <a class="btn" href="{% url 'home' %}">{% translate "Opna minn lista" %}<span class="ms">arrow_forward</span></a>
+      {% endif %}
+    </div>
+  </section>
+  <div class="container">
+    <header class="wish-head">
+      <span class="pill green"><span class="ms">card_giftcard</span>{% translate "Óskalisti" %}{% if season %} · {% blocktranslate with year=season.year %}Jól {{ year }}{% endblocktranslate %}{% endif %}</span>
+      <h1>{{ household.name }}</h1>
+    </header>
+
+    {% include "partials/messages.html" %}
+
+    {% if members %}
+    {# Eitt form fyrir allan listann: nafnið er skrifað einu sinni og hver hnappur sendir á sína slóð (formaction) #}
+    <form method="post" class="wl-form" action="{% url 'wishlists:household' share.token %}">
+      {% csrf_token %}
+      {# Enter í nafnareitnum má ekki senda fyrsta hnappinn (taka frá / hætta við fyrstu hugmyndina) #}
+      <button type="submit" disabled hidden aria-hidden="true" tabindex="-1"></button>
+      <div class="wl-namebar">
+        <span class="wish-how-icon"><span class="ms">verified</span></span>
+        <label for="wl-name">{% translate "Veldu „Ég kaupi þetta“ svo aðrir kaupi ekki það sama. Nafnið þitt:" %}</label>
+        <input id="wl-name" name="name" value="{{ name }}" placeholder="{% translate 'Nafnið þitt' %}" maxlength="100" autocomplete="off" required>
+      </div>
+      {% include "wishlists/partials/who_sees.html" %}
+      <div class="card wl">
+        <div class="g-head">
+          <div class="g-title">
+            <span class="emoji">🏠</span><h2>{{ household.name }}</h2>
+            <span class="count-pill">{% blocktranslate count n=members|length %}{{ n }} aðili{% plural %}{{ n }} aðilar{% endblocktranslate %}</span>
+          </div>
+        </div>
+        <div class="wl-row thead" aria-hidden="true">
+          <div>{% translate "Nafn" %}</div><div>{% translate "Óskir" %}</div><div>{% translate "Verslun" %}</div><div></div>
+        </div>
+        {% for m in members %}
+          <div class="wl-row" id="person-{{ m.person.pk }}">
+            <div class="wl-person"><span class="name-btn">{{ m.person.name }}</span></div>
+            <div class="wl-ideas">
+              {% for row in m.rows %}
+                {% with idea=row.idea %}
+                <div class="wl-line{% if row.mine %} mine{% endif %}" id="idea-{{ idea.pk }}">
+                  <div class="wl-what">
+                    <span class="wl-text">{{ idea.text }}{% if idea.price %}<span class="p"> · {{ idea.price|kr }}</span>{% endif %}</span>
+                    {% if idea.note %}<span class="wl-note">{{ idea.note }}</span>{% endif %}
+                    {% if row.mine %}<span class="wl-mine"><span class="ms">check_circle</span>{% translate "Þú tókst þetta frá. Aðeins þú sérð það." %}</span>{% endif %}
+                  </div>
+                  <div class="wl-store store">
+                    {% if idea.store %}<span class="stores">{{ idea.store.name }}</span>{% endif %}
+                    {% if idea.link %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer" title="{{ idea.link }}" aria-label="{% blocktranslate with what=idea.text %}Skoða {{ what }}{% endblocktranslate %}"><span class="ms">open_in_new</span></a>{% endif %}
+                  </div>
+                  <div class="wl-act">
+                    {% if row.mine %}
+                      <button type="submit" class="btn small ghost" formnovalidate formaction="{% url 'wishlists:household_cancel' share.token idea.pk %}">{% translate "Hætta við" %}</button>
+                    {% else %}
+                      <button type="submit" class="btn small primary" formaction="{% url 'wishlists:household_reserve' share.token idea.pk %}"
+                              aria-label="{% blocktranslate with what=idea.text name=m.person.name %}Ég kaupi {{ what }} handa {{ name }}{% endblocktranslate %}"><span class="ms">redeem</span>{% translate "Ég kaupi þetta" %}</button>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endwith %}
+              {% empty %}
+                <div class="wl-line wl-empty">
+                  {% if m.all_taken %}{% translate "Búið er að taka allt frá." %}{% else %}{% translate "Engar óskir enn. Kíktu aftur seinna!" %}{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </form>
+    {% else %}
+      <div class="empty"><span class="ms">lightbulb</span>{% translate "Engar hugmyndir á listanum enn. Kíktu aftur seinna!" %}</div>
+    {% endif %}
+
+    {% if follow.state != "own" %}
+    <section class="card wish-follow" id="follow">
+      <div class="wish-follow-text">
+        <span class="wish-kicker"><span class="ms">family_restroom</span>{% translate "Tengdu fjölskylduna saman" %}</span>
+        <h2>{% blocktranslate with name=household.name %}Á {{ name }} að vera á þínum lista á jolahjol.is?{% endblocktranslate %}</h2>
+        <p class="muted">{% blocktranslate with name=household.name owners=follow.owners count n=follow.owners_count %}Ertu með þinn gjafalista á Jólahjól.is? Bættu heimilinu við: það verður flokkurinn „{{ name }}“ með öllum á þessari síðu, og þú færð allar hugmyndir sem {{ owners }} bætir við.{% plural %}Ertu með þinn gjafalista á Jólahjól.is? Bættu heimilinu við: það verður flokkurinn „{{ name }}“ með öllum á þessari síðu, og þú færð allar hugmyndir sem {{ owners }} bæta við.{% endblocktranslate %}</p>
+        {% if follow.state == "anonymous" %}
+          <p class="help">{% translate "Það þarf bara netfang: við sendum þér kóða og aðgangurinn verður til. Ertu þegar með aðgang? Sama leið skráir þig inn." %}</p>
+        {% elif follow.state == "no_household" %}
+          <p class="help">{% translate "Gefðu listanum þínum nafn. Svo kemurðu aftur hingað og bætir heimilinu við." %}</p>
+        {% endif %}
+      </div>
+      <div class="wish-follow-action">
+        {% if follow.state == "anonymous" or follow.state == "no_household" %}
+          <a class="btn primary" href="{% url 'wishlists:household_follow_start' share.token %}"><span class="ms">group_add</span>{% translate "Bæta á minn lista" %}</a>
+        {% elif follow.state == "following" %}
+          <p>{% for f in follow.families %}<a href="{% url 'gifts:list' f.household.slug %}">{% blocktranslate with household=f.household.name %}Á listanum „{{ household }}“{% endblocktranslate %}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        {% else %}
+          <form method="post" action="{% url 'wishlists:household_follow' share.token %}" class="follow-form">
+            {% csrf_token %}
+            {% if follow.households|length > 1 %}
+              <div class="field">
+                <label for="follow-household">{% translate "Á hvaða lista?" %}</label>
+                <select name="household" id="follow-household">
+                  {% for h in follow.households %}<option value="{{ h.slug }}">{{ h.name }}</option>{% endfor %}
+                </select>
+              </div>
+            {% else %}
+              <input type="hidden" name="household" value="{{ follow.households.0.slug }}">
+            {% endif %}
+            <button type="submit" class="btn primary"><span class="ms">group_add</span>{% translate "Bæta á minn lista" %}</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</main>
+{% include "partials/footer.html" %}
+{% endblock %}

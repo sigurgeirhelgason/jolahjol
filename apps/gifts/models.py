@@ -14,6 +14,8 @@ from apps.households.models import Household
 
 
 class Group(models.TextChoices):
+    # Heimilisfólkið sjálft; birtist undir nafni heimilisins (sjá services/groups.py)
+    HEIMILI = "heimili", _("Heimilið")
     BORN = "born", _("Börn")
     FJOLSKYLDA = "fjolskylda", _("Fjölskylda")
     VINIR = "vinir", _("Vinir")
@@ -21,7 +23,7 @@ class Group(models.TextChoices):
     ANNAD = "annad", _("Annað")
 
 
-GROUP_ICONS = {"born": "🧸", "fjolskylda": "🏡", "vinir": "💛", "vinna": "🍪", "annad": "✨"}
+GROUP_ICONS = {"heimili": "🏠", "born": "🧸", "fjolskylda": "🏡", "vinir": "💛", "vinna": "🍪", "annad": "✨"}
 
 
 class PersonQuerySet(models.QuerySet):
@@ -45,6 +47,18 @@ class Person(models.Model):
     birthday = models.DateField(_("fæðingardagur"), null=True, blank=True)
     give_christmas = models.BooleanField(_("gef jólagjafir"), default=True)
     give_birthday = models.BooleanField(_("gef afmælisgjafir"), default=False)
+    # Í flokki heimilis sem er fylgt (Family): birtist þá undir nafni þess heimilis, ekki `group`
+    family = models.ForeignKey(
+        "Family",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="people",
+        verbose_name=_("heimili sem er fylgt"),
+    )
+    # `source` kom til af því að heimilinu var fylgt (ekki eigin hlekk): þá gildir hlekkur heimilisins
+    # fyrir hann, og „Hætta að fylgja heimilinu“ slítur fylgnina (en ekki fylgni sem var þar fyrir)
+    family_follow = models.BooleanField(default=False)
     # Fylgir óskalista einstaklings í öðru heimili (t.d. Sigga hjá Dísu frænku fylgir Siggu hjá
     # foreldrunum): hugmyndir þaðan birtast hér á meðan þær eru ekki keyptar eða fráteknar og
     # uppsprettan á virkan óskalistahlekk. Hugmyndir héðan sjást aldrei þar. Sjá wishlists/services.
@@ -72,6 +86,33 @@ class Person(models.Model):
         self.name = self.name.strip()
         self.key = normalize(self.name)
         super().save(*args, **kwargs)
+
+
+class Family(models.Model):
+    """Heimili sem þetta heimili fylgir í heild (óskalisti heimilis, wishlists.HouseholdShare).
+
+    Amma Ragga bætir „Laugavegi 5“ á sinn lista: hér verður til flokkurinn „Laugavegur 5“ og
+    hver í heimilisflokki Laugavegar 5 fær einstakling hjá ömmu sem fylgir óskalista hans
+    (Person.source). `seen`: fólkið þar sem hefur þegar fengið einstakling hér, svo sá sem amma
+    hættir að fylgja birtist ekki aftur. Sjá wishlists/services.sync_family.
+    """
+
+    household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name="families")
+    source = models.ForeignKey(Household, on_delete=models.CASCADE, related_name="followers")
+    seen = models.ManyToManyField(Person, blank=True, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("heimili sem er fylgt")
+        verbose_name_plural = _("heimili sem er fylgt")
+        constraints = [models.UniqueConstraint(fields=["household", "source"], name="unique_family")]
+
+    def __str__(self):
+        return f"{self.household} → {self.source}"
+
+    @property
+    def name(self) -> str:
+        return self.source.name
 
 
 class Location(models.Model):

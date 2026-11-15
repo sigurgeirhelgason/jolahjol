@@ -1,5 +1,6 @@
 {% load i18n %}
-{% comment %}Einstaklingsglugginn: fylgir óskalista einstaklings í öðru heimili (Person.source).{% endcomment %}
+{% comment %}Einstaklingsglugginn: fylgir óskalista einstaklings í öðru heimili (Person.source), mögulega
+sem hluti af heimili sem er fylgt í heild (Person.family).{% endcomment %}
 <div class="past wish-share" id="follow-source">
   {% if person.source %}
     <h4><span class="ms">link</span> {% translate "Óskalisti úr öðru heimili" %}</h4>
@@ -8,6 +9,14 @@
       <button type="button" class="btn small ghost" hx-post="{% url 'wishlists:unfollow' household.slug person.pk %}" hx-target="#follow-source" hx-swap="outerHTML">
         <span class="ms">link_off</span>{% translate "Hætta að fylgja" %}
       </button>
+      {% if person.family %}
+        <button type="button" class="btn small danger" hx-post="{% url 'wishlists:unfollow_family' household.slug person.family.pk %}"
+                data-title="{% blocktranslate with name=person.family.name %}Hætta að fylgja „{{ name }}“?{% endblocktranslate %}"
+                hx-confirm="{% translate 'Fólkið helst á listanum þínum (í Fjölskyldu) en hugmyndir af óskalistanum þaðan hætta að birtast.' %}"
+                data-confirm="{% translate 'Hætta að fylgja' %}">
+          <span class="ms">link_off</span>{% blocktranslate with name=person.family.name %}Hætta að fylgja „{{ name }}“{% endblocktranslate %}
+        </button>
+      {% endif %}
     </div>
   {% endif %}
 </div>

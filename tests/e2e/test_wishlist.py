@@ -29,7 +29,7 @@ def test_share_reserve_and_household_sees_it(home, live_server, page, browser):
     # Heimilið: smellt á nafn → Búa til hlekk
     page.get_by_role("button", name="Hugi", exact=True).click()
     dialog = page.locator("#modal")
-    dialog.get_by_role("button", name="Búa til hlekk").click()
+    dialog.locator("#wishlist-share").get_by_role("button", name="Búa til hlekk").click()
     link = dialog.get_by_label("Hlekkur á óskalista").input_value()
     assert "/o/" in link
     dialog.locator("[data-close]").first.click()

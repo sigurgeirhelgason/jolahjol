@@ -35,26 +35,45 @@ function birthdayInfo(text) {
   return `Verður ${age} ára ${d}. ${MONTHS[m - 1]} (eftir ${days} ${days === 1 ? "dag" : "daga"})`;
 }
 
-function openConfirm(form) {
+// #confirm-dialog: titill, skýring, heiti staðfestingarhnapps og hvað gerist ef staðfest er
+function showConfirm({ title, message, confirm }, onOk) {
   const dialog = document.getElementById("confirm-dialog");
   if (!dialog) {
-    if (window.confirm(form.dataset.message)) form.submit();
+    if (window.confirm(message || title)) onOk();
     return;
   }
-  dialog.querySelector("#confirm-title").textContent = form.dataset.title || form.dataset.message;
-  dialog.querySelector("#confirm-message").textContent = form.dataset.title ? form.dataset.message : "";
+  dialog.querySelector("#confirm-title").textContent = title || message;
+  dialog.querySelector("#confirm-message").textContent = title ? message : "";
   const ok = dialog.querySelector("[data-confirm-ok]");
-  ok.textContent = form.dataset.confirm || "Staðfesta";
+  ok.textContent = confirm || "Staðfesta";
   ok.onclick = () => {
     dialog.close();
-    form.dataset.confirmed = "1";
-    form.requestSubmit();
+    onOk();
   };
   dialog.querySelector("[data-confirm-cancel]").onclick = () => dialog.close();
   dialog.onclick = (event) => { if (event.target === dialog) dialog.close(); };
   dialog.showModal();
   dialog.querySelector("[data-confirm-cancel]").focus(); // öruggari kosturinn fær fókus
 }
+
+function openConfirm(form) {
+  showConfirm(form.dataset, () => {
+    form.dataset.confirmed = "1";
+    form.requestSubmit();
+  });
+}
+
+// htmx-hnappur með staðfestingu (t.d. inni í formi glugga, þar sem form-leiðin gengur ekki):
+// <button hx-post="…" hx-confirm="skýring" data-title="…" data-confirm="Hætta">
+document.addEventListener("htmx:confirm", (event) => {
+  const el = event.detail.elt;
+  if (!el.hasAttribute("hx-confirm")) return;
+  event.preventDefault();
+  showConfirm(
+    { title: el.dataset.title, message: event.detail.question, confirm: el.dataset.confirm },
+    () => event.detail.issueRequest(true),
+  );
+});
 
 document.addEventListener("alpine:init", () => {
   // Fellivalmynd: hnappur + spjald, lokast við smell utan, Escape eða val

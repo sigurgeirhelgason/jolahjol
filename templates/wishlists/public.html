@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n money %}
+{% load i18n money static %}
 {% comment %}
   Opinn óskalisti (án innskráningar). Sýnir AÐEINS hugmyndir þessa einstaklings: engin nöfn
   annarra, engin greiðslustaða og ekki hver tók frá. Sjá apps/wishlists/services.py.
@@ -7,6 +7,8 @@
 {% block title %}{% translate "Óskalisti" %} – {{ person.name }} · Jólahjól{% endblock %}
 {% block og_title %}{% translate "Óskalisti" %} – {{ person.name }}{% endblock %}
 {% block og_description %}{% translate "Sjáðu óskalistann og merktu við það sem þú ætlar að gefa, svo enginn kaupi það sama. Enginn aðgangur nauðsynlegur." %}{% endblock %}
+{% block og_image %}{% static 'img/og-oskalisti.jpg' %}{% endblock %}
+{% block og_image_alt %}{% translate "Jólahjól: Hvað á að gefa?" %}{% endblock %}
 {% block meta %}<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="same-origin">{% endblock %}
 {% block body %}
 <main class="wishlist">
@@ -32,49 +34,18 @@
         <span class="wish-how-icon"><span class="ms">verified</span></span>
         <p>{% translate "Veldu „Ég kaupi þetta“ svo aðrir kaupi ekki það sama." %}</p>
       </div>
+      {% include "wishlists/partials/who_sees.html" %}
     </header>
 
     {% include "partials/messages.html" %}
 
     <section class="wish-items">
       {% for row in rows %}
-        {% with idea=row.idea %}
-        <article class="card wish-item{% if row.mine %} mine{% endif %}">
-          <div class="wish-top">
-            <div class="wish-title">
-              {% if row.mine %}<span class="tag green"><span class="ms">check_circle</span>{% translate "Þú tókst þetta frá" %}</span>{% endif %}
-              <h2>{{ idea.text }}</h2>
-              {% if idea.store or idea.price %}<span class="wish-meta">{% if idea.store %}{{ idea.store.name }}{% endif %}{% if idea.store and idea.price %} · {% endif %}{% if idea.price %}{{ idea.price|kr }}{% endif %}</span>{% endif %}
-            </div>
-            {% if idea.link %}<a class="wish-link" href="{{ idea.link }}" target="_blank" rel="noopener noreferrer">{% translate "Skoða" %}<span class="ms">north_east</span></a>{% endif %}
-          </div>
-          {% if idea.note %}<p class="wish-note">{{ idea.note|linebreaksbr }}</p>{% endif %}
-          {% if row.mine %}
-            <div class="wish-box mine">
-              <span class="ms">lock</span>
-              <p>{% translate "Aðeins þú sérð að þú tókst þetta frá." %}</p>
-              <form method="post" action="{% url 'wishlists:cancel' share.token idea.pk %}">
-                {% csrf_token %}
-                <button type="submit" class="btn ghost small">{% translate "Hætta við" %}</button>
-              </form>
-            </div>
-          {% else %}
-            <form method="post" action="{% url 'wishlists:reserve' share.token idea.pk %}" class="wish-box wish-form">
-              {% csrf_token %}
-              <label for="name-{{ idea.pk }}">{% translate "Nafnið þitt" %}</label>
-              <div class="wish-form-row">
-                <input id="name-{{ idea.pk }}" name="name" value="{{ name }}" placeholder="{% translate 'Nafnið þitt' %}"
-                       autocomplete="off" maxlength="100" required>
-                <button type="submit" class="btn primary"><span class="ms">redeem</span>{% translate "Ég kaupi þetta" %}</button>
-              </div>
-            </form>
-          {% endif %}
-        </article>
-        {% endwith %}
+        {% include "wishlists/partials/wish_item.html" with reserve_url="wishlists:reserve" cancel_url="wishlists:cancel" %}
       {% empty %}
         <div class="empty">
-          {% if all_taken %}<span class="ms">celebration</span>{% translate "Búið er að taka allt á listanum frá. Kíktu aftur seinna!" %}
-          {% else %}<span class="ms">lightbulb</span>{% translate "Engar hugmyndir á listanum enn. Kíktu aftur seinna!" %}{% endif %}
+          {% if all_taken %}<span class="ms">celebration</span>{% translate "Búið er að taka allt á listanum frá." %}
+          {% else %}<span class="ms">lightbulb</span>{% translate "Engar hugmyndir á listanum enn." %}{% endif %}
         </div>
       {% endfor %}
     </section>

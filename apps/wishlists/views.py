@@ -13,12 +13,12 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views import View
-from django_htmx.http import trigger_client_event
+from django_htmx.http import HttpResponseClientRefresh, trigger_client_event
 from django_ratelimit.decorators import ratelimit
 
 from apps.core.text import is_sort_key, name_match
 from apps.gifts.forms import WishForm
-from apps.gifts.models import Group, Person
+from apps.gifts.models import Family, Group, Person
 from apps.gifts.services.gifts import and_join, save_wish
 from apps.households.mixins import SESSION_KEY, HouseholdMixin
 from apps.households.models import Membership
@@ -76,6 +76,22 @@ def _share_or_404(token):
     return share
 
 
+def _rows(ideas, mine: dict) -> list[dict]:
+    """Það sem aðrir hafa tekið frá (eða keypt) sést ekki; aðeins það sem er laust og það
+    sem þetta tæki tók frá sjálft (svo hægt sé að hætta við)."""
+    return [
+        {"idea": i, "mine": _is_mine(i, mine)} for i in ideas if not services.is_taken(i) or _is_mine(i, mine)
+    ]
+
+
+def _saved_name(request) -> str:
+    """Nafnið sem var skrifað síðast þegar tekið var frá í þessu tæki."""
+    try:
+        return request.get_signed_cookie(NAME_COOKIE, salt=SALT, default="")
+    except BadSignature:
+        return ""
+
+
 class PublicWishlistView(View):
     """/o/<token>/: hugmyndir eins einstaklings, án innskráningar."""
 
@@ -84,25 +100,14 @@ class PublicWishlistView(View):
         if share is None:
             return _private(render(request, "wishlists/gone.html", status=404))
         season, ideas = services.visible_ideas(share)
-        mine = _reservations(request)
-        # Það sem aðrir hafa tekið frá (eða keypt) sést ekki; aðeins það sem er laust og það
-        # sem þetta tæki tók frá sjálft (svo hægt sé að hætta við)
-        rows = [
-            {"idea": i, "mine": _is_mine(i, mine)}
-            for i in ideas
-            if not services.is_taken(i) or _is_mine(i, mine)
-        ]
-        try:
-            name = request.get_signed_cookie(NAME_COOKIE, salt=SALT, default="")
-        except BadSignature:
-            name = ""
+        rows = _rows(ideas, _reservations(request))
         ctx = {
             "share": share,
             "person": share.person,
             "season": season,
             "rows": rows,
             "all_taken": bool(ideas) and not rows,
-            "name": name,
+            "name": _saved_name(request),
             "follow": _follow_context(request, share),
         }
         return _private(render(request, "wishlists/public.html", ctx))
@@ -152,11 +157,17 @@ def _follow_state(user, share) -> dict:
         return {"state": "following", "people": already}
     households = []
     for m in sorted(memberships, key=lambda m: is_sort_key(m.household.name)):
-        people = Person.objects.recipients().filter(household=m.household, source__isnull=True)
+        people = (
+            Person.objects.recipients()
+            .filter(household=m.household, source__isnull=True)
+            .select_related("household", "family__source")
+        )
         # Þeir sem passa við nafnið (Sigga, Sigga litla, Siggi) efst, bestir fyrst; hinir í stafrófsröð
         ranked = sorted(people, key=lambda p: (-_match(p.name, share.person.name), is_sort_key(p.name)))
         households.append((m.household, ranked))
-    return {"state": "form", "households": households, "groups": Group.choices}
+    # Ekki „Heimilið“: þar er heimilisfólkið sjálft, ekki einhver úr öðru heimili
+    groups = [(v, label) for v, label in Group.choices if v != Group.HEIMILI]
+    return {"state": "form", "households": households, "groups": groups}
 
 
 class FollowView(LoginRequiredMixin, View):
@@ -267,9 +278,17 @@ def follow_popup_context(request, household) -> dict | None:
 class ReserveView(View):
     """„Ég kaupi þetta“: nafn er skylda; nafnið verður gefandi á hugmyndinni."""
 
+    page = "wishlists:public"
+
+    def get_share(self, token):
+        return _share_or_404(token)
+
+    def back(self, token, idea_id) -> str:
+        return reverse(self.page, args=[token])
+
     def post(self, request, token, idea_id):
-        share = _share_or_404(token)
-        response = redirect("wishlists:public", token=token)
+        share = self.get_share(token)
+        response = redirect(self.back(token, idea_id))
         if getattr(request, "limited", False):
             messages.error(request, _("Of margar beiðnir í einu. Reyndu aftur eftir smá stund."))
             return response
@@ -290,9 +309,17 @@ class ReserveView(View):
 class CancelView(View):
     """Hætta við frátekningu, aðeins frá sama tæki (leyndarmál í undirrituðu cookie)."""
 
+    page = "wishlists:public"
+
+    def get_share(self, token):
+        return _share_or_404(token)
+
+    def back(self, token, idea_id) -> str:
+        return reverse(self.page, args=[token])
+
     def post(self, request, token, idea_id):
-        share = _share_or_404(token)
-        response = redirect("wishlists:public", token=token)
+        share = self.get_share(token)
+        response = redirect(self.back(token, idea_id))
         mine = _reservations(request)
         entry = mine.pop(str(idea_id), None)
         if entry is None:
@@ -354,7 +381,7 @@ class UnfollowView(HouseholdMixin, View):
 
 # ---------- Óskabeiðni: einstaklingurinn skrifar sjálfur óskirnar sínar (/oskir/<token>/) ----------
 #
-# Sama lína og „Ég“ á gjafalistanum (gifts/partials/wish_row.html) og sami óskagluggi
+# Sama lína og eigin lína á gjafalistanum (gifts/partials/wish_row.html) og sami óskagluggi
 # (gifts/dialogs/wish.html): „+ Hugmynd“, × og smellur á hugmynd til að bæta við lýsingu og hlekk.
 # Dísa sér aðeins eigin óskir, ekki hvort þær hafa verið keyptar eða teknar frá (privacy.py).
 
@@ -496,3 +523,187 @@ class RequestRevokeView(_RequestSection):
         person = self.get_person(pk)
         services.revoke_request(person)
         return self.section(person)
+
+
+# ---------- Óskalisti heimilis (/f/<token>/): allt heimilisfólkið á einni síðu ----------
+
+
+def _household_share_or_404(token):
+    share = services.get_household_share(token)
+    if share is None:
+        raise Http404
+    return share
+
+
+class HouseholdWishlistView(View):
+    """/f/<token>/: óskir alls heimilisfólksins (flokkurinn Heimilið), án innskráningar."""
+
+    def get(self, request, token):
+        share = services.get_household_share(token)
+        if share is None:
+            return _private(render(request, "wishlists/gone.html", status=404))
+        mine = _reservations(request)
+        members = []
+        for person in services.home_people(share.household):
+            _season, ideas = services.person_ideas(person)
+            rows = _rows(ideas, mine)
+            members.append({"person": person, "rows": rows, "all_taken": bool(ideas) and not rows})
+        ctx = {
+            "share": share,
+            "household": share.household,
+            "season": services.current_season(share.household),
+            "members": members,
+            "name": _saved_name(request),
+            "follow": _household_follow_context(request, share),
+        }
+        return _private(render(request, "wishlists/household.html", ctx))
+
+
+def _household_follow_context(request, share) -> dict:
+    """„Bæta heimilinu á minn lista“ neðst á síðunni (sjá services.follow_household)."""
+    owners = owners_context(share.household)
+    if not request.user.is_authenticated:
+        return {"state": "anonymous", **owners}
+    memberships = list(Membership.objects.filter(user=request.user).select_related("household"))
+    if any(m.household_id == share.household_id for m in memberships):
+        return {"state": "own", **owners}
+    if not memberships:
+        return {"state": "no_household", **owners}
+    already = services.following_household(request.user, share.household)
+    if already:
+        return {"state": "following", "families": already, **owners}
+    households = sorted((m.household for m in memberships), key=lambda h: is_sort_key(h.name))
+    return {"state": "form", "households": households, **owners}
+
+
+class HouseholdReserveView(ReserveView):
+    page = "wishlists:household"
+
+    def get_share(self, token):
+        return _household_share_or_404(token)
+
+    def back(self, token, idea_id) -> str:
+        """Aftur á sömu línu á listanum (frátekningin sést þar)."""
+        return reverse(self.page, args=[token]) + f"#idea-{idea_id}"
+
+
+class HouseholdCancelView(CancelView):
+    page = "wishlists:household"
+
+    def get_share(self, token):
+        return _household_share_or_404(token)
+
+    def back(self, token, idea_id) -> str:
+        """Aftur á sömu línu á listanum (frátekningin sést þar)."""
+        return reverse(self.page, args=[token]) + f"#idea-{idea_id}"
+
+
+class HouseholdFollowView(LoginRequiredMixin, View):
+    """Amma Ragga bætir Laugavegi 5 á sinn lista: nýr flokkur með öllu heimilisfólkinu."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, token):
+        share = _household_share_or_404(token)
+        membership = get_object_or_404(
+            Membership.objects.select_related("household"),
+            user=request.user,
+            household__slug=request.POST.get("household", ""),
+        )
+        try:
+            family = services.follow_household(share, membership.household)
+        except WishlistError as exc:
+            messages.error(request, str(exc))
+            return redirect("wishlists:household", token=token)
+        messages.success(
+            request,
+            _(
+                "„%(name)s“ er nú flokkur á listanum þínum. Þú sérð hugmyndirnar af óskalistanum á "
+                "meðan þær eru hvorki keyptar né fráteknar. Hugmyndir sem þú bætir við sjást ekki "
+                "hjá þeim sem deildu listanum."
+            )
+            % {"name": family.name},
+        )
+        return redirect("gifts:list", slug=membership.household.slug)
+
+
+class HouseholdFollowStartView(View):
+    """„Bæta á minn lista“ án innskráningar eða án lista: nýskráning eða nýr listi fyrst, svo
+    aftur á síðuna þar sem valið er."""
+
+    def get(self, request, token):
+        share = _household_share_or_404(token)
+        here = request.path
+        if not request.user.is_authenticated:
+            messages.info(
+                request,
+                _("Stofnaðu aðgang og listann þinn (eða skráðu þig inn) og svo getur %(name)s bæst á hann.")
+                % {"name": share.household.name},
+            )
+            return redirect(f"{reverse('account_signup')}?{urlencode({'next': here})}")
+        if not Membership.objects.filter(user=request.user).exists():
+            messages.info(
+                request,
+                _("Gefðu listanum þínum nafn. Svo getur %(name)s bæst við hann.")
+                % {"name": share.household.name},
+            )
+            return redirect(f"{reverse('households:create')}?{urlencode({'next': here})}")
+        return redirect(reverse("wishlists:household", args=[token]) + "#follow")
+
+
+# ---------- Heimilið: búa til og loka hlekk á óskalista heimilisins ----------
+
+
+class _HouseholdShareSection(HouseholdMixin, View):
+    def context(self) -> dict:
+        from apps.gifts.services.groups import HOME
+
+        return {
+            "household": self.household,
+            "share": services.active_household_share(self.household),
+            "people": services.home_people(self.household),
+            "followers": services.household_follower_names(self.household),
+            "home": HOME,
+        }
+
+    def section(self):
+        ctx = self.context()
+        html = render_to_string("wishlists/partials/household_share.html", ctx, request=self.request)
+        return HttpResponse(html)
+
+
+class HouseholdShareView(_HouseholdShareSection):
+    """Glugginn „Deila óskalista heimilisins“ (hnappur á flokki heimilisins)."""
+
+    http_method_names = ["get"]
+
+    def get(self, request, slug):
+        html = render_to_string("wishlists/dialogs/household_share.html", self.context(), request=request)
+        return HttpResponse(html)
+
+
+class HouseholdShareCreateView(_HouseholdShareSection):
+    http_method_names = ["post"]
+
+    def post(self, request, slug):
+        services.create_household_share(self.household, request.user)
+        return self.section()
+
+
+class HouseholdShareRevokeView(_HouseholdShareSection):
+    http_method_names = ["post"]
+
+    def post(self, request, slug):
+        services.revoke_household_share(self.household)
+        return self.section()
+
+
+class UnfollowFamilyView(HouseholdMixin, View):
+    """„Hætta að fylgja heimilinu“ (einstaklingsglugginn): flokkurinn hverfur, fólkið fer í Fjölskyldu."""
+
+    http_method_names = ["post"]
+
+    def post(self, request, slug, pk):
+        family = get_object_or_404(Family, pk=pk, household=self.household)
+        services.unfollow_family(family)
+        return HttpResponseClientRefresh()

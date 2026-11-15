@@ -24,7 +24,7 @@ def test_signup_onboarding_and_invite(live_server, page, browser):
     assert not mail.outbox  # enginn póstur við nýskráningu
 
     # Valmynd heimilis (Alpine) → stillingar → boðshlekkur
-    page.get_by_role("button", name="Heimilið á Þórsgötu").click()
+    page.locator(".topbar-right").get_by_role("button", name="Heimilið á Þórsgötu").click()
     page.get_by_role("link", name="Stillingar").click()
     page.get_by_role("button", name="Senda nýtt boð").click()
     page.get_by_label("Netfang").fill("maki@example.com")
@@ -57,7 +57,7 @@ def test_user_menu_logs_out(live_server, page, login):
     page.get_by_label("Nafn heimilis").fill("Okkar")
     page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
-    page.get_by_role("button", name="Okkar").click()
+    page.locator(".topbar-right").get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()
     expect(page.get_by_role("link", name="Byrja")).to_be_visible()
 
@@ -67,7 +67,7 @@ def test_deleting_season_asks_in_styled_dialog(live_server, page, login):
     page.get_by_label("Nafn heimilis").fill("Okkar")
     page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
-    page.get_by_role("button", name="Okkar").click()
+    page.locator(".topbar-right").get_by_role("button", name="Okkar").click()
     page.get_by_role("link", name="Stillingar").click()
 
     page.get_by_role("button", name=re.compile(r"^Eyða jólum")).first.click()
@@ -89,7 +89,7 @@ def test_deleting_household_requires_typing_its_name(live_server, page, login):
     page.get_by_label("Nafn heimilis").fill("Heimilið okkar")
     page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
-    page.get_by_role("button", name="Heimilið okkar").click()
+    page.locator(".topbar-right").get_by_role("button", name="Heimilið okkar").click()
     page.get_by_role("link", name="Stillingar").click()
 
     page.get_by_role("button", name="Eyða heimili").click()
@@ -123,7 +123,7 @@ def test_lost_password_then_log_in_with_new_one(live_server, page):
     page.get_by_label("Nafn heimilis").fill("Okkar")
     page.get_by_label("Hvað heitir þú?").fill("Eigandi")
     page.get_by_role("button", name="Stofna heimili").click()
-    page.get_by_role("button", name="Okkar").click()
+    page.locator(".topbar-right").get_by_role("button", name="Okkar").click()
     page.get_by_role("button", name="Skrá út").click()
 
     page.goto(live_server.url + reverse("account_login"))

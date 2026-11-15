@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n gifts %}
 {% comment %}
   „Bæta á minn lista“: valglugginn sem opnast á gjafalista notandans eftir að smellt var á
   hnappinn á opna óskalistanum (sjá wishlists.views.FollowStartView og follow_popup_context).
@@ -26,7 +26,7 @@
         {% for h, people in follow.households %}
           <select name="person" id="{% if forloop.first %}follow-person{% else %}follow-person-{{ h.slug }}{% endif %}" data-household="{{ h.slug }}"{% if not forloop.first %} disabled hidden{% endif %} x-on:change="person">
             <option value="">{% blocktranslate with name=source.name %}{{ name }} er ekki á lista{% endblocktranslate %}</option>
-            {% for p in people %}<option value="{{ p.pk }}">{{ p.name }} - {{ p.get_group_display }}</option>{% endfor %}
+            {% for p in people %}<option value="{{ p.pk }}">{{ p.name }} - {{ p|group_name }}</option>{% endfor %}
           </select>
         {% endfor %}
       </div>

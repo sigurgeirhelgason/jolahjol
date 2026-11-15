@@ -56,24 +56,32 @@ def save_user_name(user, name: str) -> None:
 
 
 def _link(membership: Membership, person) -> None:
-    """Tengir aðild einstaklingi og sér til þess að hann eigi línu (jólagjöf) á árinu."""
+    """Tengir aðild einstaklingi og sér til þess að hann eigi línu (jólagjöf) á árinu.
+
+    Notandi heimilisins er heimilisfólk: hann fer í flokk heimilisins (efst á listanum).
+    """
+    from apps.gifts.models import Group
     from apps.gifts.services.gifts import ensure_christmas_gift
 
     membership.person = person
     membership.save(update_fields=["person"])
+    if person.group != Group.HEIMILI or person.family_id:
+        person.group = Group.HEIMILI
+        person.family = None
+        person.save(update_fields=["group", "family"])
     if person.give_christmas:
         ensure_christmas_gift(person)
 
 
 def _person_named(household: Household, name: str):
-    """Einstaklingur með þessu nafni í Fjölskyldu (búinn til ef þarf), sem enginn notandi er."""
+    """Einstaklingur með þessu nafni í heimilinu (búinn til ef þarf), sem enginn notandi er."""
     from apps.gifts.models import Group
     from apps.gifts.services.people import find_or_create
 
     name = name.strip()[:100]
     if not name:
         raise InvalidName(_("Skrifaðu nafnið þitt."))
-    person = find_or_create(household, name, Group.FJOLSKYLDA)
+    person = find_or_create(household, name, Group.HEIMILI)
     if Membership.objects.filter(person=person).exists():
         raise InvalidName(
             _("Einhver annar í heimilinu er þegar „%(name)s“ á listanum. Skrifaðu nafnið aðeins öðruvísi.")
@@ -84,7 +92,7 @@ def _person_named(household: Household, name: str):
 
 @transaction.atomic
 def create_household(user, name: str, your_name: str = "") -> Household:
-    """Nýtt heimili; sá sem stofnar það verður eigandi og einstaklingur í Fjölskyldu."""
+    """Nýtt heimili; sá sem stofnar það verður eigandi og einstaklingur í flokki heimilisins."""
     your_name = your_name.strip() or user.name
     save_user_name(user, your_name)
     household = Household.objects.create(name=name.strip(), slug=unique_slug(name))

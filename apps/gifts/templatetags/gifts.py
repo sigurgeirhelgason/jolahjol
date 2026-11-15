@@ -2,7 +2,6 @@ from django import template
 from django.utils.translation import gettext as _
 
 from apps.core.money import format_kr
-from apps.gifts.models import GROUP_ICONS, Group
 
 register = template.Library()
 
@@ -72,16 +71,11 @@ def locations_title(store) -> str:
 
 
 @register.filter
-def group_icon(value) -> str:
-    return GROUP_ICONS.get(value, "")
+def group_name(person) -> str:
+    """Heiti flokksins sem einstaklingurinn er í (nafn heimilis fyrir heimilisfólk)."""
+    from apps.gifts.services.groups import label_of
 
-
-@register.filter
-def group_label(value) -> str:
-    """Stutt heiti flokks í yfirliti („Vinna“ í stað „Vinna & skóli“)."""
-    from apps.gifts.listing import GROUP_SHORT
-
-    return str(GROUP_SHORT.get(value) or Group(value).label)
+    return label_of(person)
 
 
 @register.filter

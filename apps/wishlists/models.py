@@ -5,6 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.gifts.models import Person
+from apps.households.models import Household
 
 
 def new_token() -> str:
@@ -30,6 +31,27 @@ class WishlistShare(models.Model):
     @property
     def is_active(self) -> bool:
         return self.revoked_at is None
+
+
+class HouseholdShare(models.Model):
+    """Opinn hlekkur á óskalista alls heimilisfólksins (flokkurinn Heimilið) á einni síðu.
+
+    Sá sem fær hlekkinn getur tekið frá eins og á óskalista eins einstaklings, og bætt heimilinu
+    í heild á sinn lista (gifts.Family).
+    """
+
+    household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name="wishlist_shares")
+    token = models.CharField(max_length=64, unique=True, default=new_token, editable=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("óskalistahlekkur heimilis")
+        verbose_name_plural = _("óskalistahlekkir heimila")
+
+    def __str__(self):
+        return f"{self.household} ({self.token[:6]}…)"
 
 
 class WishRequest(models.Model):

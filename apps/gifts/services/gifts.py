@@ -10,7 +10,7 @@ from django.utils import timezone
 from apps.core.text import normalize
 
 from ..models import Gift, Idea, IdeaGiver, Person, Season
-from . import people, stores
+from . import groups, people, stores
 from .pricing import actual_price
 
 
@@ -370,16 +370,14 @@ def save_gift(
     """
     household = season.household
     if gift is None:
-        person = people.find_or_create(household, data.name, data.group)
+        person = people.find_or_create(household, data.name)
         if Gift.objects.alive().christmas().filter(season=season, person=person).exists():
             raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
         last = season.gifts.christmas().order_by("-position").values_list("position", flat=True).first()
         gift = Gift.objects.create(season=season, person=person, position=(last or 0) + 1)
     else:
         person = people.resolve_recipient(gift, data.name)
-    if person.group != data.group:
-        person.group = data.group
-        person.save(update_fields=["group"])
+    groups.assign(person, data.group)
 
     sync_ideas(gift, data.ideas, wish=wish_for is not None and person.pk == wish_for)
     store_name = data.store or (stores.store_from_url(data.link) if stores.is_url(data.link) else "")
@@ -524,7 +522,7 @@ def _edited(before: dict, idea: Idea, *, auto_store: bool) -> bool:
 
 
 def set_wish_store(idea: Idea, name: str) -> Idea:
-    """„+ Búð“ á eigin ósk (línan „Ég“ og óskabeiðnin)."""
+    """„+ Búð“ á eigin ósk (eigin lína á listanum og óskabeiðnin)."""
     store = stores.get_or_create_store(idea.gift.season.household, name[:100])
     if store and store.pk != idea.store_id:
         idea.store = store
@@ -559,14 +557,15 @@ def add_person(season: Season, data: PersonData) -> tuple[Person, Gift | None]:
     if person and data.give_christmas and on_list.exists():
         raise ValueError(f"„{person.name}“ er þegar á listanum þetta ár")
     if person is None:
-        person = Person.objects.create(
+        person = Person(
             household=household,
             name=data.name,
-            group=data.group,
             birthday=data.birthday,
             give_christmas=data.give_christmas,
             give_birthday=data.give_birthday,
         )
+        groups.assign(person, data.group, save=False)
+        person.save()
     elif data.give_christmas and not person.give_christmas:
         person.give_christmas = True
         person.save(update_fields=["give_christmas"])

@@ -1,0 +1,22 @@
+{% load i18n %}
+{% comment %}Glugginn „Deila óskalista heimilisins“ (hnappur á flokki heimilisins á gjafalistanum).{% endcomment %}
+<div class="dlg-head">
+  <h3 id="modal-title"><span class="ms">family_restroom</span>{% blocktranslate with name=household.name %}Óskalisti – {{ name }}{% endblocktranslate %}</h3>
+  <button type="button" class="icon-btn" data-close aria-label="{% translate 'Loka' %}"><span class="ms">close</span></button>
+</div>
+<div class="gift-form">
+  <p class="help">{% blocktranslate with name=household.name %}Ein síða með óskum allra í flokknum „{{ name }}“. Þau sem fá hlekkinn geta líka bætt heimilinu á sinn eigin lista: þá verður „{{ name }}“ flokkur þar með ykkur öllum.{% endblocktranslate %}</p>
+  <div class="past">
+    <h4><span class="ms">group</span> {% translate "Á listanum" %}</h4>
+    {% if people %}
+      <p>{% for p in people %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% else %}
+      <p class="help">{% translate "Enginn enn." %}</p>
+    {% endif %}
+    <p class="help">{% blocktranslate with name=household.name %}Settu fólk í flokkinn „{{ name }}“ (smelltu á nafnið á listanum) til að það birtist hér. Þið sem eruð notendur sjást aðeins með óskirnar sem þið skráðuð sjálf.{% endblocktranslate %}</p>
+  </div>
+  {% include "wishlists/partials/household_share.html" %}
+  <div class="dlg-actions">
+    <button type="button" class="btn ghost" data-close>{% translate "Loka" %}</button>
+  </div>
+</div>

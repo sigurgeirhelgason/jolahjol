@@ -1,0 +1,29 @@
+{% load i18n %}
+{% comment %}Óskalisti heimilisins: hlekkur á eina síðu með óskum alls heimilisfólksins (búa til, afrita, loka).{% endcomment %}
+<div class="past wish-share" id="household-share">
+  <h4><span class="ms">share</span> {% translate "Hlekkur" %}</h4>
+  {% if share and followers %}
+    <p class="help"><span class="ms">group</span> {% blocktranslate with names=followers|join:", " %}Á lista hjá: {{ names }}{% endblocktranslate %}</p>
+  {% endif %}
+  {% if share %}
+    <p class="help">{% translate "Sendu hlekkinn til fjölskyldu og vina. Þau sjá óskirnar og geta tekið frá, án innskráningar, og bætt heimilinu öllu á sinn lista." %}</p>
+    <div class="invite-link" x-data="copy" data-label="{% translate 'Afrita' %}" data-done="{% translate 'Afritað!' %}">
+      <input x-ref="source" readonly aria-label="{% translate 'Hlekkur á óskalista heimilisins' %}"
+             value="{{ request.scheme }}://{{ request.get_host }}{% url 'wishlists:household' share.token %}">
+      <button type="button" class="btn small soft" x-on:click="copy"><span class="ms">content_copy</span><span x-text="label">{% translate "Afrita" %}</span></button>
+    </div>
+    <div class="wish-share-actions">
+      <button type="button" class="btn small ghost" hx-post="{% url 'wishlists:household_share_create' household.slug %}" hx-target="#household-share" hx-swap="outerHTML">
+        <span class="ms">link</span>{% translate "Nýr hlekkur" %}
+      </button>
+      <button type="button" class="btn small danger" hx-post="{% url 'wishlists:household_share_revoke' household.slug %}" hx-target="#household-share" hx-swap="outerHTML">
+        <span class="ms">link_off</span>{% translate "Loka hlekk" %}
+      </button>
+    </div>
+  {% else %}
+    <p class="help">{% translate "Búðu til hlekk sem þú getur sent öðrum. Þau sjá óskir allra á einni síðu og geta tekið frá svo enginn kaupi það sama." %}</p>
+    <button type="button" class="btn small soft" hx-post="{% url 'wishlists:household_share_create' household.slug %}" hx-target="#household-share" hx-swap="outerHTML">
+      <span class="ms">link</span>{% translate "Búa til hlekk" %}
+    </button>
+  {% endif %}
+</div>

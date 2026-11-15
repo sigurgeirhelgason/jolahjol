@@ -4,8 +4,9 @@ import datetime
 from dataclasses import dataclass
 
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
-from ..models import Gift, Group, Season
+from ..models import Gift, Season
 from .billing import owed_total, season_billing
 from .queries import season_gifts
 
@@ -13,6 +14,8 @@ from .queries import season_gifts
 @dataclass(frozen=True)
 class GroupProgress:
     group: str
+    label: str
+    icon: str
     done: int
     count: int
     plan: int
@@ -82,14 +85,19 @@ def days_until_christmas(year: int, today: datetime.date | None = None) -> int:
     return (datetime.date(year, 12, 24) - today).days
 
 
-def group_progress(gifts: list[Gift]) -> list[GroupProgress]:
+def group_progress(household, gifts: list[Gift]) -> list[GroupProgress]:
+    from . import groups
+
+    short = {"vinna": _("Vinna")}  # „Vinna & skóli“ er of langt í yfirlitinu
     out = []
-    for value, _label in Group.choices:
-        members = [g for g in gifts if g.person.group == value]
+    for info in groups.all_groups(household):
+        members = [g for g in gifts if groups.value_of(g.person) == info.value]
         if members:
             out.append(
                 GroupProgress(
-                    group=value,
+                    group=info.value,
+                    label=str(short.get(info.value, info.label)),
+                    icon=info.icon,
                     done=sum(g.bought for g in members),
                     count=len(members),
                     plan=sum(g.plan or 0 for g in members),
@@ -115,5 +123,5 @@ def season_summary(season: Season, gifts: list[Gift] | None = None, today=None) 
         owed=owed_total(payers := season_billing(season, gifts)),
         due_payers=sum(1 for p in payers if p.unpaid_lines),
         days_left=days_until_christmas(season.year, today),
-        groups=group_progress(gifts),
+        groups=group_progress(season.household, gifts),
     )

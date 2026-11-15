@@ -45,8 +45,8 @@ from .forms import (
 from .listing import ListState
 from .models import Gift, Group, Idea, IdeaGiver, Person, Season, Store
 from .services import gifts as gift_services
+from .services import groups, privacy, shopping
 from .services import people as people_services
-from .services import privacy, shopping
 from .services import stores as stores_services
 from .services.billing import bill_text, mark_all_paid, season_billing
 from .services.gifts import needs_price
@@ -162,7 +162,6 @@ class GiftsMixin(HouseholdMixin):
             "state": gl.state,
             "locked": gl.locked,
             "tree": listing.Tree(gl.summary.progress),
-            "group_short": listing.GROUP_SHORT,
             "pace": listing.pace_text(gl.summary),
             "dash_note": listing.dash_note(gl.summary),
             "filters": listing.FILTERS,
@@ -274,6 +273,10 @@ class GiftListView(SeasonPageMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         self.season = self.get_season(kwargs["year"])
         htmx = request.htmx
+        if not htmx and self.season.year >= timezone.localdate().year:
+            # Heimilisfólk sem bættist við í heimilum sem þetta heimili fylgir bætist líka við hér
+            # (ekki þegar liðin jól eru skoðuð: þá yrðu til gjafir á öðru ári en því sem er opið)
+            wishlist_services.sync_families(self.household)
         if htmx and not htmx.history_restore_request and htmx.target == "sections":
             ctx = self.base_context(self.season)
             html = _partial(request, "sections", ctx)
@@ -322,13 +325,15 @@ class PeopleView(SeasonPageMixin, TemplateView):
         ctx.update(self.season_context(season))
         everyone = people_services.for_people_page(self.household)
         hist = listing.histories_bought(self.household, [p.pk for p in everyone], self.viewer)
-        groups = []
-        for value, label in Group.choices:
-            members = sorted((p for p in everyone if p.group == value), key=lambda p: is_sort_key(p.name))
+        people_groups = []
+        all_groups = groups.all_groups(self.household)
+        for info in all_groups:
+            members = [p for p in everyone if groups.value_of(p) == info.value]
             if members:
-                groups.append((value, label, [(p, hist.get(p.pk, [])) for p in members]))
-        ctx["people_groups"] = groups
-        ctx["group_choices"] = Group.choices
+                members.sort(key=lambda p: is_sort_key(p.name))
+                people_groups.append((info, [(p, hist.get(p.pk, [])) for p in members]))
+        ctx["people_groups"] = people_groups
+        ctx["group_choices"] = all_groups
         return ctx
 
 
@@ -383,10 +388,7 @@ class PersonGroupView(GiftsMixin, View):
 
     def post(self, request, slug, pk):
         person = get_object_or_404(Person, pk=pk, household=self.household)
-        group = request.POST.get("group")
-        if group in Group.values:
-            person.group = group
-            person.save(update_fields=["group"])
+        groups.assign(person, request.POST.get("group", ""))
         return self.changed(None)
 
 
@@ -612,7 +614,7 @@ class IdeaBoughtView(GiftsMixin, View):
 class IdeaStoreView(GiftsMixin, View):
     """Búð skráð beint í línu hugmyndar á listanum, án þess að opna hugmyndargluggann.
 
-    Viðtakandinn má líka skrá búð á eigin hugmyndir (í flokknum „Ég“).
+    Viðtakandinn má líka skrá búð á eigin hugmyndir (á sinni eigin línu).
     """
 
     def post(self, request, slug, pk):
@@ -716,7 +718,7 @@ class GiftDialogView(GiftsMixin, View):
         store = gift.stores.first()
         return {
             "name": gift.person.name,
-            "group": gift.person.group,
+            "group": groups.value_of(gift.person),
             "plan": gift.plan if gift.plan is not None else "",
             "ideas": ", ".join(i.text for i in gift.ideas.all() if not i.wish),  # óskir: sjá sync_ideas
             "store": store.name if store else "",
@@ -729,11 +731,11 @@ class GiftDialogView(GiftsMixin, View):
 
     def get(self, request, slug, **kwargs):
         self.setup_objects(kwargs)
-        return self.render(GiftForm(initial=self.initial()))
+        return self.render(GiftForm(initial=self.initial(), household=self.household))
 
     def post(self, request, slug, **kwargs):
         self.setup_objects(kwargs)
-        form = GiftForm(request.POST)
+        form = GiftForm(request.POST, household=self.household)
         if form.is_valid():
             try:
                 gift_services.save_gift(
@@ -774,20 +776,23 @@ class NewRowView(GiftsMixin, View):
         season = self.get_season(year)
         self.ensure_editable(season)
         group = request.GET.get("flokkur")
-        form = NewRowForm(initial={"group": group if group in Group.values else Group.ANNAD})
+        form = NewRowForm(
+            initial={"group": group if groups.is_valid(self.household, group or "") else Group.ANNAD},
+            household=self.household,
+        )
         return self.render(season, form)
 
     def post(self, request, slug, year):
         season = self.get_season(year)
         self.ensure_editable(season)
-        form = NewRowForm(request.POST)
+        form = NewRowForm(request.POST, household=self.household)
         if form.is_valid():
             try:
                 person, gift = gift_services.add_person(season, form.to_data())
             except ValueError as exc:
                 form.add_error("name", str(exc))
             else:
-                if person.group != form.cleaned_data["group"]:
+                if groups.value_of(person) != form.cleaned_data["group"]:
                     # Einstaklingur úr öðrum flokki (valinn úr útfyllingu): línan á heima þar
                     return self.refresh_list(season, close_modal=False)
                 return self.row_response(gift)
@@ -826,16 +831,16 @@ class PersonDialogView(GiftsMixin, View):
         person = self.get_person(pk)
         initial = {
             "name": person.name,
-            "group": person.group,
+            "group": groups.value_of(person),
             "birthday": person.birthday,
             "give_christmas": person.give_christmas,
             "give_birthday": person.give_birthday,
         }
-        return self.render(person, PersonEditForm(initial=initial))
+        return self.render(person, PersonEditForm(initial=initial, household=self.household))
 
     def post(self, request, slug, pk):
         person = self.get_person(pk)
-        form = PersonEditForm(request.POST)
+        form = PersonEditForm(request.POST, household=self.household)
         if not form.is_valid():
             return self.render(person, form, status=422)
         d = form.cleaned_data

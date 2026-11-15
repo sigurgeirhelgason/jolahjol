@@ -52,6 +52,14 @@ def _link():
     )
 
 
+def _group_choices(form, household) -> None:
+    """Flokkar heimilisins: heimilið undir nafni sínu og heimili sem það fylgir (services/groups.py)."""
+    if household is not None:
+        from .services.groups import choices
+
+        form.fields["group"].choices = choices(household)
+
+
 class GiftForm(forms.Form):
     name = _text(_("Fyrir hvern er gjöfin?"), _("t.d. Hugi, Mamma eða Frænka…"), max_length=100)
     group = forms.ChoiceField(label=_("Flokkur"), choices=Group.choices, initial=Group.FJOLSKYLDA)
@@ -66,8 +74,9 @@ class GiftForm(forms.Form):
     store = _text(_("Búð"), _("t.d. Elko, Epal…"), required=False, max_length=100)
     link = _link()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, household=None, **kwargs):
         super().__init__(*args, **kwargs)
+        _group_choices(self, household)
         self.fields["name"].widget.attrs["list"] = "people-list"
         self.fields["store"].widget.attrs["list"] = "store-list"
         self.fields["name"].widget.attrs["autofocus"] = True
@@ -90,6 +99,10 @@ class NewRowForm(forms.Form):
     name = _text(_("Nafn"), _("Skrifaðu nafn"), max_length=100)
     plan = AmountField(label=_("Áætlað verð (kr.)"))
     group = forms.ChoiceField(choices=Group.choices, widget=forms.HiddenInput)
+
+    def __init__(self, *args, household=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _group_choices(self, household)
 
     def to_data(self) -> PersonData:
         d = self.cleaned_data
@@ -151,6 +164,10 @@ class PersonEditForm(forms.Form):
     give_christmas = forms.BooleanField(required=False)
     give_birthday = forms.BooleanField(required=False)
     merge = forms.BooleanField(required=False, widget=forms.HiddenInput)
+
+    def __init__(self, *args, household=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _group_choices(self, household)
 
     def clean_birthday(self):
         value = self.cleaned_data["birthday"]

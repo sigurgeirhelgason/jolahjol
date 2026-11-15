@@ -1,0 +1,38 @@
+{% load i18n money %}
+{% comment %}
+  Ein hugmynd á opnum óskalista (eins einstaklings eða heimilis) með „Ég kaupi þetta“ eða
+  „Hætta við“. Breytur: row ({idea, mine}), share, name, reserve_url og cancel_url (heiti slóða).
+{% endcomment %}
+{% with idea=row.idea %}
+<article class="card wish-item{% if row.mine %} mine{% endif %}">
+  <div class="wish-top">
+    <div class="wish-title">
+      {% if row.mine %}<span class="tag green"><span class="ms">check_circle</span>{% translate "Þú tókst þetta frá" %}</span>{% endif %}
+      <h2>{{ idea.text }}</h2>
+      {% if idea.store or idea.price %}<span class="wish-meta">{% if idea.store %}{{ idea.store.name }}{% endif %}{% if idea.store and idea.price %} · {% endif %}{% if idea.price %}{{ idea.price|kr }}{% endif %}</span>{% endif %}
+    </div>
+    {% if idea.link %}<a class="wish-link" href="{{ idea.link }}" target="_blank" rel="noopener noreferrer">{% translate "Skoða" %}<span class="ms">north_east</span></a>{% endif %}
+  </div>
+  {% if idea.note %}<p class="wish-note">{{ idea.note|linebreaksbr }}</p>{% endif %}
+  {% if row.mine %}
+    <div class="wish-box mine">
+      <span class="ms">lock</span>
+      <p>{% translate "Aðeins þú sérð að þú tókst þetta frá." %}</p>
+      <form method="post" action="{% url cancel_url share.token idea.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn ghost small">{% translate "Hætta við" %}</button>
+      </form>
+    </div>
+  {% else %}
+    <form method="post" action="{% url reserve_url share.token idea.pk %}" class="wish-box wish-form">
+      {% csrf_token %}
+      <label for="name-{{ idea.pk }}">{% translate "Nafnið þitt" %}</label>
+      <div class="wish-form-row">
+        <input id="name-{{ idea.pk }}" name="name" value="{{ name }}" placeholder="{% translate 'Nafnið þitt' %}"
+               autocomplete="off" maxlength="100" required>
+        <button type="submit" class="btn primary"><span class="ms">redeem</span>{% translate "Ég kaupi þetta" %}</button>
+      </div>
+    </form>
+  {% endif %}
+</article>
+{% endwith %}

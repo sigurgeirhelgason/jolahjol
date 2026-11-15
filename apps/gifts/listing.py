@@ -17,7 +17,8 @@ from apps.core.money import format_kr
 from apps.core.text import fold_key, is_sort_key
 from apps.wishlists import services as wishlist_services
 
-from .models import GROUP_ICONS, Gift, Group, Person, Season, Store
+from .models import Gift, Group, Person, Season, Store
+from .services import groups
 from .services.gifts import gift_text
 from .services.pricing import actual_price, giver_breakdown
 from .services.privacy import EVERYONE, Viewer
@@ -218,13 +219,10 @@ _SORT_KEYS = {
 
 # ---------- Flokkar ----------
 
-# Flokkurinn „Ég“ efst: lína þess sem skoðar (hjá öðrum er hún í sínum venjulega flokki)
-MINE = "eg"
-
 
 @dataclass
 class Section:
-    group: str
+    group: str  # gildi flokks (services/groups.py), t.d. „heimili“, „born“ eða „f12“
     label: str
     icon: str
     rows: list[Row]  # þær sem passa við síuna
@@ -238,20 +236,23 @@ class Section:
         return f"group-{self.group}"
 
     @property
-    def mine(self) -> bool:
-        return self.group == MINE
+    def home(self) -> bool:
+        """Heimilisfólkið: hægt að deila óskalista þess (wishlists.HouseholdShare)."""
+        return self.group == groups.HOME
 
 
-def _section(group: str, label: str, rows: list[Row], shown: list[Row]) -> Section:
+def _section(info: groups.GroupInfo, rows: list[Row], shown: list[Row]) -> Section:
+    """Samtölur flokksins án leyndra lína (gjafa handa þeim sem skoðar)."""
+    counted = [r for r in rows if not r.secret]
     return Section(
-        group=group,
-        label=label,
-        icon=GROUP_ICONS[group],
+        group=info.value,
+        label=info.label,
+        icon=info.icon,
         rows=shown,
-        count=len(rows),
-        done=sum(r.gift.bought for r in rows),
-        plan=sum(r.gift.plan or 0 for r in rows),
-        spent=sum(r.price or 0 for r in rows),
+        count=len(counted),
+        done=sum(r.gift.bought for r in counted),
+        plan=sum(r.gift.plan or 0 for r in counted),
+        spent=sum(r.price or 0 for r in counted),
     )
 
 
@@ -275,7 +276,7 @@ class GiftList:
             for r in s.rows:
                 if r.gift.pk == gift.pk:
                     return s, r
-        return self.section(gift.person.group), None
+        return self.section(groups.value_of(gift.person)), None
 
 
 def build_list(
@@ -297,19 +298,18 @@ def build_list(
         state = ListState(state.filter, state.q, ALL_STORES, state.sort)
 
     sections = []
-    mine = [r for r in every_row if r.secret and matches(r, state)]
-    if mine:
-        sections.append(Section(MINE, _("Ég"), "🙋", mine, 0, 0, 0, 0))
-    for value, label in Group.choices:
-        in_group = [r for r in rows if r.gift.person.group == value]
+    for info in groups.all_groups(season.household):
+        in_group = [r for r in every_row if groups.value_of(r.gift.person) == info.value]
         shown = [r for r in in_group if matches(r, state)]
         if state.sort in _SORT_KEYS:
             shown.sort(key=_SORT_KEYS[state.sort])
+        # Lína þess sem skoðar (leynd) efst í sínum flokki
+        shown.sort(key=lambda r: not r.secret)
         if state.filtering and not shown:
             continue
-        if not in_group and (locked or value == Group.ANNAD):
+        if not in_group and (locked or info.value == Group.ANNAD or info.is_family):
             continue
-        sections.append(_section(value, label, in_group, shown))
+        sections.append(_section(info, in_group, shown))
 
     done = sum(r.gift.bought for r in rows)
     return GiftList(
@@ -419,8 +419,6 @@ def dash_note(summary: SeasonSummary) -> str:
         summary.todo,
     ) % {"n": summary.todo, "kr": format_kr(summary.planned_left)}
 
-
-GROUP_SHORT = {Group.VINNA: _l("Vinna")}
 
 # Kúlur á jólatrénu: (x, y, litur)
 ORNAMENTS = [

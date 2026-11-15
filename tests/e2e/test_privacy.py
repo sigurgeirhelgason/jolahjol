@@ -51,8 +51,8 @@ def test_invite_from_person_and_recipient_sees_only_wishes(live_server, page, lo
 
     mine = other.locator(".row.gift.secret")
     expect(mine).to_contain_text("Ásdís")
-    expect(other.locator("#group-eg")).to_contain_text("Ég")
-    expect(other.locator("#group-eg .row.gift.secret")).to_have_count(1)
+    # Hún er í flokki heimilisins (undir nafni þess), efst í honum
+    expect(other.locator("#group-heimili .row.gift.secret")).to_have_count(1)
     expect(other.locator("#sections")).not_to_contain_text("hálsmen")
     expect(mine.locator("input[type=checkbox]")).to_have_count(0)
     expect(mine.locator("input[name=plan]")).to_have_count(0)

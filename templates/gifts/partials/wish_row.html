@@ -2,7 +2,7 @@
 {% comment %}
   Lína með óskum viðtakandans sjálfs; ekkert um stöðu, verð né gefendur (services/privacy.py).
   Sama línan á tveimur stöðum:
-  - gjafalistinn („Ég“): `row` (listing.Row, secret), `gift`, `household`, `locked`
+  - gjafalistinn (lína þess sem skoðar, efst í sínum flokki): `row` (listing.Row, secret), `gift`, `household`, `locked`
   - óskabeiðni án innskráningar (wishlists/request.html): `wish_request` og `row` með `name`,
     `wishes` og `gift` (getur verið None þar til fyrsta óskin er skráð).
 {% endcomment %}

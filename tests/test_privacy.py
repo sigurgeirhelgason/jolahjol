@@ -113,7 +113,8 @@ def test_display_name(disa, joi):
 def test_recipient_sees_her_own_name_and_only_her_wishes(as_disa, gift, home):
     html = as_disa.get(url("season", home.slug, THIS_YEAR)).text
     assert "Ásdís" in html and "trefill" in html
-    assert "<h2>Ég</h2>" in html and 'id="group-eg"' in html
+    # Enginn „Ég“-flokkur lengur: línan hennar er efst í sínum flokki
+    assert "<h2>Ég</h2>" not in html and 'class="row gift secret' in html
     assert "leynihálsmen" not in html
     assert "25.000" not in html and "30.000" not in html
     assert f'hx-post="{url("bought", home.slug, gift.pk)}"' not in html
@@ -126,10 +127,10 @@ def test_her_own_gift_is_not_in_her_totals(gift, season, disa):
     assert gl.summary.count == 1 and gl.summary.total_plan == 5000 and gl.summary.spent == 0
     rows = {r.gift.pk: r for s in gl.sections for r in s.rows}
     assert rows[gift.pk].secret and not rows[other.pk].secret
-    # Línan hennar er efst í flokknum „Ég“, ekki í Fjölskyldu
-    assert gl.sections[0].mine and [r.gift.pk for r in gl.sections[0].rows] == [gift.pk]
-    assert gift.pk not in [r.gift.pk for r in gl.section("fjolskylda").rows]
-    assert gl.section("fjolskylda").plan == 0
+    # Línan hennar er efst í sínum flokki (Fjölskyldu) en telst ekki með í samtölum flokksins
+    family = gl.section("fjolskylda")
+    assert [r.gift.pk for r in family.rows] == [gift.pk]
+    assert family.count == 0 and family.plan == 0 and family.spent == 0
     bought = listing.build_list(season, listing.ListState(filter="keypt"), viewer=Viewer(disa.pk))
     assert all(r.gift.pk != gift.pk for s in bought.sections for r in s.rows)
 
@@ -137,7 +138,7 @@ def test_her_own_gift_is_not_in_her_totals(gift, season, disa):
 def test_others_see_everything_and_her_list_name(as_joi, gift, home):
     html = as_joi.get(url("season", home.slug, THIS_YEAR)).text
     assert "leynihálsmen" in html and "25.000" in html and "Dísa" in html
-    assert 'id="group-eg"' not in html and "Ásdís" not in html
+    assert 'class="row gift secret' not in html and "Ásdís" not in html
 
 
 def test_past_years_stay_hidden(as_disa, home, disa):
@@ -193,7 +194,7 @@ def test_recipient_sets_store_on_own_ideas_only(as_disa, gift, home):
     wish = gift.ideas.get(text="trefill")
     secret = gift.ideas.get(text="leynihálsmen")
     html = as_disa.get(url("season", home.slug, THIS_YEAR)).text
-    assert ">Nafn<" in html and ">Hugmyndir<" in html and ">Búð<" in html
+    assert ">Nafn<" in html and ">Verslun<" in html and 'class="row gift secret' in html
     response = as_disa.post(url("idea_store", home.slug, wish.pk), {"store": "Rúmfó"}, **HX)
     assert response.status_code == 200 and "Rúmfó" in response.text
     wish.refresh_from_db()
@@ -256,7 +257,7 @@ def test_creating_household_puts_you_on_the_list(client):
     household = Household.objects.get(name="Heima")
     assert response.url == reverse("gifts:list", args=[household.slug])
     membership = household.memberships.get()
-    assert membership.person.name == "Jói" and membership.person.group == "fjolskylda"
+    assert membership.person.name == "Jói" and membership.person.group == "heimili"
     assert Gift.objects.filter(person=membership.person, season__year=THIS_YEAR).exists()
     user.refresh_from_db()
     assert user.name == "Jói"
@@ -313,10 +314,10 @@ def test_accepting_person_invite_keeps_list_name(client, home, owner, disa):
     assert Gift.objects.filter(person=disa, season__year=THIS_YEAR).exists()
 
 
-def test_general_invite_puts_newcomer_in_family(home, owner):
+def test_general_invite_puts_newcomer_in_household_group(home, owner):
     invite = household_services.create_invite(home, owner.user)
     membership = household_services.accept_invite(invite.token, UserFactory(), "Gunna")
-    assert membership.person.name == "Gunna" and membership.person.group == "fjolskylda"
+    assert membership.person.name == "Gunna" and membership.person.group == "heimili"
 
 
 def test_general_invite_with_taken_name_asks_again(client, home, owner, joi):
@@ -385,7 +386,7 @@ def test_claim_with_new_name(client, home, season):
     client.force_login(member.user)
     client.post(reverse("households:claim_person", args=[home.slug]), {"person": "", "name": "Nýr"})
     member.refresh_from_db()
-    assert member.person.name == "Nýr" and member.person.group == "fjolskylda"
+    assert member.person.name == "Nýr" and member.person.group == "heimili"
 
 
 def test_nobody_changes_own_link(home, owner, joi):

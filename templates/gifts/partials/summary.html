@@ -42,7 +42,7 @@
     </div>
     <div class="mini-groups">
       {% for g in summary.groups %}
-        <div class="mini"><span>{{ g.group|group_icon }} {{ g.group|group_label }}</span><span class="c{% if g.done %} ok{% endif %}">{{ g.done }} / {{ g.count }}</span></div>
+        <div class="mini"><span>{{ g.icon }} {{ g.label }}</span><span class="c{% if g.done %} ok{% endif %}">{{ g.done }} / {{ g.count }}</span></div>
       {% endfor %}
     </div>
   </div>

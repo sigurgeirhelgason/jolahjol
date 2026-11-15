@@ -1,4 +1,5 @@
-"""Óskalistar: opinn hlekkur á hugmyndir eins einstaklings, og frátekning án innskráningar.
+"""Óskalistar: opinn hlekkur á hugmyndir eins einstaklings (eða alls heimilisfólksins), og
+frátekning án innskráningar.
 
 Opna síðan sýnir aðeins hugmyndir einstaklingsins á yfirstandandi ári. Hvorki nöfn annarra,
 upphæðir sem hafa verið greiddar, rukkun né hver tók frá birtast þar.
@@ -13,11 +14,11 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
 from apps.core.text import normalize
-from apps.gifts.models import Gift, Group, Idea, IdeaGiver, Person, Season
+from apps.gifts.models import Family, Gift, Group, Idea, IdeaGiver, Person, Season
 from apps.gifts.services.privacy import is_linked
 from apps.households.models import Household
 
-from .models import WishlistShare, WishRequest
+from .models import HouseholdShare, WishlistShare, WishRequest
 
 
 class WishlistError(Exception):
@@ -54,21 +55,32 @@ def revoke(person: Person) -> None:
 
 
 def visible_ideas(share: WishlistShare) -> tuple[Season | None, list[Idea]]:
+    return person_ideas(share.person)
+
+
+def person_ideas(person: Person) -> tuple[Season | None, list[Idea]]:
     """Hugmyndir einstaklingsins á yfirstandandi ári, í röð listans.
 
     Sé einstaklingurinn notandi í heimilinu birtast aðeins óskirnar sem hann skráði sjálfur:
     hann gæti opnað hlekkinn sjálfur (services/privacy.py).
     """
-    season = current_season(share.person.household)
+    season = current_season(person.household)
     if season is None:
         return None, []
-    gift = Gift.objects.alive().christmas().filter(season=season, person=share.person).first()
+    gift = Gift.objects.alive().christmas().filter(season=season, person=person).first()
     if gift is None:
         return season, []
     ideas = gift.ideas.visible().select_related("store").order_by("position", "id")
-    if is_linked(share.person):
+    if is_linked(person):
         ideas = ideas.filter(wish=True)
     return season, list(ideas)
+
+
+def share_people(share: "WishlistShare | HouseholdShare") -> list[Person]:
+    """Fólkið sem hlekkurinn sýnir: einn einstaklingur, eða heimilisfólkið."""
+    if isinstance(share, HouseholdShare):
+        return home_people(share.household)
+    return [share.person]
 
 
 def is_taken(idea: Idea) -> bool:
@@ -105,7 +117,7 @@ def _reserve_as(idea: Idea, name: str) -> bool:
 
 
 @transaction.atomic
-def reserve(share: WishlistShare, idea_id: int, name: str) -> Reservation:
+def reserve(share: "WishlistShare | HouseholdShare", idea_id: int, name: str) -> Reservation:
     name = name.strip()[:100]
     if not normalize(name):
         raise WishlistError("Skrifaðu nafnið þitt svo fjölskyldan viti hver tók frá.")
@@ -117,7 +129,7 @@ def reserve(share: WishlistShare, idea_id: int, name: str) -> Reservation:
 
 
 @transaction.atomic
-def cancel(share: WishlistShare, reservation: Reservation) -> None:
+def cancel(share: "WishlistShare | HouseholdShare", reservation: Reservation) -> None:
     """Hætt við frá sama tæki. Aðeins ef leyndarmálið passar (annars gerist ekkert)."""
     idea = _idea_for_share(share, reservation.idea_id, lock=True)
     if not idea.reservation_secret or not secrets.compare_digest(idea.reservation_secret, reservation.secret):
@@ -136,10 +148,10 @@ def clear_reservation(idea: Idea) -> None:
     idea.save(update_fields=["reserved", "reserved_by", "reserved_at", "reservation_secret"])
 
 
-def _idea_for_share(share: WishlistShare, idea_id: int, *, lock=False) -> Idea:
-    """Hugmynd sem tilheyrir einstaklingi hlekksins á yfirstandandi ári; annars WishlistError."""
-    season, ideas = visible_ideas(share)
-    if idea_id not in {i.pk for i in ideas}:
+def _idea_for_share(share: "WishlistShare | HouseholdShare", idea_id: int, *, lock=False) -> Idea:
+    """Hugmynd sem tilheyrir fólki hlekksins á yfirstandandi ári; annars WishlistError."""
+    ids = {i.pk for person in share_people(share) for i in person_ideas(person)[1]}
+    if idea_id not in ids:
         raise WishlistError("Þessi hugmynd er ekki á listanum lengur.")
     qs = Idea.objects.select_for_update() if lock else Idea.objects
     return qs.get(pk=idea_id)
@@ -159,6 +171,20 @@ def source_share(person: Person) -> WishlistShare | None:
     return active_share(person.source) if person.source_id else None
 
 
+def shared_people(person_ids) -> tuple[set[int], set[int]]:
+    """(eigin hlekkur, hlekkur heimilisins): þeir af `person_ids` sem eiga virkan eigin óskalista,
+    og þeir sem eru í flokki heimilisins þegar heimilið á virkan hlekk á óskalista heimilisins.
+
+    Hlekkur heimilisins gildir aðeins fyrir þá sem fylgja í gegnum heimilið (Person.family_follow):
+    loki Dísa eigin hlekk Sigga hættir Gunna, sem fylgdi honum ein og sér, að sjá hugmyndirnar.
+    """
+    own = WishlistShare.objects.filter(person_id__in=person_ids, revoked_at__isnull=True)
+    home = _home(Person.objects.filter(pk__in=person_ids)).filter(
+        household__wishlist_shares__revoked_at__isnull=True
+    )
+    return set(own.values_list("person_id", flat=True)), set(home.values_list("pk", flat=True))
+
+
 def gift_feeds(gifts) -> dict[int, list[Idea]]:
     """Hugmyndir af óskalistum sem birtast á línum `gifts`: {gift_id: [hugmyndir]}.
 
@@ -172,13 +198,8 @@ def gift_feeds(gifts) -> dict[int, list[Idea]]:
     wanted = [g for g in gifts if g.person.source_id and g.occasion == "jol"]
     if not wanted:
         return {}
-    source_ids = {g.person.source_id for g in wanted}
-    shared = set(
-        WishlistShare.objects.filter(person_id__in=source_ids, revoked_at__isnull=True).values_list(
-            "person_id", flat=True
-        )
-    )
-    sources = {p.pk: p for p in Person.objects.filter(pk__in=shared)}
+    own_shared, home_shared = shared_people({g.person.source_id for g in wanted})
+    sources = {p.pk: p for p in Person.objects.filter(pk__in=own_shared | home_shared)}
     # Ár hvers heimilis eftir sömu reglu og current_season: þetta ár ef það er til, annars nýjasta
     this_year = timezone.localdate().year
     current: dict[int, Season] = {}
@@ -202,7 +223,9 @@ def gift_feeds(gifts) -> dict[int, list[Idea]]:
 
     out: dict[int, list[Idea]] = {}
     for gift in wanted:
-        source = sources.get(gift.person.source_id)
+        source_id = gift.person.source_id
+        allowed = source_id in own_shared or (gift.person.family_follow and source_id in home_shared)
+        source = sources.get(source_id) if allowed else None
         source_gift = source_gifts.get(source.pk) if source else None
         if source_gift is None or current[source.household_id].year != gift.season.year:
             out[gift.pk] = []
@@ -240,7 +263,9 @@ def follow(share: WishlistShare, household: Household, *, person=None, name="", 
         if not normalize(name):
             raise WishlistError("Skrifaðu nafnið sem á að birtast á listanum þínum.")
         if already is None:
-            person = find_or_create(household, name, group if group in Group.values else Group.ANNAD)
+            # Ekki „Heimilið“: þar er heimilisfólkið sjálft, ekki einhver úr öðru heimili
+            valid = group in Group.values and group != Group.HEIMILI
+            person = find_or_create(household, name, group if valid else Group.ANNAD)
     elif person.household_id != household.pk:
         raise WishlistError("Þessi einstaklingur er ekki á listanum þínum.")
     if already is not None and (person is None or person.pk != already.pk):
@@ -256,9 +281,14 @@ def follow(share: WishlistShare, household: Household, *, person=None, name="", 
 
 
 def unfollow(person: Person) -> None:
-    """„Hætta að fylgja“. Hugmyndir sem voru teknar (afrit) haldast."""
+    """„Hætta að fylgja“. Hugmyndir sem voru teknar (afrit) haldast.
+
+    Í heimili sem er fylgt fer hann úr flokki þess (í sinn fyrri flokk) og bætist ekki aftur við.
+    """
     person.source = None
-    person.save(update_fields=["source"])
+    person.family = None
+    person.family_follow = False
+    person.save(update_fields=["source", "family", "family_follow"])
 
 
 def following(user, source: Person) -> list[Person]:
@@ -487,7 +517,7 @@ def own_wishes(request: WishRequest) -> list[Idea]:
 
 
 def wish_row(request: WishRequest) -> dict:
-    """Línan á opnu síðunni, eins og „Ég“-línan á gjafalistanum (gifts/partials/wish_row.html)."""
+    """Línan á opnu síðunni, eins og eigin lína á gjafalistanum (gifts/partials/wish_row.html)."""
     gift = _request_gift(request)
     return {"name": request.person.name, "gift": gift, "wishes": list(_wishes(gift))}
 
@@ -527,3 +557,155 @@ def delete_wish(request: WishRequest, idea_id: int) -> None:
     from apps.gifts.services.gifts import remove_wish
 
     remove_wish(own_wish(request, idea_id))
+
+
+# ---------- Óskalisti heimilis: allt heimilisfólkið á einni síðu ----------
+#
+# Dísa á heimilið „Laugavegur 5“ og þar eru Dísa, Jói, Siggi og Stína í flokki heimilisins. Hún
+# sendir ömmu Röggu einn hlekk (HouseholdShare). Amma sér óskir allra og getur tekið frá eins og á
+# óskalista eins einstaklings. Hún getur líka bætt heimilinu í heild á sinn lista: þar verður til
+# flokkurinn „Laugavegur 5“ (gifts.Family) og hvert þeirra fylgir sínum óskalista (Person.source).
+# Bætist einhver síðar við heimilisflokkinn á Laugavegi 5 bætist hann líka við hjá ömmu.
+
+
+def _home(people):
+    return people.filter(group=Group.HEIMILI, family__isnull=True)
+
+
+def home_people(household: Household) -> list[Person]:
+    """Heimilisfólkið sem óskalisti heimilisins sýnir, í stafrófsröð."""
+    from apps.core.text import is_sort_key
+
+    people = _home(Person.objects.recipients().filter(household=household))
+    return sorted(people, key=lambda p: is_sort_key(p.name))
+
+
+def active_household_share(household: Household) -> HouseholdShare | None:
+    return household.wishlist_shares.filter(revoked_at__isnull=True).order_by("-created_at").first()
+
+
+def get_household_share(token: str) -> HouseholdShare | None:
+    return (
+        HouseholdShare.objects.select_related("household")
+        .filter(token=token, revoked_at__isnull=True)
+        .first()
+    )
+
+
+@transaction.atomic
+def create_household_share(household: Household, by) -> HouseholdShare:
+    """Nýr hlekkur; eldri hlekkir heimilisins hætta að virka."""
+    revoke_household_share(household)
+    return HouseholdShare.objects.create(household=household, created_by=by)
+
+
+def revoke_household_share(household: Household) -> None:
+    household.wishlist_shares.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
+
+
+def household_follower_names(household: Household) -> list[str]:
+    """„Á lista hjá: Ragga“: notendur heimila sem fylgja heimilinu í heild."""
+    names: set[str] = set()
+    for follower in Household.objects.filter(families__source=household).distinct():
+        names.update(member_names(follower) or [follower.name])
+    return sorted(names)
+
+
+def following_household(user, source: Household) -> list[Family]:
+    """Heimili notandans sem fylgja `source` nú þegar."""
+    return list(
+        Family.objects.filter(source=source, household__memberships__user=user).select_related("household")
+    )
+
+
+@transaction.atomic
+def follow_household(share: HouseholdShare, household: Household) -> Family:
+    """Amma Ragga bætir Laugavegi 5 á sinn lista: flokkurinn verður til og heimilisfólkið bætist í hann."""
+    if household.pk == share.household_id:
+        raise WishlistError("Þetta er þitt eigið heimili.")
+    family, _created = Family.objects.get_or_create(household=household, source=share.household)
+    sync_family(family)
+    return family
+
+
+@transaction.atomic
+def sync_family(family: Family) -> list[Person]:
+    """Heimilisfólk sem hefur ekki enn bæst í flokkinn bætist við (líka þeir sem bættust síðar
+    við heimilisflokkinn þar). Aðeins á meðan hlekkurinn er virkur. Skilar þeim sem bættust við.
+
+    Hver bætist aðeins einu sinni við (`seen`): ekki aftur ef amma hætti að fylgja honum.
+    """
+    family = (
+        Family.objects.select_for_update(of=("self",)).select_related("household", "source").get(pk=family.pk)
+    )
+    if active_household_share(family.source) is None:
+        return []
+    seen = set(family.seen.values_list("pk", flat=True))
+    added = []
+    for member in home_people(family.source):
+        if member.pk in seen:
+            continue
+        family.seen.add(member)
+        person = _family_person(family, member)
+        if person is not None:
+            added.append(person)
+    return added
+
+
+def _family_person(family: Family, member: Person) -> Person | None:
+    """Einstaklingurinn hjá ömmu sem fylgir `member`: sá sem fylgir honum nú þegar, sá sem heitir
+    sama nafni í Fjölskyldu eða Börnum og fylgir engum (Siggi sem amma var með fyrir), eða nýr.
+
+    Aðeins Fjölskylda og Börn: Siggi vinur ömmu (Vinir) á ekki að fá óskalista barnabarnsins.
+    """
+    from apps.gifts.services.gifts import ensure_christmas_gift
+    from apps.households.models import Membership
+
+    household = family.household
+    person = Person.objects.filter(household=household, source=member).first()
+    already_following = person is not None
+    if person is None:
+        same_name = Person.objects.filter(household=household, key=normalize(member.name))
+        # Ekki notendur hjá ömmu, þótt nafnið sé það sama
+        person = (
+            same_name.filter(source__isnull=True, family__isnull=True)
+            .filter(group__in=[Group.FJOLSKYLDA, Group.BORN])
+            .exclude(pk__in=Membership.objects.exclude(person=None).values("person_id"))
+            .first()
+        )
+        if person is None:
+            name = member.name if not same_name.exists() else f"{member.name} ({family.name})"[:100]
+            person, _created = Person.objects.get_or_create(
+                household=household, key=normalize(name), defaults={"name": name, "group": Group.FJOLSKYLDA}
+            )
+            if person.source_id:
+                return None  # nafnið með heimilinu er þegar til og fylgir öðrum (mjög ólíklegt)
+    person.source = member
+    person.family = family
+    # Fylgdi hann þegar (eigin hlekkur) helst sú fylgni ef hætt er að fylgja heimilinu
+    person.family_follow = person.family_follow or not already_following
+    person.save(update_fields=["source", "family", "family_follow"])
+    season = current_season(member.household)
+    if person.give_christmas and season is not None:
+        ensure_christmas_gift(person, season.year)
+    return person
+
+
+def sync_families(household: Household) -> None:
+    """Allir flokkar heimila sem `household` fylgir (kallað þegar listinn er opnaður)."""
+    for family in Family.objects.filter(household=household):
+        sync_family(family)
+
+
+@transaction.atomic
+def unfollow_family(family: Family) -> None:
+    """„Hætta að fylgja heimilinu“: fólkið helst á listanum (í sínum fyrri flokki, Fjölskyldu) en
+    fylgir ekki lengur óskalistunum þaðan. Hugmyndir sem voru teknar (afrit) haldast.
+
+    Aðeins fylgni sem heimilið bjó til slitnar (líka hjá þeim sem voru færðir í annan flokk);
+    sá sem fylgdi eigin hlekk áður heldur honum.
+    """
+    Person.objects.filter(
+        household=family.household, family_follow=True, source__household=family.source
+    ).update(source=None, family_follow=False)
+    family.delete()

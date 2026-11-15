@@ -4,11 +4,11 @@
 {% block page %}
 <p class="note"><span class="ms">info</span>{% translate "Smelltu á nafn til að breyta upplýsingum. Nafnabreyting gildir í öllum árum." %}</p>
 <div class="sections">
-  {% for value, label, members in people_groups %}
+  {% for group, members in people_groups %}
     <div class="card">
       <div class="g-head">
         <div class="g-title">
-          <span class="emoji">{{ value|group_icon }}</span><h2>{{ label }}</h2>
+          <span class="emoji">{{ group.icon }}</span><h2>{{ group.label }}</h2>
           <span class="count-pill">{% blocktranslate count n=members|length %}{{ n }} aðili{% plural %}{{ n }} aðilar{% endblocktranslate %}</span>
         </div>
       </div>
@@ -31,7 +31,7 @@
           </div>
           <select name="group" aria-label="{% blocktranslate with name=person.name %}Flokkur {{ name }}{% endblocktranslate %}"
                   hx-post="{% url 'gifts:person_group' household.slug person.pk %}" hx-trigger="change">
-            {% for gvalue, glabel in group_choices %}<option value="{{ gvalue }}"{% if gvalue == person.group %} selected{% endif %}>{{ gvalue|group_icon }} {{ glabel }}</option>{% endfor %}
+            {% for g in group_choices %}<option value="{{ g.value }}"{% if g.value == group.value %} selected{% endif %}>{{ g.icon }} {{ g.label }}</option>{% endfor %}
           </select>
           <div class="years" title="{% for year, text in past %}{{ year }}: {{ text }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
             {% for year, text in past %}<b>{{ year }}</b> {{ text }}{% if not forloop.last %} · {% endif %}{% empty %}{% translate "Engar gjafir keyptar enn" %}{% endfor %}

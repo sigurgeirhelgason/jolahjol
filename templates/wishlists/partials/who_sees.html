@@ -1,0 +1,14 @@
+{% load i18n %}
+{% comment %}
+  „Hver sér að þetta er frátekið?“ á opnum óskalista (einstaklings og heimilis). Reglurnar eru í
+  wishlists/views._rows (aðrir sjá ekki það sem er frátekið), gifts/templatetags idea_title
+  („frátekið af …“ hjá heimilinu) og gifts/services/privacy.py (viðtakandinn sér það ekki).
+{% endcomment %}
+<details class="who-sees">
+  <summary><span class="ms">info</span>{% translate "Hver sér að þetta er frátekið?" %}</summary>
+  <ul>
+    <li><strong>{% translate "Aðrir með hlekkinn:" %}</strong> {% translate "gjöfin hverfur af listanum hjá þeim, svo enginn kaupi það sama. Þau sjá ekki hver tók hana frá." %}</li>
+    <li><strong>{% translate "Heimilið sem deildi listanum:" %}</strong> {% translate "sér hver tók gjöfina frá, nema sá sem á að fá hana ef hann er sjálfur notandi á heimilinu. Fyrir honum er það leyndarmál." %}</li>
+    <li><strong>{% translate "Þú:" %}</strong> {% translate "sérð það í þessu tæki og getur hætt við." %}</li>
+  </ul>
+</details>

@@ -167,7 +167,9 @@ def resolve_recipient(gift: Gift, name: str) -> Person:
         current.name = name
         current.save()
         return current
-    target = other or Person.objects.create(household=current.household, name=name, group=current.group)
+    target = other or Person.objects.create(
+        household=current.household, name=name, group=current.group, family=current.family
+    )
     gift.person = target
     gift.save(update_fields=["person", "updated_at"])
     if not is_shared(current):
@@ -177,11 +179,13 @@ def resolve_recipient(gift: Gift, name: str) -> Person:
 
 @transaction.atomic
 def update_details(person: Person, *, group, birthday, give_christmas, give_birthday) -> Person:
-    person.group = group
+    from . import groups
+
+    groups.assign(person, group, save=False)
     person.birthday = birthday
     person.give_christmas = give_christmas
     person.give_birthday = give_birthday
-    person.save(update_fields=["group", "birthday", "give_christmas", "give_birthday"])
+    person.save(update_fields=["group", "family", "birthday", "give_christmas", "give_birthday"])
     return person
 
 
