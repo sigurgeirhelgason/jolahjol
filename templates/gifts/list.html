@@ -57,7 +57,7 @@
           <div>{% translate "Verslun" %}</div><div class="r">{% translate "Áætlað" %}</div><div class="r">{% translate "Raunverð" %}</div><div class="c">{% translate "Aðgerðir" %}</div>
         </div>
       {% endif %}
-      <div id="{{ section.dom_id }}-rows">
+      <div class="g-rows" id="{{ section.dom_id }}-rows">
         {% for row in section.rows %}
           {% include "gifts/partials/gift_row.html" %}
         {% endfor %}

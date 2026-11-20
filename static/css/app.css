@@ -316,6 +316,8 @@ dialog .past li.none { display: block; color: var(--outline); }
 .amount:focus-within .split { visibility: hidden; }
 .over { display: flex; flex-direction: column; padding: 2px 7px 0; font: 700 11px/15px var(--display); color: var(--primary); white-space: nowrap; }
 .over .n { text-align: right; font-variant-numeric: tabular-nums; }
+/* Merkingar á upphæðum: thead er falinn í mjóum skjá, svo þá stendur merkingin við töluna */
+.m-lbl, .m-ico { display: none; }
 
 .actions { display: flex; justify-content: center; gap: 2px; color: var(--on-var); opacity: .7; }
 .gift:hover .actions { opacity: 1; }
@@ -488,6 +490,21 @@ form.gift-form { display: flex; flex-direction: column; gap: 16px; }
 }
 .mobile-views { display: none; overflow-x: auto; margin: 0 16px 10px; }
 .mobile-views button { flex-shrink: 0; }
+/* Síðurnar með táknum í síma (reff/mobile), neðst í toppstikunni svo þær fylgja henni efst.
+   Þétt: gjafalistinn er það sem fólk skoðar mest og á að fá plássið. */
+.icon-nav { display: none; }
+@media (max-width: 760px) {
+  .mobile-views { display: none !important; }
+  .icon-nav { display: flex; padding: 0 4px 2px; }
+  .icon-nav a {
+    position: relative; flex: 1 1 0; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+    text-decoration: none; font: 600 10px/13px var(--display); color: var(--on-var); white-space: nowrap; -webkit-tap-highlight-color: transparent;
+  }
+  .icon-nav .ms { font-size: 20px; padding: 1px 14px; border-radius: 99px; transition: background .15s; }
+  .icon-nav a.active { color: var(--primary); font-weight: 700; }
+  .icon-nav a.active .ms { background: var(--primary-soft); font-variation-settings: "FILL" 1; }
+  .icon-nav .nav-count { position: absolute; top: 0; left: calc(50% + 8px); margin: 0; min-width: 16px; padding: 0 4px; font-size: 10px; line-height: 16px; }
+}
 
 @media (max-width: 900px) {
   .dash { grid-template-columns: 1fr; }
@@ -508,28 +525,81 @@ form.gift-form { display: flex; flex-direction: column; gap: 16px; }
   .tools { width: 100%; }
   .seg { width: 100%; overflow-x: auto; }
   .thead { display: none; }
+  /* Gjafalistinn í síma (reff/mobile): flokkurinn er ekki spjald heldur hver aðili.
+     Haus (gátreitur, nafn, aðgerðir) → hugmyndir á hvítum grunni, búðin undir hverri →
+     „+ Hugmynd“ → fótur með „Áætlað:“ og „Raunverð:“. */
+  .sections > .card { background: none; box-shadow: none; border-radius: 0; overflow: visible; }
+  .sections > .card > .g-head { background: none; padding: 0 4px 12px; }
+  .g-rows { display: flex; flex-direction: column; gap: 16px; }
+  .card > .row.gift { border-radius: 0; box-shadow: none; } /* stök lína inni í spjaldi (óskabeiðni) */
   .gift {
-    grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr) 72px;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
     grid-template-areas:
-      "chk name name act"
-      ".   idea idea idea"
-      ".   plan price .";
-    row-gap: 6px; padding: 12px 0;
+      "chk  name  act"
+      "idea idea  idea"
+      "plan plan  price";
+    padding: 0; border-radius: 16px; overflow: hidden; background: var(--lowest);
+    border: 1px solid var(--highest); box-shadow: var(--shadow-2); /* skýr skil milli aðila */
   }
-  .gift > :nth-child(1) { grid-area: chk; align-self: start; padding-top: 4px; }
-  .gift > :nth-child(2) { grid-area: name; }
+  .gift:hover, .gift.done, .gift.done:hover { background: var(--lowest); }
+  /* Hausinn dekkri en fóturinn, svo hvert spjald byrji greinilega */
+  .gift > :is(:nth-child(1), :nth-child(2), :nth-child(6)) { background: var(--high); }
+  .gift.done > :is(:nth-child(1), :nth-child(2), :nth-child(6)) { background: #e3f1e8; }
+  .gift > :is(.amount, .price-wrap) { background: var(--low); }
+  .row.gift > div { padding: 0; }
+  .gift > :nth-child(1) { grid-area: chk; align-self: stretch; align-items: flex-start; padding: 16px 0 0 4px !important; }
+  .gift > :nth-child(2) { grid-area: name; align-self: stretch; display: flex; flex-direction: column; justify-content: center; padding: 12px 0 !important; }
   .gift > :nth-child(3) { grid-area: idea; }
   .gift > :nth-child(4) { grid-area: plan; }
   .gift > :nth-child(5) { grid-area: price; }
-  .gift > :nth-child(6) { grid-area: act; align-self: start; }
-  .row.gift > .ideas { grid-area: idea; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
-  .idea-line { display: flex; justify-content: space-between; gap: 8px; }
-  .idea-line > .idea-main { flex: 1 1 auto; padding: 0; }
+  .gift > :nth-child(6) { grid-area: act; align-self: stretch; align-items: flex-start; padding: 10px 8px 0 0 !important; }
+  .gift .name-btn { font-size: 20px; line-height: 28px; padding: 0 4px; }
+  .gift .hist { padding: 0 4px; }
+  .row.gift > .ideas {
+    grid-area: idea; display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch;
+    background: var(--lowest); border-top: 1px solid var(--high);
+  }
+  .idea-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; min-height: 0; padding: 12px 12px 12px 16px; border-bottom: 1px solid var(--cont); }
+  .idea-line > .idea-main { flex: 1 1 100%; gap: 10px; padding: 0; font-size: 15px; line-height: 22px; }
+  .idea-line input[type="checkbox"], .check-spacer { width: 20px; height: 20px; }
+  .idea-line.picked, .idea-line.reserved { background: #f2f9f4; }
   .chip-t .tail { white-space: normal; } /* mjór dálkur: betra að brjóta en að klippa verðið */
-  .idea-line > .store { flex: none; max-width: 45%; padding: 0; }
+  .idea-line .chip-x { padding: 4px 6px; font-size: 18px; }
+  /* Búðin undir hugmyndinni, vinstrajöfnuð með búðartákni (í línu við textann, ekki gátreitinn) */
+  .idea-line > .store { flex: 1 1 100%; gap: 6px; padding: 0 0 0 30px; font-size: 13px; line-height: 18px; color: var(--on-var); }
+  .idea-line .store .stores { padding: 0; gap: 2px 6px; align-items: center; }
+  .idea-line .store .store-btn { font-size: 13px; }
+  .idea-line .store .m-ico { display: inline; font-size: 16px; color: var(--outline); }
+  .idea-line .store-input { max-width: 160px; padding: 0 4px 0 0; font-size: 13px; font-weight: 600; }
+  .idea-line .store-input::placeholder { color: var(--primary); opacity: 1; }
+  .idea-line .store-input:focus::placeholder { color: var(--outline); }
+  .idea-line .stores.none:not(:has(.m-ico)) { display: none; } /* „Óákveðin“ */
+  .gift.secret .idea-line > .store { padding-left: 0; } /* óskir viðtakanda: enginn gátreitur */
+  .idea-line > .store:not(:has(.m-ico, a)) { display: none; }
+  /* „+ Hugmynd“: heil rönd neðst í hugmyndunum */
+  .idea-line.add-line { flex-wrap: nowrap; justify-content: center; padding: 6px 12px; border-bottom: none; background: var(--low); }
+  .idea-line.add-line > .idea-main { flex: 1 1 auto; justify-content: center; }
+  .idea-line.add-line > .store { flex: none; padding: 0; }
+  .add-line .chip-input { width: 100%; max-width: 260px; background: none; text-align: center; font-size: 13px; line-height: 20px; }
+  .add-line .chip-input:hover { background: var(--cont); }
+  .add-line .chip-input:focus { width: 100%; background: var(--lowest); text-align: left; }
+  /* Fótur: Áætlað til vinstri (breytanlegt), Raunverð til hægri */
+  .gift > .amount, .gift > .price-wrap { display: flex; align-items: center; flex-wrap: wrap; align-self: stretch; border-top: 1px solid var(--high); font-size: 13px; }
+  .gift > .amount { padding: 8px 0 8px 16px !important; }
+  .gift > .price-wrap { justify-content: flex-end; column-gap: 4px; padding: 8px 16px 8px 8px !important; }
+  .m-lbl { display: inline; color: var(--on-var); white-space: nowrap; }
+  .m-lbl::after { content: ":"; }
+  .gift > .amount .cell.num { width: 9em; padding: 2px 4px; margin-left: 2px; text-align: left; font-weight: 700; }
+  .gift > .price-wrap > .cell.ro { width: auto; padding: 0; font-weight: 700; }
+  .gift > .price-wrap > :is(.split, .over) { flex-basis: 100%; align-items: flex-end; padding: 2px 0 0; }
+  .gift.secret > :is(.amount, .price-wrap), .new-row > .price-wrap { display: none; }
+  .new-row > .amount { grid-column: 1 / -1; }
+  .new-row-hint { padding: 12px 16px !important; }
   .actions { opacity: 1; }
-  .cell.num { text-align: left; }
   .chip-x { opacity: 1; }
+  /* Bæta við aðila: heill, ljós hnappur undir spjöldunum */
+  .sections > .card > .add-person { margin-top: 12px; padding: 0; background: none; }
+  .add-person button { width: 100%; justify-content: center; padding: 12px; border-radius: 12px; background: var(--cont); font-size: 13px; color: var(--on-var); }
   .shop-item, .bill-item { grid-template-columns: 48px 1fr 96px; }
   .person { grid-template-columns: minmax(0, 1fr) 140px; }
   .person .years { grid-column: 1 / -1; white-space: normal; }

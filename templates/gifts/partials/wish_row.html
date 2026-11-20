@@ -27,14 +27,14 @@
         <div class="store">
           {% if wish_request %}
           {# Án tillagna (datalist): búðir heimilisins sjást ekki hér. Breytt í óskaglugganum. #}
-          {% if idea.store %}<span class="stores"><span class="store-btn">{{ idea.store.name }}</span></span>
-          {% else %}<input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" autocomplete="off" maxlength="100"
+          {% if idea.store %}<span class="stores"><span class="ms m-ico" aria-hidden="true">storefront</span><span class="store-btn">{{ idea.store.name }}</span></span>
+          {% else %}<span class="ms m-ico" aria-hidden="true">storefront</span><input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" autocomplete="off" maxlength="100"
               aria-label="{% blocktranslate with what=idea.text %}Búð fyrir {{ what }}{% endblocktranslate %}"
               hx-post="{% url 'wishlists:request_store' wish_request.token idea.pk %}" hx-trigger="change" hx-target="#wish-row" hx-swap="outerHTML">{% endif %}
           {% else %}
-          {% if idea.store %}<span class="stores"><button type="button" class="store-btn" title="{{ idea.store|locations_title|default:_('Bæta við staðsetningu') }}"
+          {% if idea.store %}<span class="stores"><span class="ms m-ico" aria-hidden="true">storefront</span><button type="button" class="store-btn" title="{{ idea.store|locations_title|default:_('Bæta við staðsetningu') }}"
               hx-get="{% url 'gifts:store' household.slug idea.store.pk %}?ar={{ gift.season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ idea.store.name }}</button></span>
-          {% elif not locked %}<input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" list="row-store-list" autocomplete="off"
+          {% elif not locked %}<span class="ms m-ico" aria-hidden="true">storefront</span><input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" list="row-store-list" autocomplete="off"
               aria-label="{% blocktranslate with what=idea.text %}Búð fyrir {{ what }}{% endblocktranslate %}"
               hx-post="{% url 'gifts:idea_store' household.slug idea.pk %}" hx-trigger="change" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">{% endif %}
           {% endif %}

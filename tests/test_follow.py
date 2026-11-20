@@ -334,8 +334,8 @@ def test_feed_shows_the_ideas_store_not_the_household(client, laugavegur, disa):
     services.follow(laugavegur["share"], disa.household, name="Sigga")
     client.force_login(disa.user)
     page = client.get(reverse("gifts:season", args=[disa.household.slug, YEAR])).text
-    assert '<span class="stores none">Elko</span>' in page
-    assert '<span class="stores none">Laugavegur 4</span>' not in page
+    assert '<span class="stores none"><span class="ms m-ico" aria-hidden="true">storefront</span>Elko</span>' in page
+    assert '<span class="stores none"><span class="ms m-ico" aria-hidden="true">storefront</span>Laugavegur 4</span>' not in page
 
 
 # ---------- Úr yfirferð ----------

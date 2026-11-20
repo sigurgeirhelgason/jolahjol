@@ -13,6 +13,7 @@
   </div>
   <div class="ideas new-row-hint">{% translate "Hugmyndir koma þegar nafnið er komið" %}</div>
   <div class="amount">
+    <span class="m-lbl" aria-hidden="true">{% translate "Áætlað" %}</span>
     <input class="cell num" name="plan" value="{{ form.plan.value|default:'' }}" placeholder="—" inputmode="numeric" autocomplete="off"
            aria-label="{% translate 'Áætlað verð' %}" title="{% translate 'Áætlað verð' %}">
   </div>

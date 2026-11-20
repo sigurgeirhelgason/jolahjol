@@ -35,9 +35,9 @@
                 hx-post="{% url 'gifts:idea_remove' household.slug idea.pk %}" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">×</button>{% endif %}
         </div>
         <div class="store">
-          {% if idea.store %}<span class="stores"><button type="button" class="store-btn" title="{{ idea.store|locations_title|default:_('Bæta við staðsetningu') }}"
+          {% if idea.store %}<span class="stores"><span class="ms m-ico" aria-hidden="true">storefront</span><button type="button" class="store-btn" title="{{ idea.store|locations_title|default:_('Bæta við staðsetningu') }}"
               hx-get="{% url 'gifts:store' household.slug idea.store.pk %}?ar={{ gift.season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ idea.store.name }}</button></span>
-          {% elif not locked and not idea.wish %}<input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" list="row-store-list" autocomplete="off"
+          {% elif not locked and not idea.wish %}<span class="ms m-ico" aria-hidden="true">storefront</span><input class="store-input" name="store" placeholder="{% translate '+ Búð' %}" list="row-store-list" autocomplete="off"
               aria-label="{% blocktranslate with what=idea.text %}Búð fyrir {{ what }}{% endblocktranslate %}"
               hx-post="{% url 'gifts:idea_store' household.slug idea.pk %}" hx-trigger="change" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">{% endif %}
           {% if idea.link %}<a href="{{ idea.link }}" target="_blank" rel="noopener noreferrer" title="{{ idea.link }}"><span class="ms">open_in_new</span></a>{% endif %}
@@ -55,7 +55,7 @@
                 hx-get="{% url 'gifts:feed_idea' household.slug gift.pk idea.pk %}" hx-target="#modal-body"><span class="ms">link</span>{{ idea.text }}{% if idea.note or idea.link %}<span class="p"> ⋯</span>{% endif %}</button>
         </div>
         {# Búðin sem hugmyndin er merkt (hjá þeim sem deildu); hvaðan hún kemur sést á hlekkjatákninu #}
-        <div class="store">{% if idea.store %}<span class="stores none">{{ idea.store.name }}</span>{% endif %}</div>
+        <div class="store">{% if idea.store %}<span class="stores none"><span class="ms m-ico" aria-hidden="true">storefront</span>{{ idea.store.name }}</span>{% endif %}</div>
       </div>
     {% endfor %}
     <div class="idea-line add-line">
@@ -67,13 +67,14 @@
         {% endif %}
       </div>
       <div class="store">
-        {% if row.gift_stores %}<span class="stores">{% for store in row.gift_stores %}<button type="button" class="store-btn" title="{{ store|locations_title|default:_('Bæta við staðsetningu') }}"
+        {% if row.gift_stores %}<span class="stores"><span class="ms m-ico" aria-hidden="true">storefront</span>{% for store in row.gift_stores %}<button type="button" class="store-btn" title="{{ store|locations_title|default:_('Bæta við staðsetningu') }}"
             hx-get="{% url 'gifts:store' household.slug store.pk %}?ar={{ gift.season.year }}" hx-target="#modal-body"{% if locked %} disabled{% endif %}>{{ store.name }}</button>{% endfor %}</span>{% elif not row.stores %}<span class="stores none">{% translate "Óákveðin" %}</span>{% endif %}
         {% if gift.link %}<a href="{{ gift.link }}" target="_blank" rel="noopener noreferrer" title="{{ gift.link }}"><span class="ms">open_in_new</span></a>{% endif %}
       </div>
     </div>
   </div>
   <div class="amount">
+    <label class="m-lbl" for="plan-{{ gift.pk }}" aria-hidden="true">{% translate "Áætlað" %}</label>
     <input class="cell num" name="plan" id="plan-{{ gift.pk }}" value="{% if gift.plan is not None %}{{ gift.plan|kr }}{% endif %}" placeholder="—"
            aria-label="{% blocktranslate with name=gift.person.name %}Áætlað verð handa {{ name }}{% endblocktranslate %}"
            title="{% translate 'Skrifaðu +upphæð til að bæta við' %}" autocomplete="off" inputmode="numeric"{% if locked %} disabled{% endif %}
@@ -81,6 +82,7 @@
            hx-post="{% url 'gifts:plan' household.slug gift.pk %}" hx-trigger="change" hx-target="#gift-{{ gift.pk }}" hx-swap="outerHTML">
   </div>
   <div class="price-wrap">
+    <span class="m-lbl" aria-hidden="true">{% translate "Raunverð" %}</span>
     {% if row.breakdown %}
       <span class="split">
         {% for who, n in row.breakdown %}<span class="who">{% if who %}{{ who.name }}{% else %}{% translate "Frá okkur" %}{% endif %}:</span><span class="n">{{ n|kr }}</span>{% endfor %}
